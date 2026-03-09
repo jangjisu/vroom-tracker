@@ -28,14 +28,13 @@ public class TrafficService {
     @Value("${ex.api.key}")
     private String apiKey;
 
-    private static final String JSON = "json";
+    @Value("${traffic.congestion.high-threshold}")
+    private double highThreshold;
 
-    /**
-     * 혼잡도 기준 (단위: 만대)
-     * ※ 실제 데이터 확인 후 TrafficConfig 등으로 분리하여 조정하세요
-     */
-    static final double HIGH_THRESHOLD = 5.0;
-    static final double MEDIUM_THRESHOLD = 2.0;
+    @Value("${traffic.congestion.medium-threshold}")
+    private double mediumThreshold;
+
+    private static final String JSON = "json";
 
     public record DashboardData(
             NationwideTrafficDto summary,
@@ -131,7 +130,7 @@ public class TrafficService {
 
         long congestedCount = allItems.stream()
                 .filter(i -> i.getTrafficAmount() != null)
-                .filter(i -> parseAmount(i.getTrafficAmount()) >= HIGH_THRESHOLD)
+                .filter(i -> parseAmount(i.getTrafficAmount()) >= highThreshold)
                 .count();
 
         String latestSumTm = allItems.stream()
@@ -178,14 +177,14 @@ public class TrafficService {
     }
 
     private String congestionLevel(double vol) {
-        if (vol >= HIGH_THRESHOLD) return "HIGH";
-        if (vol >= MEDIUM_THRESHOLD) return "MEDIUM";
+        if (vol >= highThreshold) return "HIGH";
+        if (vol >= mediumThreshold) return "MEDIUM";
         return "LOW";
     }
 
     private String congestionLabel(double vol) {
-        if (vol >= HIGH_THRESHOLD) return "많음";
-        if (vol >= MEDIUM_THRESHOLD) return "보통";
+        if (vol >= highThreshold) return "많음";
+        if (vol >= mediumThreshold) return "보통";
         return "적음";
     }
 }
