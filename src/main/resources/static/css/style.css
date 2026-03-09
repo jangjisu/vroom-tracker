@@ -1,0 +1,124 @@
+/* ===== Layout ===== */
+body {
+    background-color: #f5f6fa;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* ===== Navbar ===== */
+.navbar {
+    border-bottom: 1px solid #2d2d2d;
+}
+
+/* ===== Summary Cards ===== */
+.summary-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.summary-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* ===== Ranking Table ===== */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e9ecef;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 0.85rem 1.25rem;
+}
+
+.card-footer {
+    background-color: #fafafa;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 12px 12px !important;
+}
+
+/* ===== Route Filter Buttons ===== */
+.route-btn {
+    font-size: 0.78rem;
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    transition: all 0.15s ease;
+}
+
+/* ===== Rank Badges ===== */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #fff;
+    background-color: #6c757d;
+}
+
+.rank-gold   { background-color: #f4b942; color: #3d2b00; }
+.rank-silver { background-color: #a8a9ad; }
+.rank-bronze { background-color: #cd7f32; }
+
+/* ===== Route / Div Tag ===== */
+.route-tag, .div-tag {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    background-color: #e9f0ff;
+    color: #3a5fc8;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+/* ===== Traffic Bar ===== */
+.traffic-bar-bg {
+    background-color: #e9ecef;
+    border-radius: 4px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.traffic-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.bar-high   { background-color: #dc3545; }
+.bar-medium { background-color: #ffc107; }
+.bar-low    { background-color: #198754; }
+
+/* ===== Table ===== */
+.table thead th {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.table tbody td {
+    vertical-align: middle;
+    font-size: 0.88rem;
+}
+
+.ranking-row {
+    transition: background-color 0.1s ease;
+}
+
+.ranking-row.hidden {
+    display: none;
+}

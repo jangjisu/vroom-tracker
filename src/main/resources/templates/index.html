@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vroom-tracker | 지금 많이 가는 곳</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ===== Navbar ===== -->
+<nav class="navbar navbar-dark bg-dark px-4 py-2">
+    <span class="navbar-brand fw-bold">
+        <i class="bi bi-speedometer2 me-2"></i>vroom-tracker
+    </span>
+    <span class="text-secondary small">고속도로 실시간 출구 교통량 랭킹</span>
+</nav>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- ===== 상단 요약 카드 (trafficIc 집계 + 집계시간) ===== -->
+    <div class="row g-3 mb-4">
+
+        <!-- 전국 총 통행량 -->
+        <div class="col-md-4">
+            <div class="card summary-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-car-front fs-4 text-primary me-2"></i>
+                        <span class="text-muted small">전국 출구 교통량 합계</span>
+                    </div>
+                    <div class="summary-value" th:text="${summary != null ? summary.totalVolume : '-'}">-</div>
+                    <div class="text-muted small mt-1"
+                         th:text="${summary != null and summary.sumTm != null ? '기준: ' + summary.sumTm : ''}"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 혼잡 영업소 수 -->
+        <div class="col-md-4">
+            <div class="card summary-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-exclamation-triangle fs-4 text-danger me-2"></i>
+                        <span class="text-muted small">혼잡 영업소 수</span>
+                    </div>
+                    <div class="summary-value text-danger"
+                         th:text="${summary != null ? summary.congestedSections + ' 곳' : '-'}">-</div>
+                    <div class="text-muted small mt-1">교통량 상위 기준</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 가장 붐비는 곳 -->
+        <div class="col-md-4">
+            <div class="card summary-card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-trophy fs-4 text-warning me-2"></i>
+                        <span class="text-muted small">가장 붐비는 영업소</span>
+                    </div>
+                    <div class="summary-value text-warning"
+                         th:text="${summary != null ? summary.busiestPlace : '-'}">-</div>
+                    <div class="text-muted small mt-1"
+                         th:text="${summary != null ? summary.busiestVolume : ''}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 메인 랭킹 테이블 (trafficIc inoutType=1 출구) ===== -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-bar-chart-line me-2"></i>지금 많이 가는 곳 TOP 20
+                <span class="badge bg-secondary ms-1 fw-normal small">출구 교통량 기준</span>
+            </h6>
+
+            <!-- 영업소명 검색 필터 -->
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-search text-muted small"></i>
+                <input type="text"
+                       id="unitSearch"
+                       class="form-control form-control-sm"
+                       placeholder="영업소명 검색..."
+                       style="width: 160px;"
+                       oninput="filterByUnitName(this.value)">
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <!-- 데이터 없음 -->
+            <div th:if="${tollGates == null or tollGates.isEmpty()}" class="text-center py-5 text-muted">
+                <i class="bi bi-wifi-off fs-2 d-block mb-2"></i>
+                데이터를 불러오지 못했습니다.<br>
+                <span class="small">API 키와 네트워크 상태를 확인하세요.</span>
+            </div>
+
+            <!-- 랭킹 테이블 -->
+            <div th:if="${tollGates != null and !tollGates.isEmpty()}">
+                <table class="table table-hover mb-0" id="rankingTable">
+                    <thead class="table-dark">
+                    <tr>
+                        <th class="text-center" style="width:60px">순위</th>
+                        <th>영업소</th>
+                        <th>구분</th>
+                        <th class="text-end">출구 교통량</th>
+                        <th class="text-center" style="width:80px">혼잡도</th>
+                        <th style="min-width:120px">현황</th>
+                        <th class="text-muted small">집계시간</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${tollGates}"
+                        th:attr="data-unitname=${item.unitName}"
+                        class="ranking-row">
+                        <!-- 순위 -->
+                        <td class="text-center align-middle">
+                            <span th:if="${item.rank <= 3}"
+                                  class="rank-badge"
+                                  th:classappend="${item.rank == 1 ? ' rank-gold' : (item.rank == 2 ? ' rank-silver' : ' rank-bronze')}"
+                                  th:text="${item.rank}">1</span>
+                            <span th:if="${item.rank > 3}"
+                                  class="text-muted fw-bold"
+                                  th:text="${item.rank}">4</span>
+                        </td>
+                        <!-- 영업소명 -->
+                        <td class="align-middle fw-semibold" th:text="${item.unitName}">서울</td>
+                        <!-- 도공/민자 구분 -->
+                        <td class="align-middle">
+                            <span class="div-tag" th:text="${item.exDivName}">도공</span>
+                        </td>
+                        <!-- 출구 교통량 -->
+                        <td class="align-middle text-end fw-bold"
+                            th:text="${item.formattedVolume}">5.2 만대</td>
+                        <!-- 혼잡도 배지 -->
+                        <td class="align-middle text-center">
+                            <span class="badge"
+                                  th:classappend="${item.congestionLevel == 'HIGH' ? ' bg-danger' : (item.congestionLevel == 'MEDIUM' ? ' bg-warning text-dark' : ' bg-success')}"
+                                  th:text="${item.congestionLabel}">많음</span>
+                        </td>
+                        <!-- 막대그래프 -->
+                        <td class="align-middle">
+                            <div class="traffic-bar-bg">
+                                <div class="traffic-bar"
+                                     th:classappend="${item.congestionLevel == 'HIGH' ? ' bar-high' : (item.congestionLevel == 'MEDIUM' ? ' bar-medium' : ' bar-low')}"
+                                     th:style="'width:' + ${item.barWidth} + '%'"></div>
+                            </div>
+                        </td>
+                        <!-- 집계시간 -->
+                        <td class="align-middle text-muted small" th:text="${item.sumTm}">14:00</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 카드 푸터 -->
+        <div class="card-footer d-flex justify-content-between align-items-center text-muted small">
+            <span>
+                <i class="bi bi-clock me-1"></i>페이지 로드: <span th:text="${pageLoadTime}">-</span>
+            </span>
+            <span>
+                <i class="bi bi-arrow-repeat me-1"></i>
+                <span id="countdown">300</span>초 후 자동 갱신 &nbsp;|&nbsp; 캐시 TTL 5분
+            </span>
+        </div>
+    </div>
+
+    <!-- ===== 시간대별 교통량 패턴 (trafficFlowByTime 통계) ===== -->
+    <div class="card" th:if="${hourlyPattern != null and !hourlyPattern.isEmpty()}">
+        <div class="card-header">
+            <h6 class="mb-0 fw-bold">
+                <i class="bi bi-graph-up me-2"></i>시간대별 교통량 패턴
+                <span class="badge bg-secondary ms-1 fw-normal small">연간 통계 기준</span>
+            </h6>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                한국도로공사 연간 시간대별 통계 데이터입니다.
+                현재 시간(<strong th:text="${currentHour + '시'}">14시</strong>) 기준으로 강조 표시됩니다.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered small">
+                    <thead class="table-light">
+                    <tr>
+                        <th>특수일 구분</th>
+                        <th>기간 구분</th>
+                        <th class="text-center">기준시</th>
+                        <th class="text-end">교통량 (대)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${hourlyPattern}"
+                        th:classappend="${#strings.equals(item.stdHour, '' + currentHour) ? ' table-warning fw-semibold' : ''}">
+                        <td th:text="${item.sphlDfttNm}">평일</td>
+                        <td th:text="${item.sphlDfttScopTypeNm}">당일</td>
+                        <td class="text-center" th:text="${item.stdHour + '시'}">14시</td>
+                        <td class="text-end" th:text="${item.formattedTrfl}">-</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
