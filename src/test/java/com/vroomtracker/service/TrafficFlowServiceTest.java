@@ -1,6 +1,8 @@
 package com.vroomtracker.service;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.response.TrafficFlowItem;
+import com.vroomtracker.client.response.TrafficFlowResponse;
 import com.vroomtracker.domain.TrafficFlowEntity;
 import com.vroomtracker.dto.TrafficFlowDto;
 import com.vroomtracker.repository.TrafficFlowRepository;
@@ -53,8 +55,8 @@ class TrafficFlowServiceTest {
         void findByYear_whenDataExists_returnsMappedDtos() {
             when(trafficFlowRepository.findByStdYear("2024"))
                     .thenReturn(List.of(
-                            flowEntity("2024", "평일", "당일", "14", "1000"),
-                            flowEntity("2024", "토요일", "당일", "15", "1500")
+                            flowEntity("2024", "평일", "당일", 14, 1000L),
+                            flowEntity("2024", "토요일", "당일", 15, 1500L)
                     ));
 
             List<TrafficFlowDto> result = trafficFlowService.findByYear("2024");
@@ -124,7 +126,7 @@ class TrafficFlowServiceTest {
         @Test
         @DisplayName("refreshByYear_whenApiFailureCode_keepsExistingData")
         void refreshByYear_whenApiFailureCode_keepsExistingData() {
-            ExApiClient.TrafficFlowResponse response = new ExApiClient.TrafficFlowResponse();
+            TrafficFlowResponse response = new TrafficFlowResponse();
             response.setCode("99");
             when(exApiClient.getTrafficFlowByTime(any(), any(), any())).thenReturn(response);
 
@@ -154,7 +156,7 @@ class TrafficFlowServiceTest {
     // ================================================================
 
     private TrafficFlowEntity flowEntity(String year, String dfttNm, String scopTypeNm,
-                                          String stdHour, String trfl) {
+                                          int stdHour, long trfl) {
         return TrafficFlowEntity.builder()
                 .stdYear(year)
                 .sphlDfttNm(dfttNm)
@@ -167,10 +169,10 @@ class TrafficFlowServiceTest {
                 .build();
     }
 
-    private ExApiClient.TrafficFlowItem flowItem(String year, String dfttNm, String dfttCode,
+    private TrafficFlowItem flowItem(String year, String dfttNm, String dfttCode,
                                                    String scopTypeNm, String scopTypeCode,
                                                    String stdHour, String trfl) {
-        ExApiClient.TrafficFlowItem item = new ExApiClient.TrafficFlowItem();
+        TrafficFlowItem item = new TrafficFlowItem();
         item.setStdYear(year);
         item.setSphlDfttNm(dfttNm);
         item.setSphlDfttCode(dfttCode);
@@ -181,8 +183,8 @@ class TrafficFlowServiceTest {
         return item;
     }
 
-    private void stubFlowApi(String year, List<ExApiClient.TrafficFlowItem> items) {
-        ExApiClient.TrafficFlowResponse response = new ExApiClient.TrafficFlowResponse();
+    private void stubFlowApi(String year, List<TrafficFlowItem> items) {
+        TrafficFlowResponse response = new TrafficFlowResponse();
         response.setCode("00");
         response.setList(items);
         when(exApiClient.getTrafficFlowByTime(any(), any(), eq(year))).thenReturn(response);

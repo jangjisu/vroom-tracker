@@ -1,6 +1,9 @@
 package com.vroomtracker.service;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.response.TrafficIcItem;
+import com.vroomtracker.client.response.TrafficIcResponse;
+import com.vroomtracker.domain.CongestionLevel;
 import com.vroomtracker.dto.NationwideTrafficDto;
 import com.vroomtracker.dto.TollGateTrafficDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,9 +29,6 @@ class TrafficServiceTest {
     @Mock
     private ExApiClient exApiClient;
 
-    @Mock
-    private TrafficFlowService trafficFlowService;
-
     @InjectMocks
     private TrafficService trafficService;
 
@@ -37,8 +37,6 @@ class TrafficServiceTest {
         ReflectionTestUtils.setField(trafficService, "apiKey", "test-api-key");
         ReflectionTestUtils.setField(trafficService, "highThreshold", 5.0);
         ReflectionTestUtils.setField(trafficService, "mediumThreshold", 2.0);
-        // trafficFlowService 는 DB 조회 — 대부분 테스트에서 빈 리스트 반환
-        when(trafficFlowService.findByYear(anyString())).thenReturn(Collections.emptyList());
     }
 
     // ================================================================
@@ -65,7 +63,7 @@ class TrafficServiceTest {
         @Test
         @DisplayName("getTrafficIc_whenApiFailureCode_returnsEmptyRanking")
         void getTrafficIc_whenApiFailureCode_returnsEmptyRanking() {
-            ExApiClient.TrafficIcResponse response = new ExApiClient.TrafficIcResponse();
+            TrafficIcResponse response = new TrafficIcResponse();
             response.setCode("99");
             when(exApiClient.getTrafficIc(any(), any(), any(), any(), any(), any()))
                     .thenReturn(response);
@@ -85,7 +83,7 @@ class TrafficServiceTest {
         @Test
         @DisplayName("getTrafficIc_whenListIsNull_returnsEmptyRanking")
         void getTrafficIc_whenListIsNull_returnsEmptyRanking() {
-            ExApiClient.TrafficIcResponse response = new ExApiClient.TrafficIcResponse();
+            TrafficIcResponse response = new TrafficIcResponse();
             response.setCode("00");
             response.setList(null);
             when(exApiClient.getTrafficIc(any(), any(), any(), any(), any(), any()))
@@ -232,7 +230,7 @@ class TrafficServiceTest {
 
     @Nested
     @DisplayName("혼잡도 분류")
-    class CongestionLevel {
+    class CongestionLevelTest {
 
         @Test
         @DisplayName("congestion_highWhenVolumeAtOrAboveHighThreshold")
@@ -241,7 +239,7 @@ class TrafficServiceTest {
 
             TollGateTrafficDto top = trafficService.getDashboardData(1).ranking().get(0);
 
-            assertThat(top.getCongestionLevel()).isEqualTo("HIGH");
+            assertThat(top.getCongestionLevel()).isEqualTo(CongestionLevel.HIGH);
             assertThat(top.getCongestionLabel()).isEqualTo("많음");
         }
 
@@ -252,7 +250,7 @@ class TrafficServiceTest {
 
             TollGateTrafficDto top = trafficService.getDashboardData(1).ranking().get(0);
 
-            assertThat(top.getCongestionLevel()).isEqualTo("MEDIUM");
+            assertThat(top.getCongestionLevel()).isEqualTo(CongestionLevel.MEDIUM);
             assertThat(top.getCongestionLabel()).isEqualTo("보통");
         }
 
@@ -263,7 +261,7 @@ class TrafficServiceTest {
 
             TollGateTrafficDto top = trafficService.getDashboardData(1).ranking().get(0);
 
-            assertThat(top.getCongestionLevel()).isEqualTo("LOW");
+            assertThat(top.getCongestionLevel()).isEqualTo(CongestionLevel.LOW);
             assertThat(top.getCongestionLabel()).isEqualTo("적음");
         }
     }
@@ -272,9 +270,9 @@ class TrafficServiceTest {
     // 헬퍼
     // ================================================================
 
-    private ExApiClient.TrafficIcItem icItem(String code, String name, String inoutType,
+    private TrafficIcItem icItem(String code, String name, String inoutType,
                                               String amount, String exDivName, String sumTm) {
-        ExApiClient.TrafficIcItem item = new ExApiClient.TrafficIcItem();
+        TrafficIcItem item = new TrafficIcItem();
         item.setUnitCode(code);
         item.setUnitName(name);
         item.setInoutType(inoutType);
@@ -284,8 +282,8 @@ class TrafficServiceTest {
         return item;
     }
 
-    private void stubIcApi(List<ExApiClient.TrafficIcItem> items) {
-        ExApiClient.TrafficIcResponse response = new ExApiClient.TrafficIcResponse();
+    private void stubIcApi(List<TrafficIcItem> items) {
+        TrafficIcResponse response = new TrafficIcResponse();
         response.setCode("00");
         response.setList(items);
         when(exApiClient.getTrafficIc(any(), any(), any(), any(), any(), any()))
@@ -293,7 +291,7 @@ class TrafficServiceTest {
     }
 
     private void stubIcApiEmpty() {
-        ExApiClient.TrafficIcResponse response = new ExApiClient.TrafficIcResponse();
+        TrafficIcResponse response = new TrafficIcResponse();
         response.setCode("00");
         response.setList(Collections.emptyList());
         when(exApiClient.getTrafficIc(any(), any(), any(), any(), any(), any()))
