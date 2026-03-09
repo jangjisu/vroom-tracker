@@ -3,7 +3,7 @@
    /api/summary · /api/ranking · /api/hourly-pattern
    =================================================== */
 
-import { setText, showEl, hideEl } from './utils.js';
+import { setText, showEl, hideEl, showApiUnavailableAlert } from './utils.js';
 
 // ===== 요약 카드 =====
 
@@ -11,7 +11,12 @@ export async function loadSummary() {
     try {
         const res = await fetch('/api/summary');
         if (!res.ok) throw new Error(res.status);
-        const d = await res.json();
+        const body = await res.json();
+        if (body.code === 'EXTERNAL_API_UNAVAILABLE') {
+            showApiUnavailableAlert();
+            return;
+        }
+        const d = body.data;
 
         setText('totalVolume', d.totalVolume ?? '-');
         setText('sumTm', d.sumTm ? '기준: ' + d.sumTm : '');
@@ -29,7 +34,14 @@ export async function loadRanking() {
     try {
         const res = await fetch('/api/ranking');
         if (!res.ok) throw new Error(res.status);
-        const items = await res.json();
+        const body = await res.json();
+        if (body.code === 'EXTERNAL_API_UNAVAILABLE') {
+            showApiUnavailableAlert();
+            hideEl('rankingLoading');
+            showEl('rankingError');
+            return;
+        }
+        const items = body.data;
 
         if (!items || items.length === 0) {
             hideEl('rankingLoading');
@@ -92,7 +104,14 @@ export async function loadHourlyPattern() {
     try {
         const res = await fetch('/api/hourly-pattern');
         if (!res.ok) throw new Error(res.status);
-        const items = await res.json();
+        const body = await res.json();
+        if (body.code === 'EXTERNAL_API_UNAVAILABLE') {
+            showApiUnavailableAlert();
+            hideEl('hourlyLoading');
+            showEl('hourlyError');
+            return;
+        }
+        const items = body.data;
 
         if (!items || items.length === 0) {
             hideEl('hourlyLoading');
