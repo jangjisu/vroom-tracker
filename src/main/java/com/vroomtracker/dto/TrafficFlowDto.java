@@ -24,17 +24,13 @@ public class TrafficFlowDto {
         return TrafficFlowDto.builder()
                 .dayType(entity.getSphlDfttNm())
                 .periodRange(entity.getSphlDfttScopTypeNm())
-                .hour(entity.getStdHour())
-                .vehicleCount(entity.getTrfl())
+                .hour(String.valueOf(entity.getStdHour()))
+                .vehicleCount(String.valueOf(entity.getTrfl()))
                 .formattedVehicleCount(formatVehicleCount(entity.getTrfl()))
                 .build();
     }
 
-    private static String formatVehicleCount(String trfl) {
-        try {
-            return String.format("%,d 대", Long.parseLong(trfl.trim()));
-        } catch (Exception e) {
-            return (trfl != null ? trfl : "0") + " 대";
-        }
+    private static String formatVehicleCount(long trfl) {
+        return String.format("%,d 대", trfl);
     }
 }

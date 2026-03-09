@@ -1,9 +1,9 @@
 package com.vroomtracker.dto;
 
+import com.vroomtracker.domain.CongestionLevel;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 톨게이트별 출구 교통량 뷰 모델 (랭킹 테이블용) */
 @Getter
 @Builder
 public class TollGateTrafficDto {
@@ -30,7 +30,7 @@ public class TollGateTrafficDto {
     private final String sumTm;
 
     /** 혼잡도 코드: HIGH / MEDIUM / LOW */
-    private final String congestionLevel;
+    private final CongestionLevel congestionLevel;
 
     /** 혼잡도 한글 라벨: 많음 / 보통 / 적음 */
     private final String congestionLabel;
