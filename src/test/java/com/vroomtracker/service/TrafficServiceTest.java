@@ -35,6 +35,8 @@ class TrafficServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(trafficService, "apiKey", "test-api-key");
+        ReflectionTestUtils.setField(trafficService, "highThreshold", 5.0);
+        ReflectionTestUtils.setField(trafficService, "mediumThreshold", 2.0);
         // trafficFlowService 는 DB 조회 — 대부분 테스트에서 빈 리스트 반환
         when(trafficFlowService.findByYear(anyString())).thenReturn(Collections.emptyList());
     }
@@ -235,7 +237,7 @@ class TrafficServiceTest {
         @Test
         @DisplayName("congestion_highWhenVolumeAtOrAboveHighThreshold")
         void congestion_highWhenVolumeAtOrAboveHighThreshold() {
-            stubIcApi(List.of(icItem("A", "서울", "1", String.valueOf(TrafficService.HIGH_THRESHOLD), "도공", "14")));
+            stubIcApi(List.of(icItem("A", "서울", "1", "5.0", "도공", "14")));
 
             TollGateTrafficDto top = trafficService.getDashboardData(1).ranking().get(0);
 

@@ -60,8 +60,8 @@ class TrafficFlowServiceTest {
             List<TrafficFlowDto> result = trafficFlowService.findByYear("2024");
 
             assertThat(result).hasSize(2);
-            assertThat(result.get(0).getSphlDfttNm()).isEqualTo("평일");
-            assertThat(result.get(1).getStdHour()).isEqualTo("15");
+            assertThat(result.get(0).getDayType()).isEqualTo("평일");
+            assertThat(result.get(1).getHour()).isEqualTo("15");
         }
 
         @Test
