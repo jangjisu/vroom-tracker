@@ -41,12 +41,12 @@ public class TrafficFlowEntity {
     private String sphlDfttScopTypeCode;
 
     /** 기준시 (0~23) */
-    @Column(name = "std_hour", nullable = false, length = 2)
-    private String stdHour;
+    @Column(name = "std_hour", nullable = false)
+    private int stdHour;
 
     /** 교통량 (대) */
-    @Column(name = "trfl", length = 20)
-    private String trfl;
+    @Column(name = "trfl")
+    private long trfl;
 
     /** API 수집 시각 */
     @Column(name = "fetched_at", nullable = false, updatable = false)
@@ -55,7 +55,7 @@ public class TrafficFlowEntity {
     @Builder
     private TrafficFlowEntity(String stdYear, String sphlDfttNm, String sphlDfttCode,
                                String sphlDfttScopTypeNm, String sphlDfttScopTypeCode,
-                               String stdHour, String trfl, LocalDateTime fetchedAt) {
+                               int stdHour, long trfl, LocalDateTime fetchedAt) {
         this.stdYear = stdYear;
         this.sphlDfttNm = sphlDfttNm;
         this.sphlDfttCode = sphlDfttCode;
