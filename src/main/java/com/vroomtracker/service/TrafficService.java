@@ -1,16 +1,18 @@
 package com.vroomtracker.service;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.response.TrafficIcItem;
+import com.vroomtracker.client.response.TrafficIcResponse;
+import com.vroomtracker.domain.CongestionLevel;
+import com.vroomtracker.dto.DashboardData;
 import com.vroomtracker.dto.NationwideTrafficDto;
 import com.vroomtracker.dto.TollGateTrafficDto;
-import com.vroomtracker.dto.TrafficFlowDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Comparator;
@@ -23,7 +25,6 @@ import java.util.stream.IntStream;
 public class TrafficService {
 
     private final ExApiClient exApiClient;
-    private final TrafficFlowService trafficFlowService;
 
     @Value("${ex.api.key}")
     private String apiKey;
@@ -36,12 +37,6 @@ public class TrafficService {
 
     private static final String JSON = "json";
 
-    public record DashboardData(
-            NationwideTrafficDto summary,
-            List<TollGateTrafficDto> ranking,
-            List<TrafficFlowDto> hourlyPattern
-    ) {}
-
     /**
      * 대시보드 전체 데이터를 조합해 반환합니다.
      *
@@ -52,22 +47,19 @@ public class TrafficService {
      */
     @Cacheable(value = "dashboard", key = "#topN")
     public DashboardData getDashboardData(int topN) {
-        List<ExApiClient.TrafficIcItem> exitItems = fetchExitTraffic();
+        List<TrafficIcItem> exitItems = fetchExitTraffic();
         List<TollGateTrafficDto> ranking = buildRanking(exitItems, topN);
         NationwideTrafficDto summary = buildSummary(exitItems, ranking);
-        String currentYear = String.valueOf(LocalDateTime.now().getYear());
-        List<TrafficFlowDto> hourlyPattern = trafficFlowService.findByYear(currentYear);
-
-        return new DashboardData(summary, ranking, hourlyPattern);
+        return new DashboardData(summary, ranking);
     }
 
     // ================================================================
     // API 호출 (private — 캐시는 getDashboardData 레벨에서만 처리)
     // ================================================================
 
-    private List<ExApiClient.TrafficIcItem> fetchExitTraffic() {
+    private List<TrafficIcItem> fetchExitTraffic() {
         try {
-            ExApiClient.TrafficIcResponse response =
+            TrafficIcResponse response =
                     exApiClient.getTrafficIc(apiKey, JSON, "2", "1", "500", "1");
 
             if (!"00".equals(response.getCode())) {
@@ -75,7 +67,7 @@ public class TrafficService {
                 return Collections.emptyList();
             }
 
-            List<ExApiClient.TrafficIcItem> list = response.getList();
+            List<TrafficIcItem> list = response.getList();
             return list != null ? list : Collections.emptyList();
 
         } catch (Exception e) {
@@ -88,11 +80,11 @@ public class TrafficService {
     // 데이터 가공
     // ================================================================
 
-    private List<TollGateTrafficDto> buildRanking(List<ExApiClient.TrafficIcItem> exitItems, int topN) {
-        List<ExApiClient.TrafficIcItem> filtered = exitItems.stream()
+    private List<TollGateTrafficDto> buildRanking(List<TrafficIcItem> exitItems, int topN) {
+        List<TrafficIcItem> filtered = exitItems.stream()
                 .filter(i -> i.getTrafficAmount() != null && !i.getTrafficAmount().isBlank())
                 .filter(i -> i.getInoutType() == null || "1".equals(i.getInoutType()))
-                .sorted(Comparator.comparingDouble((ExApiClient.TrafficIcItem i) -> parseAmount(i.getTrafficAmount())).reversed())
+                .sorted(Comparator.comparingDouble((TrafficIcItem i) -> parseAmount(i.getTrafficAmount())).reversed())
                 .limit(topN)
                 .toList();
 
@@ -102,7 +94,7 @@ public class TrafficService {
 
         return IntStream.range(0, filtered.size())
                 .mapToObj(i -> {
-                    ExApiClient.TrafficIcItem item = filtered.get(i);
+                    TrafficIcItem item = filtered.get(i);
                     double vol = parseAmount(item.getTrafficAmount());
                     return TollGateTrafficDto.builder()
                             .rank(i + 1)
@@ -120,7 +112,7 @@ public class TrafficService {
                 .toList();
     }
 
-    private NationwideTrafficDto buildSummary(List<ExApiClient.TrafficIcItem> allItems,
+    private NationwideTrafficDto buildSummary(List<TrafficIcItem> allItems,
                                               List<TollGateTrafficDto> ranking) {
         double totalVol = allItems.stream()
                 .filter(i -> "1".equals(i.getInoutType()) || i.getInoutType() == null)
@@ -135,7 +127,7 @@ public class TrafficService {
 
         String latestSumTm = allItems.stream()
                 .filter(i -> i.getSumTm() != null)
-                .map(ExApiClient.TrafficIcItem::getSumTm)
+                .map(TrafficIcItem::getSumTm)
                 .max(Comparator.naturalOrder())
                 .map(this::formatSumTm)
                 .orElse("-");
@@ -176,10 +168,10 @@ public class TrafficService {
         return sumTm;
     }
 
-    private String congestionLevel(double vol) {
-        if (vol >= highThreshold) return "HIGH";
-        if (vol >= mediumThreshold) return "MEDIUM";
-        return "LOW";
+    private CongestionLevel congestionLevel(double vol) {
+        if (vol >= highThreshold) return CongestionLevel.HIGH;
+        if (vol >= mediumThreshold) return CongestionLevel.MEDIUM;
+        return CongestionLevel.LOW;
     }
 
     private String congestionLabel(double vol) {
