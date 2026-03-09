@@ -40,5 +40,9 @@ out/
 application-local.properties
 application-secret.properties
 
-### H2 file DB (로컬 데이터) ###
+### H2 file DB (local data) ###
 data/
+
+### Personal task tracking / dev rules (not for version control) ###
+TODO.md
+CLAUDE.md
