@@ -1,7 +1,9 @@
 package com.vroomtracker.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -72,7 +74,9 @@ public interface ExApiClient {
     // Response Wrapper Types
     // =========================================================
 
-    @Data
+    @Getter
+    @Setter
+    @NoArgsConstructor
     class TrafficIcResponse {
         private String code;
         private String message;
@@ -82,7 +86,9 @@ public interface ExApiClient {
         private List<TrafficIcItem> list;
     }
 
-    @Data
+    @Getter
+    @Setter
+    @NoArgsConstructor
     class TrafficAllResponse {
         private String code;
         private String message;
@@ -91,7 +97,9 @@ public interface ExApiClient {
         private List<TrafficAllItem> list;
     }
 
-    @Data
+    @Getter
+    @Setter
+    @NoArgsConstructor
     class TrafficFlowResponse {
         private String code;
         private String message;
@@ -105,7 +113,9 @@ public interface ExApiClient {
     // =========================================================
 
     /** 톨게이트 입/출구 교통량 항목 */
-    @Data
+    @Getter
+    @Setter
+    @NoArgsConstructor
     class TrafficIcItem {
         /** 도공/민자 구분코드 */
         private String exDivCode;
@@ -136,7 +146,9 @@ public interface ExApiClient {
     }
 
     /** 실시간 전국 교통량 항목 */
-    @Data
+    @Getter
+    @Setter
+    @NoArgsConstructor
     class TrafficAllItem {
         /** 도공/민자 구분명 */
         private String exDivName;
@@ -164,7 +176,9 @@ public interface ExApiClient {
     }
 
     /** 시간대별 교통량 현황 항목 */
-    @Data
+    @Getter
+    @Setter
+    @NoArgsConstructor
     class TrafficFlowItem {
         /** 기준년 */
         private String stdYear;
