@@ -6,7 +6,6 @@ import com.vroomtracker.client.response.TrafficFlowResponse;
 import com.vroomtracker.domain.TrafficFlowEntity;
 import com.vroomtracker.dto.TrafficFlowDto;
 import com.vroomtracker.repository.TrafficFlowRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,11 +28,9 @@ public class TrafficFlowService {
     private String apiKey;
 
     /**
-     * 앱 시작 시 DB에 현재 연도 데이터가 없으면 API에서 초기 적재합니다.
+     * DB에 해당 연도 데이터가 없으면 API에서 초기 적재합니다.
      */
-    @PostConstruct
-    public void initialize() {
-        String year = String.valueOf(LocalDateTime.now().getYear());
+    public void initIfEmpty(String year) {
         if (trafficFlowRepository.countByStdYear(year) == 0) {
             log.info("DB에 {}년 trafficFlow 데이터 없음, API 초기 적재 시작", year);
             refreshByYear(year);
@@ -54,11 +51,18 @@ public class TrafficFlowService {
      * API에서 새 데이터를 가져와 해당 연도 데이터를 교체합니다.
      * 빈 응답이면 기존 데이터를 유지합니다.
      */
-    // @Transactional 제거 — 외부 API 호출이 포함되어 있음
     public void refreshByYear(String year) {
         List<TrafficFlowItem> items = fetchFromApi(year);
         if (items.isEmpty()) {
             log.warn("{}년 trafficFlowByTime API 결과 없음, 기존 데이터 유지", year);
+            return;
+        }
+        boolean hasInvalidItem = items.stream().anyMatch(item ->
+                item.getStdHour() == null || item.getStdHour().isBlank() ||
+                item.getTrfl()    == null || item.getTrfl().isBlank()
+        );
+        if (hasInvalidItem) {
+            log.warn("{}년 trafficFlowByTime 응답에 유효하지 않은 항목 포함, 기존 데이터 유지", year);
             return;
         }
         LocalDateTime now = LocalDateTime.now();
@@ -85,11 +89,11 @@ public class TrafficFlowService {
     }
 
     private static int parseHour(String s) {
-        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; }
+        return Integer.parseInt(s.trim());
     }
 
     private static long parseTraffic(String s) {
-        try { return Long.parseLong(s.trim()); } catch (Exception e) { return 0L; }
+        return Long.parseLong(s.trim());
     }
 
     private List<TrafficFlowItem> fetchFromApi(String year) {
