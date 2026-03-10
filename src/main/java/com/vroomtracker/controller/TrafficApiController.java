@@ -9,6 +9,7 @@ import com.vroomtracker.service.TrafficService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -37,5 +38,12 @@ public class TrafficApiController {
     public ResponseEntity<ApiResponse<List<TrafficFlowDto>>> getHourlyPattern() {
         String currentYear = String.valueOf(LocalDateTime.now().getYear());
         return ResponseEntity.ok(ApiResponse.success(trafficFlowService.findByYear(currentYear)));
+    }
+
+    @PostMapping("/hourly-pattern/init")
+    public ResponseEntity<ApiResponse<Void>> initHourlyPattern() {
+        String currentYear = String.valueOf(LocalDateTime.now().getYear());
+        trafficFlowService.initIfEmpty(currentYear);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

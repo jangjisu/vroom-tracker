@@ -17,8 +17,10 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TrafficApiController.class)
@@ -84,6 +86,16 @@ class TrafficApiControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data[0].dayType").value("평일"));
+    }
+
+    @Test
+    @DisplayName("POST /api/hourly-pattern/init returns 200 and calls initIfEmpty")
+    void initHourlyPattern_returns200AndCallsInitIfEmpty() throws Exception {
+        mockMvc.perform(post("/api/hourly-pattern/init"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"));
+
+        verify(trafficFlowService).initIfEmpty(anyString());
     }
 
     @Test
