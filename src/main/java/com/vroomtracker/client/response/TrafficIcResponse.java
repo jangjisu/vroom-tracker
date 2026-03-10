@@ -14,8 +14,7 @@ public class TrafficIcResponse {
     private String code;
     private String message;
     private String count;
-    /** ※ 실제 응답의 list 필드명을 확인 후 수정하세요 */
-    @JsonProperty("list")
+    @JsonProperty("trafficIc")
     private List<TrafficIcItem> list;
 
     public boolean isSuccess() {

@@ -14,7 +14,7 @@ public class TrafficFlowResponse {
     private String code;
     private String message;
     private String count;
-    @JsonProperty("list")
+    @JsonProperty("trafficFlowByTimeLists")
     private List<TrafficFlowItem> list;
 
     public boolean isSuccess() {
