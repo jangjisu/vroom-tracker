@@ -18,7 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initSearchFilter();
 
     // 각 섹션 독립 비동기 호출 — 한 섹션 실패가 다른 섹션에 영향 없음
-    loadSummary();
-    loadRanking();
-    loadHourlyPattern();
+    // 모든 섹션 완료 후 페이지 로더 오버레이 제거
+    Promise.allSettled([
+        loadSummary(),
+        loadRanking(),
+        loadHourlyPattern(),
+    ]).then(() => {
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+            loader.classList.add('fade-out');
+            loader.addEventListener('transitionend', () => loader.remove(), { once: true });
+        }
+    });
 });
