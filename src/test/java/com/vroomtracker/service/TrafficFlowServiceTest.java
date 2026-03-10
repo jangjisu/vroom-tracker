@@ -77,6 +77,39 @@ class TrafficFlowServiceTest {
     }
 
     // ================================================================
+    // initIfEmpty
+    // ================================================================
+
+    @Nested
+    @DisplayName("initIfEmpty")
+    class InitIfEmpty {
+
+        @Test
+        @DisplayName("initIfEmpty_whenEmpty_callsRefresh")
+        void initIfEmpty_whenEmpty_callsRefresh() {
+            when(trafficFlowRepository.countByStdYear("2024")).thenReturn(0L);
+            stubFlowApi("2024", List.of(
+                    flowItem("2024", "평일", "0", "당일", "0", "14", "1000")
+            ));
+
+            trafficFlowService.initIfEmpty("2024");
+
+            verify(trafficFlowRepository).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("initIfEmpty_whenNotEmpty_skipsRefresh")
+        void initIfEmpty_whenNotEmpty_skipsRefresh() {
+            when(trafficFlowRepository.countByStdYear("2024")).thenReturn(10L);
+
+            trafficFlowService.initIfEmpty("2024");
+
+            verify(trafficFlowRepository, never()).deleteByStdYear(anyString());
+            verify(trafficFlowRepository, never()).saveAll(anyList());
+        }
+    }
+
+    // ================================================================
     // refreshByYear
     // ================================================================
 
@@ -133,6 +166,32 @@ class TrafficFlowServiceTest {
             trafficFlowService.refreshByYear("2024");
 
             verify(trafficFlowRepository, never()).deleteByStdYear(anyString());
+        }
+
+        @Test
+        @DisplayName("refreshByYear_whenItemHasNullHour_keepsExistingData")
+        void refreshByYear_whenItemHasNullHour_keepsExistingData() {
+            stubFlowApi("2024", List.of(
+                    flowItem("2024", "평일", "0", "당일", "0", null, "1000")
+            ));
+
+            trafficFlowService.refreshByYear("2024");
+
+            verify(trafficFlowRepository, never()).deleteByStdYear(anyString());
+            verify(trafficFlowRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("refreshByYear_whenItemHasNullTrfl_keepsExistingData")
+        void refreshByYear_whenItemHasNullTrfl_keepsExistingData() {
+            stubFlowApi("2024", List.of(
+                    flowItem("2024", "평일", "0", "당일", "0", "14", null)
+            ));
+
+            trafficFlowService.refreshByYear("2024");
+
+            verify(trafficFlowRepository, never()).deleteByStdYear(anyString());
+            verify(trafficFlowRepository, never()).saveAll(anyList());
         }
 
         @Test
