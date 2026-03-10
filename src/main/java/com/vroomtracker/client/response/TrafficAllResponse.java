@@ -16,4 +16,8 @@ public class TrafficAllResponse {
     private String count;
     @JsonProperty("list")
     private List<TrafficAllItem> list;
+
+    public boolean isSuccess() {
+        return "SUCCESS".equals(code);
+    }
 }

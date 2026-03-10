@@ -16,4 +16,8 @@ public class TrafficFlowResponse {
     private String count;
     @JsonProperty("list")
     private List<TrafficFlowItem> list;
+
+    public boolean isSuccess() {
+        return "SUCCESS".equals(code);
+    }
 }

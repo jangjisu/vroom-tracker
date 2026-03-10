@@ -17,4 +17,8 @@ public class TrafficIcResponse {
     /** ※ 실제 응답의 list 필드명을 확인 후 수정하세요 */
     @JsonProperty("list")
     private List<TrafficIcItem> list;
+
+    public boolean isSuccess() {
+        return "SUCCESS".equals(code);
+    }
 }
