@@ -114,25 +114,43 @@ export async function loadHourlyPattern() {
         const items = body.data;
 
         if (!items || items.length === 0) {
+            // DB가 비어있으면 init 호출 후 1회 재시도
+            try {
+                await fetch('/api/hourly-pattern/init', { method: 'POST' });
+                const retryRes = await fetch('/api/hourly-pattern');
+                if (retryRes.ok) {
+                    const retryBody = await retryRes.json();
+                    const retryItems = retryBody.data;
+                    if (retryItems && retryItems.length > 0) {
+                        renderHourlyPattern(retryItems, currentHour);
+                        hideEl('hourlyLoading');
+                        showEl('hourlyTableWrap');
+                        return;
+                    }
+                }
+            } catch { /* ignore */ }
             hideEl('hourlyLoading');
             showEl('hourlyError');
             return;
         }
 
-        document.getElementById('hourlyBody').innerHTML = items.map(item => {
-            const isCurrentHour = String(item.hour) === String(currentHour);
-            return `<tr class="${isCurrentHour ? 'table-warning fw-semibold' : ''}">
-                <td>${item.dayType ?? '-'}</td>
-                <td>${item.periodRange ?? '-'}</td>
-                <td class="text-center">${item.hour != null ? item.hour + '시' : '-'}</td>
-                <td class="text-end">${item.formattedVehicleCount ?? '-'}</td>
-            </tr>`;
-        }).join('');
-
+        renderHourlyPattern(items, currentHour);
         hideEl('hourlyLoading');
         showEl('hourlyTableWrap');
     } catch {
         hideEl('hourlyLoading');
         showEl('hourlyError');
     }
+}
+
+function renderHourlyPattern(items, currentHour) {
+    document.getElementById('hourlyBody').innerHTML = items.map(item => {
+        const isCurrentHour = String(item.hour) === String(currentHour);
+        return `<tr class="${isCurrentHour ? 'table-warning fw-semibold' : ''}">
+            <td>${item.dayType ?? '-'}</td>
+            <td>${item.periodRange ?? '-'}</td>
+            <td class="text-center">${item.hour != null ? item.hour + '시' : '-'}</td>
+            <td class="text-end">${item.formattedVehicleCount ?? '-'}</td>
+        </tr>`;
+    }).join('');
 }
