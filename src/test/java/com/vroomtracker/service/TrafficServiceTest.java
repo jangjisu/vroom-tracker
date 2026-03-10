@@ -84,7 +84,7 @@ class TrafficServiceTest {
         @DisplayName("getTrafficIc_whenListIsNull_returnsEmptyRanking")
         void getTrafficIc_whenListIsNull_returnsEmptyRanking() {
             TrafficIcResponse response = new TrafficIcResponse();
-            response.setCode("00");
+            response.setCode("SUCCESS");
             response.setList(null);
             when(exApiClient.getTrafficIc(any(), any(), any(), any(), any(), any()))
                     .thenReturn(response);
@@ -284,7 +284,7 @@ class TrafficServiceTest {
 
     private void stubIcApi(List<TrafficIcItem> items) {
         TrafficIcResponse response = new TrafficIcResponse();
-        response.setCode("00");
+        response.setCode("SUCCESS");
         response.setList(items);
         when(exApiClient.getTrafficIc(any(), any(), any(), any(), any(), any()))
                 .thenReturn(response);
@@ -292,7 +292,7 @@ class TrafficServiceTest {
 
     private void stubIcApiEmpty() {
         TrafficIcResponse response = new TrafficIcResponse();
-        response.setCode("00");
+        response.setCode("SUCCESS");
         response.setList(Collections.emptyList());
         when(exApiClient.getTrafficIc(any(), any(), any(), any(), any(), any()))
                 .thenReturn(response);

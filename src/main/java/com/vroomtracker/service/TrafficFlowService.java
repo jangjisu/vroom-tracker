@@ -101,7 +101,7 @@ public class TrafficFlowService {
             TrafficFlowResponse response =
                     exApiClient.getTrafficFlowByTime(apiKey, "json", year);
 
-            if (!"00".equals(response.getCode())) {
+            if (!response.isSuccess()) {
                 log.warn("trafficFlowByTime API 실패: code={}", response.getCode());
                 return Collections.emptyList();
             }

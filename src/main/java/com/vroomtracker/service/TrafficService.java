@@ -1,6 +1,8 @@
 package com.vroomtracker.service;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.InoutType;
+import com.vroomtracker.client.TmType;
 import com.vroomtracker.client.response.TrafficIcItem;
 import com.vroomtracker.client.response.TrafficIcResponse;
 import com.vroomtracker.domain.CongestionLevel;
@@ -36,6 +38,10 @@ public class TrafficService {
     private double mediumThreshold;
 
     private static final String JSON = "json";
+    private static final String PAGE_FIRST = "1";
+
+    @Value("${ex.api.traffic-ic.num-of-rows}")
+    private String numOfRows;
 
     /**
      * 대시보드 전체 데이터를 조합해 반환합니다.
@@ -60,9 +66,11 @@ public class TrafficService {
     private List<TrafficIcItem> fetchExitTraffic() {
         try {
             TrafficIcResponse response =
-                    exApiClient.getTrafficIc(apiKey, JSON, "2", "1", "500", "1");
+                    exApiClient.getTrafficIc(apiKey, JSON,
+                            TmType.FIFTEEN_MIN.value(), InoutType.EXIT.value(),
+                            numOfRows, PAGE_FIRST);
 
-            if (!"00".equals(response.getCode())) {
+            if (!response.isSuccess()) {
                 log.warn("trafficIc API 실패: code={}, message={}", response.getCode(), response.getMessage());
                 return Collections.emptyList();
             }
