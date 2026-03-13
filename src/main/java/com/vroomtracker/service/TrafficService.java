@@ -5,9 +5,12 @@ import com.vroomtracker.client.InoutType;
 import com.vroomtracker.client.TmType;
 import com.vroomtracker.client.response.TrafficIcItem;
 import com.vroomtracker.client.response.TrafficIcResponse;
+import com.vroomtracker.client.response.TrafficRegionItem;
+import com.vroomtracker.client.response.TrafficRegionResponse;
 import com.vroomtracker.domain.CongestionLevel;
 import com.vroomtracker.dto.DashboardData;
 import com.vroomtracker.dto.NationwideTrafficDto;
+import com.vroomtracker.dto.RegionTrafficDto;
 import com.vroomtracker.dto.TollGateTrafficDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -60,6 +64,12 @@ public class TrafficService {
         return new DashboardData(summary, ranking);
     }
 
+    @Cacheable(value = "regionRanking")
+    public List<RegionTrafficDto> getRegionRanking() {
+        List<TrafficRegionItem> items = fetchRegionTraffic();
+        return buildRegionRanking(items);
+    }
+
     // ================================================================
     // API 호출 (private — 캐시는 getDashboardData 레벨에서만 처리)
     // ================================================================
@@ -81,6 +91,27 @@ public class TrafficService {
 
         } catch (Exception e) {
             log.error("trafficIc API 호출 실패", e);
+            return Collections.emptyList();
+        }
+    }
+
+    private List<TrafficRegionItem> fetchRegionTraffic() {
+        try {
+            TrafficRegionResponse response =
+                    exApiClient.getTrafficRegion(apiKey, JSON,
+                            null, null, InoutType.EXIT.value(),
+                            null, null, null, TmType.ONE_HOUR.value());
+
+            if (!response.isSuccess()) {
+                log.warn("trafficRegion API 실패: code={}, message={}", response.getCode(), response.getMessage());
+                return Collections.emptyList();
+            }
+
+            List<TrafficRegionItem> list = response.getList();
+            return list != null ? list : Collections.emptyList();
+
+        } catch (Exception e) {
+            log.error("trafficRegion API 호출 실패", e);
             return Collections.emptyList();
         }
     }
@@ -156,6 +187,44 @@ public class TrafficService {
                 ranking.isEmpty() ? "-" : ranking.get(0).getUnitName(),
                 ranking.isEmpty() ? "0" : ranking.get(0).getFormattedVolume()
         );
+    }
+
+    private List<RegionTrafficDto> buildRegionRanking(List<TrafficRegionItem> items) {
+        if (items.isEmpty()) return Collections.emptyList();
+
+        record RegionSummary(String regionCode, String regionName, long totalVolume, String sumTm) {}
+
+        List<RegionSummary> aggregated = items.stream()
+                .filter(i -> i.getTrafficAmount() != null && !i.getTrafficAmount().isBlank())
+                .collect(Collectors.groupingBy(TrafficRegionItem::getRegionCode))
+                .entrySet().stream()
+                .map(e -> {
+                    List<TrafficRegionItem> group = e.getValue();
+                    String regionName = group.get(0).getRegionName();
+                    long total = group.stream()
+                            .mapToLong(i -> (long) parseAmount(i.getTrafficAmount()))
+                            .sum();
+                    String rawSumTm = group.stream()
+                            .map(i -> i.getSumDate() != null && i.getSumTm() != null
+                                    ? i.getSumDate() + i.getSumTm() : "")
+                            .filter(s -> !s.isBlank())
+                            .max(Comparator.naturalOrder())
+                            .orElse("-");
+                    return new RegionSummary(e.getKey(), regionName, total, formatSumTm(rawSumTm));
+                })
+                .sorted(Comparator.comparingLong(RegionSummary::totalVolume).reversed())
+                .toList();
+
+        if (aggregated.isEmpty()) return Collections.emptyList();
+        long maxVol = aggregated.get(0).totalVolume();
+
+        return IntStream.range(0, aggregated.size())
+                .mapToObj(i -> {
+                    RegionSummary s = aggregated.get(i);
+                    return RegionTrafficDto.of(i + 1, s.regionCode(), s.regionName(),
+                            s.totalVolume(), maxVol, s.sumTm());
+                })
+                .toList();
     }
 
     // ================================================================

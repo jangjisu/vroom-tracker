@@ -3,8 +3,11 @@ package com.vroomtracker.service;
 import com.vroomtracker.client.ExApiClient;
 import com.vroomtracker.client.response.TrafficIcItem;
 import com.vroomtracker.client.response.TrafficIcResponse;
+import com.vroomtracker.client.response.TrafficRegionItem;
+import com.vroomtracker.client.response.TrafficRegionResponse;
 import com.vroomtracker.domain.CongestionLevel;
 import com.vroomtracker.dto.NationwideTrafficDto;
+import com.vroomtracker.dto.RegionTrafficDto;
 import com.vroomtracker.dto.TollGateTrafficDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -296,5 +299,105 @@ class TrafficServiceTest {
         response.setList(Collections.emptyList());
         when(exApiClient.getTrafficIc(any(), any(), any(), any(), any(), any()))
                 .thenReturn(response);
+    }
+
+    private TrafficRegionItem regionItem(String regionCode, String regionName,
+                                         String amount, String sumTm, String sumDate) {
+        TrafficRegionItem item = new TrafficRegionItem();
+        item.setRegionCode(regionCode);
+        item.setRegionName(regionName);
+        item.setTrafficAmount(amount);
+        item.setSumTm(sumTm);
+        item.setSumDate(sumDate);
+        return item;
+    }
+
+    private void stubRegionApi(List<TrafficRegionItem> items) {
+        TrafficRegionResponse response = new TrafficRegionResponse();
+        response.setCode("SUCCESS");
+        response.setList(items);
+        when(exApiClient.getTrafficRegion(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(response);
+    }
+
+    @Nested
+    @DisplayName("getRegionRanking")
+    class RegionRankingTest {
+
+        @Test
+        @DisplayName("regionRanking_aggregatesByRegionCode")
+        void regionRanking_aggregatesByRegionCode() {
+            stubRegionApi(List.of(
+                    regionItem("927", "전북본부", "100", "0900", "20260313"),
+                    regionItem("927", "전북본부", "200", "0900", "20260313"),
+                    regionItem("905", "대구경북본부", "500", "0900", "20260313")
+            ));
+
+            List<RegionTrafficDto> result = trafficService.getRegionRanking();
+
+            assertThat(result).hasSize(2);
+            assertThat(result.get(0).getRegionCode()).isEqualTo("905");
+            assertThat(result.get(0).getTotalVolume()).isEqualTo(500L);
+            assertThat(result.get(1).getTotalVolume()).isEqualTo(300L);
+        }
+
+        @Test
+        @DisplayName("regionRanking_assignsRankStartingFromOne")
+        void regionRanking_assignsRankStartingFromOne() {
+            stubRegionApi(List.of(
+                    regionItem("905", "대구경북본부", "500", "0900", "20260313"),
+                    regionItem("927", "전북본부", "300", "0900", "20260313")
+            ));
+
+            List<RegionTrafficDto> result = trafficService.getRegionRanking();
+
+            assertThat(result).extracting(RegionTrafficDto::getRank).containsExactly(1, 2);
+        }
+
+        @Test
+        @DisplayName("regionRanking_topRankHasBarWidth100")
+        void regionRanking_topRankHasBarWidth100() {
+            stubRegionApi(List.of(
+                    regionItem("905", "대구경북본부", "500", "0900", "20260313"),
+                    regionItem("927", "전북본부", "250", "0900", "20260313")
+            ));
+
+            List<RegionTrafficDto> result = trafficService.getRegionRanking();
+
+            assertThat(result.get(0).getBarWidth()).isEqualTo(100);
+            assertThat(result.get(1).getBarWidth()).isEqualTo(50);
+        }
+
+        @Test
+        @DisplayName("regionRanking_whenApiFailureCode_returnsEmptyList")
+        void regionRanking_whenApiFailureCode_returnsEmptyList() {
+            TrafficRegionResponse response = new TrafficRegionResponse();
+            response.setCode("99");
+            when(exApiClient.getTrafficRegion(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenReturn(response);
+
+            assertThat(trafficService.getRegionRanking()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("regionRanking_whenFeignThrows_returnsEmptyList")
+        void regionRanking_whenFeignThrows_returnsEmptyList() {
+            when(exApiClient.getTrafficRegion(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenThrow(new RuntimeException("timeout"));
+
+            assertThat(trafficService.getRegionRanking()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("regionRanking_formatsVolume")
+        void regionRanking_formatsVolume() {
+            stubRegionApi(List.of(
+                    regionItem("905", "대구경북본부", "1234", "0900", "20260313")
+            ));
+
+            RegionTrafficDto dto = trafficService.getRegionRanking().get(0);
+
+            assertThat(dto.getFormattedVolume()).isEqualTo("1,234 대");
+        }
     }
 }
