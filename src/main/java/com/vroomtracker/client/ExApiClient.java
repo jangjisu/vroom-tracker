@@ -3,6 +3,7 @@ package com.vroomtracker.client;
 import com.vroomtracker.client.response.TrafficAllResponse;
 import com.vroomtracker.client.response.TrafficFlowResponse;
 import com.vroomtracker.client.response.TrafficIcResponse;
+import com.vroomtracker.client.response.TrafficRegionResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -49,6 +50,33 @@ public interface ExApiClient {
     TrafficAllResponse getTrafficAll(
             @RequestParam("key") String key,
             @RequestParam("type") String type,
+            @RequestParam(value = "tmType", required = false) String tmType
+    );
+
+    /**
+     * 권역별 교통량
+     * URL: /openapi/trafficapi/trafficRegion
+     *
+     * @param key        인증키 (필수)
+     * @param type       포맷 json/xml (필수)
+     * @param exDivCode  도공/민자 구분코드 (선택)
+     * @param regionCode 권역코드 (선택)
+     * @param inoutType  0:입구, 1:출구 (선택)
+     * @param tcsType    1:TCS, 2:hi-pass (선택)
+     * @param carType    차종구분코드 (선택)
+     * @param openClType 0:폐쇄식, 1:개방식 (선택)
+     * @param tmType     1:1시간, 2:15분, 3:5분 (선택)
+     */
+    @GetMapping("/openapi/trafficapi/trafficRegion")
+    TrafficRegionResponse getTrafficRegion(
+            @RequestParam("key") String key,
+            @RequestParam("type") String type,
+            @RequestParam(value = "exDivCode", required = false) String exDivCode,
+            @RequestParam(value = "regionCode", required = false) String regionCode,
+            @RequestParam(value = "inoutType", required = false) String inoutType,
+            @RequestParam(value = "tcsType", required = false) String tcsType,
+            @RequestParam(value = "carType", required = false) String carType,
+            @RequestParam(value = "openClType", required = false) String openClType,
             @RequestParam(value = "tmType", required = false) String tmType
     );
 

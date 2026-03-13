@@ -8,13 +8,15 @@ import org.springframework.test.context.TestPropertySource;
 /**
  * 애플리케이션 컨텍스트 로드 테스트.
  *
- * Feign 실제 호출을 막기 위해 ex.api.url 을 localhost 로 덮어씁니다.
- * (실제 API 연결 없이 Bean 구성만 검증)
+ * - ex.api.url: Feign 실제 호출 방지
+ * - datasource.url: 파일 기반 H2 대신 인메모리 H2 사용 (Hibernate Dialect 결정 가능)
  */
 @SpringBootTest
 @TestPropertySource(properties = {
         "ex.api.url=http://localhost",
-        "ex.api.key=test-key"
+        "ex.api.key=test-key",
+        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+        "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 class VroomTrackerApplicationTests {
 

@@ -10,12 +10,12 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class TrafficAllResponse {
+public class TrafficRegionResponse {
     private String code;
     private String message;
     private String count;
-    @JsonProperty("list")
-    private List<TrafficAllItem> list;
+    @JsonProperty("trafficRegion")
+    private List<TrafficRegionItem> list;
 
     public boolean isSuccess() {
         return "SUCCESS".equals(code);
