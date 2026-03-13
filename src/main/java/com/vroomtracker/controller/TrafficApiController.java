@@ -2,6 +2,7 @@ package com.vroomtracker.controller;
 
 import com.vroomtracker.common.ApiResponse;
 import com.vroomtracker.dto.NationwideTrafficDto;
+import com.vroomtracker.dto.RegionTrafficDto;
 import com.vroomtracker.dto.TollGateTrafficDto;
 import com.vroomtracker.dto.TrafficFlowDto;
 import com.vroomtracker.service.TrafficFlowService;
@@ -38,6 +39,11 @@ public class TrafficApiController {
     public ResponseEntity<ApiResponse<List<TrafficFlowDto>>> getHourlyPattern() {
         String currentYear = String.valueOf(LocalDateTime.now().getYear());
         return ResponseEntity.ok(ApiResponse.success(trafficFlowService.findByYear(currentYear)));
+    }
+
+    @GetMapping("/region-ranking")
+    public ResponseEntity<ApiResponse<List<RegionTrafficDto>>> getRegionRanking() {
+        return ResponseEntity.ok(ApiResponse.success(trafficService.getRegionRanking()));
     }
 
     @PostMapping("/hourly-pattern/init")
