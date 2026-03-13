@@ -14,12 +14,11 @@ import java.util.concurrent.TimeUnit;
 public class CacheConfig {
 
     /**
-     * 캐시 전략:
-     * - dashboard: 5분 TTL
-     *   getDashboardData() 에만 적용. trafficIc API 15분 집계 기준.
-     *   개별 fetch 메서드에 @Cacheable 없음 (자기 호출 시 AOP 우회 문제 방지).
+     * Cache strategy:
+     * - dashboard: 5min TTL — getDashboardData() (trafficIc API)
+     * - regionRanking: 5min TTL — getRegionRanking() (trafficRegion API)
      *
-     * trafficFlowByTime 데이터는 DB에서 읽으므로 별도 캐시 불필요.
+     * trafficFlowByTime data is read from DB, no separate cache needed.
      */
     @Bean
     public CacheManager cacheManager() {
@@ -28,8 +27,13 @@ public class CacheConfig {
                         .expireAfterWrite(5, TimeUnit.MINUTES)
                         .build());
 
+        var regionRanking = new CaffeineCache("regionRanking",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(5, TimeUnit.MINUTES)
+                        .build());
+
         var manager = new SimpleCacheManager();
-        manager.setCaches(List.of(dashboard));
+        manager.setCaches(List.of(dashboard, regionRanking));
         return manager;
     }
 }
