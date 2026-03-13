@@ -9,7 +9,7 @@
      └── utils.js    ← 공통 DOM 유틸 (setText, showEl, hideEl)
    =================================================== */
 
-import { loadSummary, loadRanking, loadHourlyPattern } from './traffic.js';
+import { loadSummary, loadRanking, loadHourlyPattern, loadRegionRanking } from './traffic.js';
 import { initPageMeta, startCountdown, initSearchFilter } from './index.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Promise.allSettled([
         loadSummary(),
         loadRanking(),
+        loadRegionRanking(),
         loadHourlyPattern(),
     ]).then(() => {
         const loader = document.getElementById('pageLoader');
