@@ -24,9 +24,9 @@ class TrafficFlowRepositoryTest {
     @Test
     @DisplayName("findByStdYear_returnsOnlyMatchingYear")
     void findByStdYear_returnsOnlyMatchingYear() {
-        em.persist(entity("2024", "14"));
-        em.persist(entity("2024", "15"));
-        em.persist(entity("2023", "14")); // 다른 연도
+        em.persist(entity("2024", 14));
+        em.persist(entity("2024", 15));
+        em.persist(entity("2023", 14)); // 다른 연도
         em.flush();
 
         List<TrafficFlowEntity> result = trafficFlowRepository.findByStdYear("2024");
@@ -38,9 +38,9 @@ class TrafficFlowRepositoryTest {
     @Test
     @DisplayName("countByStdYear_returnsCorrectCount")
     void countByStdYear_returnsCorrectCount() {
-        em.persist(entity("2024", "14"));
-        em.persist(entity("2024", "15"));
-        em.persist(entity("2023", "14"));
+        em.persist(entity("2024", 14));
+        em.persist(entity("2024", 15));
+        em.persist(entity("2023", 14));
         em.flush();
 
         assertThat(trafficFlowRepository.countByStdYear("2024")).isEqualTo(2);
@@ -51,9 +51,9 @@ class TrafficFlowRepositoryTest {
     @Test
     @DisplayName("deleteByStdYear_removesOnlyTargetYear")
     void deleteByStdYear_removesOnlyTargetYear() {
-        em.persist(entity("2024", "14"));
-        em.persist(entity("2024", "15"));
-        em.persist(entity("2023", "14")); // 삭제 대상 아님
+        em.persist(entity("2024", 14));
+        em.persist(entity("2024", 15));
+        em.persist(entity("2023", 14)); // 삭제 대상 아님
         em.flush();
 
         trafficFlowRepository.deleteByStdYear("2024");
@@ -70,7 +70,7 @@ class TrafficFlowRepositoryTest {
         assertThat(trafficFlowRepository.findByStdYear("2099")).isEmpty();
     }
 
-    private TrafficFlowEntity entity(String year, String stdHour) {
+    private TrafficFlowEntity entity(String year, int stdHour) {
         return TrafficFlowEntity.builder()
                 .stdYear(year)
                 .sphlDfttNm("평일")
@@ -78,7 +78,7 @@ class TrafficFlowRepositoryTest {
                 .sphlDfttScopTypeNm("당일")
                 .sphlDfttScopTypeCode("0")
                 .stdHour(stdHour)
-                .trfl("1000")
+                .trfl(1000L)
                 .fetchedAt(LocalDateTime.now())
                 .build();
     }

@@ -1,10 +1,11 @@
 package com.vroomtracker.service;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.response.TrafficFlowItem;
+import com.vroomtracker.client.response.TrafficFlowResponse;
 import com.vroomtracker.domain.TrafficFlowEntity;
 import com.vroomtracker.dto.TrafficFlowDto;
 import com.vroomtracker.repository.TrafficFlowRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,11 +28,9 @@ public class TrafficFlowService {
     private String apiKey;
 
     /**
-     * 앱 시작 시 DB에 현재 연도 데이터가 없으면 API에서 초기 적재합니다.
+     * DB에 해당 연도 데이터가 없으면 API에서 초기 적재합니다.
      */
-    @PostConstruct
-    public void initialize() {
-        String year = String.valueOf(LocalDateTime.now().getYear());
+    public void initIfEmpty(String year) {
         if (trafficFlowRepository.countByStdYear(year) == 0) {
             log.info("DB에 {}년 trafficFlow 데이터 없음, API 초기 적재 시작", year);
             refreshByYear(year);
@@ -52,16 +51,20 @@ public class TrafficFlowService {
      * API에서 새 데이터를 가져와 해당 연도 데이터를 교체합니다.
      * 빈 응답이면 기존 데이터를 유지합니다.
      */
-    @Transactional
     public void refreshByYear(String year) {
-        List<ExApiClient.TrafficFlowItem> items = fetchFromApi(year);
+        List<TrafficFlowItem> items = fetchFromApi(year);
         if (items.isEmpty()) {
             log.warn("{}년 trafficFlowByTime API 결과 없음, 기존 데이터 유지", year);
             return;
         }
-
-        trafficFlowRepository.deleteByStdYear(year);
-
+        boolean hasInvalidItem = items.stream().anyMatch(item ->
+                item.getStdHour() == null || item.getStdHour().isBlank() ||
+                item.getTrfl()    == null || item.getTrfl().isBlank()
+        );
+        if (hasInvalidItem) {
+            log.warn("{}년 trafficFlowByTime 응답에 유효하지 않은 항목 포함, 기존 데이터 유지", year);
+            return;
+        }
         LocalDateTime now = LocalDateTime.now();
         List<TrafficFlowEntity> entities = items.stream()
                 .map(item -> TrafficFlowEntity.builder()
@@ -70,19 +73,32 @@ public class TrafficFlowService {
                         .sphlDfttCode(item.getSphlDfttCode())
                         .sphlDfttScopTypeNm(item.getSphlDfttScopTypeNm())
                         .sphlDfttScopTypeCode(item.getSphlDfttScopTypeCode())
-                        .stdHour(item.getStdHour())
-                        .trfl(item.getTrfl())
+                        .stdHour(parseHour(item.getStdHour()))
+                        .trfl(parseTraffic(item.getTrfl()))
                         .fetchedAt(now)
                         .build())
                 .toList();
+        saveFlow(year, entities);
+    }
 
+    @Transactional
+    void saveFlow(String year, List<TrafficFlowEntity> entities) {
+        trafficFlowRepository.deleteByStdYear(year);
         trafficFlowRepository.saveAll(entities);
         log.info("{}년 trafficFlow {}건 저장 완료", year, entities.size());
     }
 
-    private List<ExApiClient.TrafficFlowItem> fetchFromApi(String year) {
+    private static int parseHour(String s) {
+        return Integer.parseInt(s.trim());
+    }
+
+    private static long parseTraffic(String s) {
+        return Long.parseLong(s.trim());
+    }
+
+    private List<TrafficFlowItem> fetchFromApi(String year) {
         try {
-            ExApiClient.TrafficFlowResponse response =
+            TrafficFlowResponse response =
                     exApiClient.getTrafficFlowByTime(apiKey, "json", year);
 
             if (!"00".equals(response.getCode())) {
@@ -90,7 +106,7 @@ public class TrafficFlowService {
                 return Collections.emptyList();
             }
 
-            List<ExApiClient.TrafficFlowItem> list = response.getList();
+            List<TrafficFlowItem> list = response.getList();
             return list != null ? list : Collections.emptyList();
 
         } catch (Exception e) {

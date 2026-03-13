@@ -1,6 +1,8 @@
 package com.vroomtracker.service;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.response.TrafficFlowItem;
+import com.vroomtracker.client.response.TrafficFlowResponse;
 import com.vroomtracker.domain.TrafficFlowEntity;
 import com.vroomtracker.dto.TrafficFlowDto;
 import com.vroomtracker.repository.TrafficFlowRepository;
@@ -53,15 +55,15 @@ class TrafficFlowServiceTest {
         void findByYear_whenDataExists_returnsMappedDtos() {
             when(trafficFlowRepository.findByStdYear("2024"))
                     .thenReturn(List.of(
-                            flowEntity("2024", "평일", "당일", "14", "1000"),
-                            flowEntity("2024", "토요일", "당일", "15", "1500")
+                            flowEntity("2024", "평일", "당일", 14, 1000L),
+                            flowEntity("2024", "토요일", "당일", 15, 1500L)
                     ));
 
             List<TrafficFlowDto> result = trafficFlowService.findByYear("2024");
 
             assertThat(result).hasSize(2);
-            assertThat(result.get(0).getSphlDfttNm()).isEqualTo("평일");
-            assertThat(result.get(1).getStdHour()).isEqualTo("15");
+            assertThat(result.get(0).getDayType()).isEqualTo("평일");
+            assertThat(result.get(1).getHour()).isEqualTo("15");
         }
 
         @Test
@@ -71,6 +73,39 @@ class TrafficFlowServiceTest {
                     .thenReturn(Collections.emptyList());
 
             assertThat(trafficFlowService.findByYear("2024")).isEmpty();
+        }
+    }
+
+    // ================================================================
+    // initIfEmpty
+    // ================================================================
+
+    @Nested
+    @DisplayName("initIfEmpty")
+    class InitIfEmpty {
+
+        @Test
+        @DisplayName("initIfEmpty_whenEmpty_callsRefresh")
+        void initIfEmpty_whenEmpty_callsRefresh() {
+            when(trafficFlowRepository.countByStdYear("2024")).thenReturn(0L);
+            stubFlowApi("2024", List.of(
+                    flowItem("2024", "평일", "0", "당일", "0", "14", "1000")
+            ));
+
+            trafficFlowService.initIfEmpty("2024");
+
+            verify(trafficFlowRepository).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("initIfEmpty_whenNotEmpty_skipsRefresh")
+        void initIfEmpty_whenNotEmpty_skipsRefresh() {
+            when(trafficFlowRepository.countByStdYear("2024")).thenReturn(10L);
+
+            trafficFlowService.initIfEmpty("2024");
+
+            verify(trafficFlowRepository, never()).deleteByStdYear(anyString());
+            verify(trafficFlowRepository, never()).saveAll(anyList());
         }
     }
 
@@ -124,13 +159,39 @@ class TrafficFlowServiceTest {
         @Test
         @DisplayName("refreshByYear_whenApiFailureCode_keepsExistingData")
         void refreshByYear_whenApiFailureCode_keepsExistingData() {
-            ExApiClient.TrafficFlowResponse response = new ExApiClient.TrafficFlowResponse();
+            TrafficFlowResponse response = new TrafficFlowResponse();
             response.setCode("99");
             when(exApiClient.getTrafficFlowByTime(any(), any(), any())).thenReturn(response);
 
             trafficFlowService.refreshByYear("2024");
 
             verify(trafficFlowRepository, never()).deleteByStdYear(anyString());
+        }
+
+        @Test
+        @DisplayName("refreshByYear_whenItemHasNullHour_keepsExistingData")
+        void refreshByYear_whenItemHasNullHour_keepsExistingData() {
+            stubFlowApi("2024", List.of(
+                    flowItem("2024", "평일", "0", "당일", "0", null, "1000")
+            ));
+
+            trafficFlowService.refreshByYear("2024");
+
+            verify(trafficFlowRepository, never()).deleteByStdYear(anyString());
+            verify(trafficFlowRepository, never()).saveAll(anyList());
+        }
+
+        @Test
+        @DisplayName("refreshByYear_whenItemHasNullTrfl_keepsExistingData")
+        void refreshByYear_whenItemHasNullTrfl_keepsExistingData() {
+            stubFlowApi("2024", List.of(
+                    flowItem("2024", "평일", "0", "당일", "0", "14", null)
+            ));
+
+            trafficFlowService.refreshByYear("2024");
+
+            verify(trafficFlowRepository, never()).deleteByStdYear(anyString());
+            verify(trafficFlowRepository, never()).saveAll(anyList());
         }
 
         @Test
@@ -154,7 +215,7 @@ class TrafficFlowServiceTest {
     // ================================================================
 
     private TrafficFlowEntity flowEntity(String year, String dfttNm, String scopTypeNm,
-                                          String stdHour, String trfl) {
+                                          int stdHour, long trfl) {
         return TrafficFlowEntity.builder()
                 .stdYear(year)
                 .sphlDfttNm(dfttNm)
@@ -167,10 +228,10 @@ class TrafficFlowServiceTest {
                 .build();
     }
 
-    private ExApiClient.TrafficFlowItem flowItem(String year, String dfttNm, String dfttCode,
+    private TrafficFlowItem flowItem(String year, String dfttNm, String dfttCode,
                                                    String scopTypeNm, String scopTypeCode,
                                                    String stdHour, String trfl) {
-        ExApiClient.TrafficFlowItem item = new ExApiClient.TrafficFlowItem();
+        TrafficFlowItem item = new TrafficFlowItem();
         item.setStdYear(year);
         item.setSphlDfttNm(dfttNm);
         item.setSphlDfttCode(dfttCode);
@@ -181,8 +242,8 @@ class TrafficFlowServiceTest {
         return item;
     }
 
-    private void stubFlowApi(String year, List<ExApiClient.TrafficFlowItem> items) {
-        ExApiClient.TrafficFlowResponse response = new ExApiClient.TrafficFlowResponse();
+    private void stubFlowApi(String year, List<TrafficFlowItem> items) {
+        TrafficFlowResponse response = new TrafficFlowResponse();
         response.setCode("00");
         response.setList(items);
         when(exApiClient.getTrafficFlowByTime(any(), any(), eq(year))).thenReturn(response);

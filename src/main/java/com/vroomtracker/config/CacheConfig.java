@@ -25,7 +25,6 @@ public class CacheConfig {
     public CacheManager cacheManager() {
         var dashboard = new CaffeineCache("dashboard",
                 Caffeine.newBuilder()
-                        .maximumSize(10)
                         .expireAfterWrite(5, TimeUnit.MINUTES)
                         .build());
 

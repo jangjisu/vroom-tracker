@@ -23,7 +23,11 @@ public class TrafficFlowScheduler {
     public void refreshCurrentYearData() {
         String year = String.valueOf(LocalDateTime.now().getYear());
         log.info("trafficFlow 정기 갱신 시작: {}년", year);
-        trafficFlowService.refreshByYear(year);
-        log.info("trafficFlow 정기 갱신 완료: {}년", year);
+        try {
+            trafficFlowService.refreshByYear(year);
+            log.info("trafficFlow 정기 갱신 완료: {}년", year);
+        } catch (Exception e) {
+            log.error("trafficFlow 정기 갱신 실패: {}년, 기존 데이터 유지", year, e);
+        }
     }
 }
