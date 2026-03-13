@@ -1,5 +1,6 @@
 package com.vroomtracker.dto;
 
+import com.vroomtracker.client.response.TrafficIcItem;
 import com.vroomtracker.domain.CongestionLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,7 +21,7 @@ public class TollGateTrafficDto {
     /** 도공/민자 구분명 */
     private final String exDivName;
 
-    /** 출구 교통량 (만대, 소수점 1자리) */
+    /** 출구 교통량 (대) */
     private final double exitVolume;
 
     /** 출구 교통량 표시용 문자열 */
@@ -37,4 +38,25 @@ public class TollGateTrafficDto {
 
     /** 막대그래프 너비 0~100 (최대값 기준 비율) */
     private final int barWidth;
+
+    /**
+     * API 응답 VO → DTO 변환.
+     * 컬렉션 수준 계산(rank, exitVolume, maxVol, 혼잡도, 집계시간 포맷)은 서비스에서 처리 후 전달.
+     */
+    public static TollGateTrafficDto from(TrafficIcItem item, int rank, double exitVolume,
+                                          double maxVol, CongestionLevel congestionLevel,
+                                          String congestionLabel, String formattedSumTm) {
+        return TollGateTrafficDto.builder()
+                .rank(rank)
+                .unitCode(item.getUnitCode())
+                .unitName(item.getUnitName())
+                .exDivName(item.getExDivName())
+                .exitVolume(exitVolume)
+                .formattedVolume(String.format("%.0f 대", exitVolume))
+                .sumTm(formattedSumTm)
+                .congestionLevel(congestionLevel)
+                .congestionLabel(congestionLabel)
+                .barWidth(maxVol > 0 ? (int) (exitVolume / maxVol * 100) : 0)
+                .build();
+    }
 }

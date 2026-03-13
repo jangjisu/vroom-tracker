@@ -199,7 +199,7 @@ class TrafficServiceTest {
 
             NationwideTrafficDto summary = trafficService.getDashboardData(10).summary();
 
-            assertThat(summary.getTotalVolume()).isEqualTo("15.0 만대");
+            assertThat(summary.getTotalVolume()).isEqualTo("15 대");
         }
 
         @Test

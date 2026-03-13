@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Slf4j
@@ -89,33 +90,43 @@ public class TrafficService {
     // ================================================================
 
     private List<TollGateTrafficDto> buildRanking(List<TrafficIcItem> exitItems, int topN) {
-        List<TrafficIcItem> filtered = exitItems.stream()
+        List<TrafficIcItem> validItems = exitItems.stream()
                 .filter(i -> i.getTrafficAmount() != null && !i.getTrafficAmount().isBlank())
                 .filter(i -> i.getInoutType() == null || "1".equals(i.getInoutType()))
-                .sorted(Comparator.comparingDouble((TrafficIcItem i) -> parseAmount(i.getTrafficAmount())).reversed())
+                .toList();
+
+        if (validItems.isEmpty()) return Collections.emptyList();
+
+        // unitCode 기준 집계: 차종·TCS·시간대 중복 행을 합산
+        record UnitSummary(TrafficIcItem rep, double totalVol) {}
+
+        List<UnitSummary> aggregated = validItems.stream()
+                .collect(Collectors.groupingBy(TrafficIcItem::getUnitCode))
+                .values().stream()
+                .map(group -> {
+                    double total = group.stream()
+                            .mapToDouble(i -> parseAmount(i.getTrafficAmount()))
+                            .sum();
+                    // 대표 행: 가장 최근 집계시간 기준
+                    TrafficIcItem rep = group.stream()
+                            .max(Comparator.comparing(i -> i.getSumTm() != null ? i.getSumTm() : ""))
+                            .orElse(group.get(0));
+                    return new UnitSummary(rep, total);
+                })
+                .sorted(Comparator.comparingDouble(UnitSummary::totalVol).reversed())
                 .limit(topN)
                 .toList();
 
-        if (filtered.isEmpty()) return Collections.emptyList();
+        double maxVol = aggregated.get(0).totalVol();
 
-        double maxVol = parseAmount(filtered.get(0).getTrafficAmount());
-
-        return IntStream.range(0, filtered.size())
+        return IntStream.range(0, aggregated.size())
                 .mapToObj(i -> {
-                    TrafficIcItem item = filtered.get(i);
-                    double vol = parseAmount(item.getTrafficAmount());
-                    return TollGateTrafficDto.builder()
-                            .rank(i + 1)
-                            .unitCode(item.getUnitCode())
-                            .unitName(item.getUnitName())
-                            .exDivName(item.getExDivName())
-                            .exitVolume(vol)
-                            .formattedVolume(String.format("%.1f 만대", vol))
-                            .sumTm(formatSumTm(item.getSumTm()))
-                            .congestionLevel(congestionLevel(vol))
-                            .congestionLabel(congestionLabel(vol))
-                            .barWidth(maxVol > 0 ? (int) (vol / maxVol * 100) : 0)
-                            .build();
+                    UnitSummary us = aggregated.get(i);
+                    return TollGateTrafficDto.from(
+                            us.rep(), i + 1, us.totalVol(), maxVol,
+                            congestionLevel(us.totalVol()), congestionLabel(us.totalVol()),
+                            formatSumTm(us.rep().getSumTm())
+                    );
                 })
                 .toList();
     }
@@ -140,13 +151,11 @@ public class TrafficService {
                 .map(this::formatSumTm)
                 .orElse("-");
 
-        return NationwideTrafficDto.builder()
-                .totalVolume(String.format("%.1f 만대", totalVol))
-                .sumTm(latestSumTm)
-                .congestedSections((int) congestedCount)
-                .busiestPlace(ranking.isEmpty() ? "-" : ranking.get(0).getUnitName())
-                .busiestVolume(ranking.isEmpty() ? "0" : ranking.get(0).getFormattedVolume())
-                .build();
+        return NationwideTrafficDto.of(
+                totalVol, (int) congestedCount, latestSumTm,
+                ranking.isEmpty() ? "-" : ranking.get(0).getUnitName(),
+                ranking.isEmpty() ? "0" : ranking.get(0).getFormattedVolume()
+        );
     }
 
     // ================================================================

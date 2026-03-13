@@ -32,7 +32,7 @@ public class TrafficIcItem {
     private String tcsName;
     /** 차종구분코드 */
     private String carType;
-    /** 교통량 (단위: 만대) — API 응답 필드명 오타(trafficAmout) 보정 */
+    /** 교통량 (단위: 대) — API 응답 필드명 오타(trafficAmout) 보정 */
     @JsonProperty("trafficAmout")
     private String trafficAmount;
     /** 집계시간 */

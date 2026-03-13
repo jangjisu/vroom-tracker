@@ -1,5 +1,6 @@
 package com.vroomtracker.domain;
 
+import com.vroomtracker.client.response.TrafficFlowItem;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -64,5 +65,22 @@ public class TrafficFlowEntity {
         this.stdHour = stdHour;
         this.trfl = trfl;
         this.fetchedAt = fetchedAt;
+    }
+
+    /**
+     * API 응답 VO → Entity 변환.
+     * stdYear에서 "년" 등 숫자 외 문자를 제거하여 저장합니다 (예: "2026년" → "2026").
+     */
+    public static TrafficFlowEntity from(TrafficFlowItem item, LocalDateTime fetchedAt) {
+        return TrafficFlowEntity.builder()
+                .stdYear(item.getStdYear().replaceAll("[^0-9]", ""))
+                .sphlDfttNm(item.getSphlDfttNm())
+                .sphlDfttCode(item.getSphlDfttCode())
+                .sphlDfttScopTypeNm(item.getSphlDfttScopTypeNm())
+                .sphlDfttScopTypeCode(item.getSphlDfttScopTypeCode())
+                .stdHour(Integer.parseInt(item.getStdHour().trim()))
+                .trfl(Long.parseLong(item.getTrfl().trim()))
+                .fetchedAt(fetchedAt)
+                .build();
     }
 }
