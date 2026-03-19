@@ -8,7 +8,7 @@ import lombok.Getter;
 @Builder
 public class NationwideTrafficDto {
 
-    /** 전국 총 교통량 (만대 단위 그대로 표시) */
+    /** 전국 총 교통량 (대) */
     private final String totalVolume;
 
     /** 교통량 집계시간 (sumTm) */
@@ -20,6 +20,21 @@ public class NationwideTrafficDto {
     /** 가장 붐비는 영업소명 */
     private final String busiestPlace;
 
-    /** 가장 붐비는 영업소 교통량 (만대) */
+    /** 가장 붐비는 영업소 교통량 (대) */
     private final String busiestVolume;
+
+    /**
+     * 집계된 값들로부터 요약 DTO를 생성합니다.
+     * totalVolume 포맷 변환은 내부에서 처리합니다.
+     */
+    public static NationwideTrafficDto of(double totalVol, int congestedSections, String sumTm,
+                                          String busiestPlace, String busiestVolume) {
+        return NationwideTrafficDto.builder()
+                .totalVolume(String.format("%.0f 대", totalVol))
+                .sumTm(sumTm)
+                .congestedSections(congestedSections)
+                .busiestPlace(busiestPlace)
+                .busiestVolume(busiestVolume)
+                .build();
+    }
 }

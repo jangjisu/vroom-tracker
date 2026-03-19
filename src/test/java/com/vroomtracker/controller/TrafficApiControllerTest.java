@@ -2,6 +2,7 @@ package com.vroomtracker.controller;
 
 import com.vroomtracker.dto.DashboardData;
 import com.vroomtracker.dto.NationwideTrafficDto;
+import com.vroomtracker.dto.RegionTrafficDto;
 import com.vroomtracker.dto.TollGateTrafficDto;
 import com.vroomtracker.dto.TrafficFlowDto;
 import com.vroomtracker.service.TrafficFlowService;
@@ -96,6 +97,20 @@ class TrafficApiControllerTest {
                 .andExpect(jsonPath("$.code").value("SUCCESS"));
 
         verify(trafficFlowService).initIfEmpty(anyString());
+    }
+
+    @Test
+    @DisplayName("GET /api/region-ranking returns 200 with ApiResponse wrapper")
+    void getRegionRanking_returns200WithApiResponseWrapper() throws Exception {
+        RegionTrafficDto dto = RegionTrafficDto.of(1, "905", "대구경북본부", 12450L, 12450L, "2026-03-13 09:00");
+        when(trafficService.getRegionRanking()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/region-ranking"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].regionName").value("대구경북본부"))
+                .andExpect(jsonPath("$.data[0].rank").value(1));
     }
 
     @Test

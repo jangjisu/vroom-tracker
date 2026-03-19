@@ -244,7 +244,7 @@ class TrafficFlowServiceTest {
 
     private void stubFlowApi(String year, List<TrafficFlowItem> items) {
         TrafficFlowResponse response = new TrafficFlowResponse();
-        response.setCode("00");
+        response.setCode("SUCCESS");
         response.setList(items);
         when(exApiClient.getTrafficFlowByTime(any(), any(), eq(year))).thenReturn(response);
     }
