@@ -3,21 +3,14 @@ package com.vroomtracker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * 애플리케이션 컨텍스트 로드 테스트.
- *
- * - ex.api.url: Feign 실제 호출 방지
- * - datasource.url: 파일 기반 H2 대신 인메모리 H2 사용 (Hibernate Dialect 결정 가능)
+ * 테스트 설정은 src/test/resources/application-test.properties 참고.
  */
 @SpringBootTest
-@TestPropertySource(properties = {
-        "ex.api.url=http://localhost",
-        "ex.api.key=test-key",
-        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
+@ActiveProfiles("test")
 class VroomTrackerApplicationTests {
 
     @Test
