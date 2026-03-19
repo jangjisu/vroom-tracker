@@ -43,10 +43,6 @@ public class TrafficService {
     private double mediumThreshold;
 
     private static final String JSON = "json";
-    private static final String PAGE_FIRST = "1";
-
-    @Value("${ex.api.traffic-ic.num-of-rows}")
-    private String numOfRows;
 
     /**
      * 대시보드 전체 데이터를 조합해 반환합니다.
@@ -79,7 +75,7 @@ public class TrafficService {
             TrafficIcResponse response =
                     exApiClient.getTrafficIc(apiKey, JSON,
                             TmType.FIFTEEN_MIN.value(), InoutType.EXIT.value(),
-                            numOfRows, PAGE_FIRST);
+                            null, null);
 
             if (!response.isSuccess()) {
                 log.warn("trafficIc API 실패: code={}, message={}", response.getCode(), response.getMessage());
@@ -108,7 +104,12 @@ public class TrafficService {
             }
 
             List<TrafficRegionItem> list = response.getList();
-            return list != null ? list : Collections.emptyList();
+            if (list == null) {
+                log.warn("trafficRegion API 응답 list null — @JsonProperty 매핑 확인 필요");
+                return Collections.emptyList();
+            }
+            log.info("trafficRegion API 응답: {}건", list.size());
+            return list;
 
         } catch (Exception e) {
             log.error("trafficRegion API 호출 실패", e);
@@ -215,7 +216,11 @@ public class TrafficService {
                 .sorted(Comparator.comparingLong(RegionSummary::totalVolume).reversed())
                 .toList();
 
-        if (aggregated.isEmpty()) return Collections.emptyList();
+        if (aggregated.isEmpty()) {
+            log.warn("trafficRegion 집계 결과 없음 — 입력 {}건 중 유효 데이터 없음", items.size());
+            return Collections.emptyList();
+        }
+        log.info("trafficRegion 권역 집계 완료: {}개 권역", aggregated.size());
         long maxVol = aggregated.get(0).totalVolume();
 
         return IntStream.range(0, aggregated.size())
