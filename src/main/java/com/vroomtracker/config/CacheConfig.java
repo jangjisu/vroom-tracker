@@ -15,25 +15,25 @@ public class CacheConfig {
 
     /**
      * Cache strategy:
-     * - dashboard: 5min TTL — getDashboardData() (trafficIc API)
-     * - regionRanking: 5min TTL — getRegionRanking() (trafficRegion API)
+     * - regionRanking: 60min TTL — getRegionRanking() (trafficRegion API, 1-hour aggregation)
+     * - dashboard: 60min TTL — getDashboardData() (trafficIc API, currently unused from UI)
      *
      * trafficFlowByTime data is read from DB, no separate cache needed.
      */
     @Bean
     public CacheManager cacheManager() {
-        var dashboard = new CaffeineCache("dashboard",
-                Caffeine.newBuilder()
-                        .expireAfterWrite(5, TimeUnit.MINUTES)
-                        .build());
-
         var regionRanking = new CaffeineCache("regionRanking",
                 Caffeine.newBuilder()
-                        .expireAfterWrite(5, TimeUnit.MINUTES)
+                        .expireAfterWrite(60, TimeUnit.MINUTES)
+                        .build());
+
+        var dashboard = new CaffeineCache("dashboard",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(60, TimeUnit.MINUTES)
                         .build());
 
         var manager = new SimpleCacheManager();
-        manager.setCaches(List.of(dashboard, regionRanking));
+        manager.setCaches(List.of(regionRanking, dashboard));
         return manager;
     }
 }

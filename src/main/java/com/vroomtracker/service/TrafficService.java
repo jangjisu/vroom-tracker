@@ -95,7 +95,7 @@ public class TrafficService {
         try {
             TrafficRegionResponse response =
                     exApiClient.getTrafficRegion(apiKey, JSON,
-                            null, null, InoutType.EXIT.value(),
+                            null, null, null,
                             null, null, null, TmType.ONE_HOUR.value());
 
             if (!response.isSuccess()) {
@@ -193,7 +193,8 @@ public class TrafficService {
     private List<RegionTrafficDto> buildRegionRanking(List<TrafficRegionItem> items) {
         if (items.isEmpty()) return Collections.emptyList();
 
-        record RegionSummary(String regionCode, String regionName, long totalVolume, String sumTm) {}
+        record RegionSummary(String regionCode, String regionName,
+                             long entranceVolume, long exitVolume, String sumTm) {}
 
         List<RegionSummary> aggregated = items.stream()
                 .filter(i -> i.getTrafficAmount() != null && !i.getTrafficAmount().isBlank())
@@ -202,7 +203,12 @@ public class TrafficService {
                 .map(e -> {
                     List<TrafficRegionItem> group = e.getValue();
                     String regionName = group.get(0).getRegionName();
-                    long total = group.stream()
+                    long entrance = group.stream()
+                            .filter(i -> "0".equals(i.getInoutType()))
+                            .mapToLong(i -> (long) parseAmount(i.getTrafficAmount()))
+                            .sum();
+                    long exit = group.stream()
+                            .filter(i -> "1".equals(i.getInoutType()))
                             .mapToLong(i -> (long) parseAmount(i.getTrafficAmount()))
                             .sum();
                     String rawSumTm = group.stream()
@@ -211,9 +217,9 @@ public class TrafficService {
                             .filter(s -> !s.isBlank())
                             .max(Comparator.naturalOrder())
                             .orElse("-");
-                    return new RegionSummary(e.getKey(), regionName, total, formatSumTm(rawSumTm));
+                    return new RegionSummary(e.getKey(), regionName, entrance, exit, formatSumTm(rawSumTm));
                 })
-                .sorted(Comparator.comparingLong(RegionSummary::totalVolume).reversed())
+                .sorted(Comparator.comparingLong(RegionSummary::exitVolume).reversed())
                 .toList();
 
         if (aggregated.isEmpty()) {
@@ -221,13 +227,13 @@ public class TrafficService {
             return Collections.emptyList();
         }
         log.info("trafficRegion 권역 집계 완료: {}개 권역", aggregated.size());
-        long maxVol = aggregated.get(0).totalVolume();
+        long maxExitVol = aggregated.get(0).exitVolume();
 
         return IntStream.range(0, aggregated.size())
                 .mapToObj(i -> {
                     RegionSummary s = aggregated.get(i);
                     return RegionTrafficDto.of(i + 1, s.regionCode(), s.regionName(),
-                            s.totalVolume(), maxVol, s.sumTm());
+                            s.entranceVolume(), s.exitVolume(), maxExitVol, s.sumTm());
                 })
                 .toList();
     }
