@@ -102,7 +102,7 @@ class TrafficApiControllerTest {
     @Test
     @DisplayName("GET /api/region-ranking returns 200 with ApiResponse wrapper")
     void getRegionRanking_returns200WithApiResponseWrapper() throws Exception {
-        RegionTrafficDto dto = RegionTrafficDto.of(1, "905", "대구경북본부", 12450L, 12450L, "2026-03-13 09:00");
+        RegionTrafficDto dto = RegionTrafficDto.of(1, "905", "대구경북본부", 8000L, 12450L, 12450L, "2026-03-13 09:00");
         when(trafficService.getRegionRanking()).thenReturn(List.of(dto));
 
         mockMvc.perform(get("/api/region-ranking"))

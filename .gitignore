@@ -46,3 +46,5 @@ data/
 ### Personal task tracking / dev rules (not for version control) ###
 TODO.md
 CLAUDE.md
+API.md
+data.md

@@ -20,130 +20,17 @@
     <span class="navbar-brand fw-bold">
         <i class="bi bi-speedometer2 me-2"></i>vroom-tracker
     </span>
-    <span class="text-secondary small">고속도로 실시간 출구 교통량 랭킹</span>
+    <span class="text-secondary small">고속도로 실시간 권역별 교통량</span>
 </nav>
 
 <div class="container-fluid px-4 py-4">
 
-    <!-- ===== 상단 요약 카드 ===== -->
-    <div class="row g-3 mb-4">
-
-        <!-- 전국 총 통행량 -->
-        <div class="col-md-4">
-            <div class="card summary-card h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-car-front fs-4 text-primary me-2"></i>
-                        <span class="text-muted small">전국 출구 교통량 합계</span>
-                    </div>
-                    <div class="summary-value" id="totalVolume">
-                        <span class="placeholder-glow"><span class="placeholder col-8"></span></span>
-                    </div>
-                    <div class="text-muted small mt-1" id="sumTm"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 혼잡 영업소 수 -->
-        <div class="col-md-4">
-            <div class="card summary-card h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-exclamation-triangle fs-4 text-danger me-2"></i>
-                        <span class="text-muted small">혼잡 영업소 수</span>
-                    </div>
-                    <div class="summary-value text-danger" id="congestedSections">
-                        <span class="placeholder-glow"><span class="placeholder col-4"></span></span>
-                    </div>
-                    <div class="text-muted small mt-1">교통량 상위 기준</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 가장 붐비는 곳 -->
-        <div class="col-md-4">
-            <div class="card summary-card h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-trophy fs-4 text-warning me-2"></i>
-                        <span class="text-muted small">가장 붐비는 영업소</span>
-                    </div>
-                    <div class="summary-value text-warning" id="busiestPlace">
-                        <span class="placeholder-glow"><span class="placeholder col-6"></span></span>
-                    </div>
-                    <div class="text-muted small mt-1" id="busiestVolume"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== 메인 랭킹 테이블 ===== -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h6 class="mb-0 fw-bold">
-                <i class="bi bi-bar-chart-line me-2"></i>지금 많이 가는 곳 TOP 20
-                <span class="badge bg-secondary ms-1 fw-normal small">출구 교통량 기준</span>
-            </h6>
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-search text-muted small"></i>
-                <input type="text"
-                       id="unitSearch"
-                       class="form-control form-control-sm"
-                       placeholder="영업소명 검색..."
-                       style="width: 160px;">
-            </div>
-        </div>
-
-        <div class="card-body p-0">
-            <!-- 로딩 상태 -->
-            <div id="rankingLoading" class="text-center py-5 text-muted">
-                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                랭킹 데이터 불러오는 중...
-            </div>
-
-            <!-- 오류 상태 -->
-            <div id="rankingError" class="text-center py-5 text-muted" style="display:none;">
-                <i class="bi bi-wifi-off fs-2 d-block mb-2"></i>
-                데이터를 불러오지 못했습니다.<br>
-                <span class="small">API 키와 네트워크 상태를 확인하세요.</span>
-            </div>
-
-            <!-- 랭킹 테이블 -->
-            <div id="rankingTableWrap" style="display:none;">
-                <table class="table table-hover mb-0" id="rankingTable">
-                    <thead class="table-dark">
-                    <tr>
-                        <th class="text-center" style="width:60px">순위</th>
-                        <th>영업소</th>
-                        <th>구분</th>
-                        <th class="text-end">출구 교통량</th>
-                        <th class="text-center" style="width:80px">혼잡도</th>
-                        <th style="min-width:120px">현황</th>
-                        <th class="text-muted small">집계시간</th>
-                    </tr>
-                    </thead>
-                    <tbody id="rankingBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="card-footer d-flex justify-content-between align-items-center text-muted small">
-            <span>
-                <i class="bi bi-clock me-1"></i>페이지 로드: <span id="pageLoadTime">-</span>
-            </span>
-            <span>
-                <i class="bi bi-arrow-repeat me-1"></i>
-                <span id="countdown">300</span>초 후 자동 갱신 &nbsp;|&nbsp; 캐시 TTL 5분
-            </span>
-        </div>
-    </div>
-
     <!-- ===== 권역별 교통량 순위 ===== -->
-    <div class="card mb-4">
+    <div class="card">
         <div class="card-header">
             <h6 class="mb-0 fw-bold">
-                <i class="bi bi-map me-2"></i>권역별 출구 교통량 순위
-                <span class="badge bg-secondary ms-1 fw-normal small">1시간 집계 기준</span>
+                <i class="bi bi-map me-2"></i>권역별 교통량 순위
+                <span class="badge bg-secondary ms-1 fw-normal small">1시간 집계 · 출구 교통량 순</span>
             </h6>
         </div>
 
@@ -167,8 +54,9 @@
                     <tr>
                         <th class="text-center" style="width:60px">순위</th>
                         <th>권역</th>
+                        <th class="text-end">입구 교통량</th>
                         <th class="text-end">출구 교통량</th>
-                        <th style="min-width:120px">현황</th>
+                        <th style="min-width:120px">출구 현황</th>
                         <th class="text-muted small">집계시간</th>
                     </tr>
                     </thead>
@@ -176,47 +64,10 @@
                 </table>
             </div>
         </div>
-    </div>
 
-    <!-- ===== 시간대별 교통량 패턴 ===== -->
-    <div class="card">
-        <div class="card-header">
-            <h6 class="mb-0 fw-bold">
-                <i class="bi bi-graph-up me-2"></i>시간대별 교통량 패턴
-                <span class="badge bg-secondary ms-1 fw-normal small">연간 통계 기준</span>
-            </h6>
-        </div>
-        <div class="card-body">
-            <p class="text-muted small mb-3">
-                한국도로공사 연간 시간대별 통계 데이터입니다.
-                현재 시간(<strong id="currentHourLabel">-시</strong>) 기준으로 강조 표시됩니다.
-            </p>
-
-            <!-- 로딩 상태 -->
-            <div id="hourlyLoading" class="text-center py-3 text-muted">
-                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                패턴 데이터 불러오는 중...
-            </div>
-
-            <!-- 오류 상태 -->
-            <div id="hourlyError" class="text-center py-3 text-muted" style="display:none;">
-                <i class="bi bi-wifi-off me-1"></i>데이터를 불러오지 못했습니다.
-            </div>
-
-            <!-- 테이블 -->
-            <div id="hourlyTableWrap" class="table-responsive" style="display:none;">
-                <table class="table table-sm table-bordered small">
-                    <thead class="table-light">
-                    <tr>
-                        <th>특수일 구분</th>
-                        <th>기간 구분</th>
-                        <th class="text-center">기준시</th>
-                        <th class="text-end">교통량 (대)</th>
-                    </tr>
-                    </thead>
-                    <tbody id="hourlyBody"></tbody>
-                </table>
-            </div>
+        <div class="card-footer text-muted small text-end">
+            <i class="bi bi-arrow-repeat me-1"></i>
+            <span id="countdown">3600</span>초 후 자동 갱신
         </div>
     </div>
 
