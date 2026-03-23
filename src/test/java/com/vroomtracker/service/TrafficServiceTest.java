@@ -38,8 +38,6 @@ class TrafficServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(trafficService, "apiKey", "test-api-key");
-        ReflectionTestUtils.setField(trafficService, "highThreshold", 5.0);
-        ReflectionTestUtils.setField(trafficService, "mediumThreshold", 2.0);
     }
 
     // ================================================================
@@ -302,11 +300,12 @@ class TrafficServiceTest {
     }
 
     private TrafficRegionItem regionItem(String regionCode, String regionName,
-                                         String amount, String sumTm, String sumDate) {
+                                         String amount, String inoutType, String sumTm, String sumDate) {
         TrafficRegionItem item = new TrafficRegionItem();
         item.setRegionCode(regionCode);
         item.setRegionName(regionName);
         item.setTrafficAmount(amount);
+        item.setInoutType(inoutType);
         item.setSumTm(sumTm);
         item.setSumDate(sumDate);
         return item;
@@ -328,25 +327,26 @@ class TrafficServiceTest {
         @DisplayName("regionRanking_aggregatesByRegionCode")
         void regionRanking_aggregatesByRegionCode() {
             stubRegionApi(List.of(
-                    regionItem("927", "전북본부", "100", "0900", "20260313"),
-                    regionItem("927", "전북본부", "200", "0900", "20260313"),
-                    regionItem("905", "대구경북본부", "500", "0900", "20260313")
+                    regionItem("927", "전북본부", "100", "1", "0900", "20260313"),
+                    regionItem("927", "전북본부", "200", "0", "0900", "20260313"),
+                    regionItem("905", "대구경북본부", "500", "1", "0900", "20260313")
             ));
 
             List<RegionTrafficDto> result = trafficService.getRegionRanking();
 
             assertThat(result).hasSize(2);
             assertThat(result.get(0).getRegionCode()).isEqualTo("905");
-            assertThat(result.get(0).getTotalVolume()).isEqualTo(500L);
-            assertThat(result.get(1).getTotalVolume()).isEqualTo(300L);
+            assertThat(result.get(0).getExitVolume()).isEqualTo(500L);
+            assertThat(result.get(1).getExitVolume()).isEqualTo(100L);
+            assertThat(result.get(1).getEntranceVolume()).isEqualTo(200L);
         }
 
         @Test
         @DisplayName("regionRanking_assignsRankStartingFromOne")
         void regionRanking_assignsRankStartingFromOne() {
             stubRegionApi(List.of(
-                    regionItem("905", "대구경북본부", "500", "0900", "20260313"),
-                    regionItem("927", "전북본부", "300", "0900", "20260313")
+                    regionItem("905", "대구경북본부", "500", "1", "0900", "20260313"),
+                    regionItem("927", "전북본부", "300", "1", "0900", "20260313")
             ));
 
             List<RegionTrafficDto> result = trafficService.getRegionRanking();
@@ -358,8 +358,8 @@ class TrafficServiceTest {
         @DisplayName("regionRanking_topRankHasBarWidth100")
         void regionRanking_topRankHasBarWidth100() {
             stubRegionApi(List.of(
-                    regionItem("905", "대구경북본부", "500", "0900", "20260313"),
-                    regionItem("927", "전북본부", "250", "0900", "20260313")
+                    regionItem("905", "대구경북본부", "500", "1", "0900", "20260313"),
+                    regionItem("927", "전북본부", "250", "1", "0900", "20260313")
             ));
 
             List<RegionTrafficDto> result = trafficService.getRegionRanking();
@@ -392,12 +392,12 @@ class TrafficServiceTest {
         @DisplayName("regionRanking_formatsVolume")
         void regionRanking_formatsVolume() {
             stubRegionApi(List.of(
-                    regionItem("905", "대구경북본부", "1234", "0900", "20260313")
+                    regionItem("905", "대구경북본부", "1234", "1", "0900", "20260313")
             ));
 
             RegionTrafficDto dto = trafficService.getRegionRanking().get(0);
 
-            assertThat(dto.getFormattedVolume()).isEqualTo("1,234 대");
+            assertThat(dto.getFormattedExitVolume()).isEqualTo("1,234 대");
         }
     }
 }
