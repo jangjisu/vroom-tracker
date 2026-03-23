@@ -33,11 +33,13 @@ public class TollGateTrafficDto {
     /** 혼잡도 코드: HIGH / MEDIUM / LOW */
     private final CongestionLevel congestionLevel;
 
-    /** 혼잡도 한글 라벨: 많음 / 보통 / 적음 */
-    private final String congestionLabel;
-
     /** 막대그래프 너비 0~100 (최대값 기준 비율) */
     private final int barWidth;
+
+    /** 혼잡도 한글 라벨: 많음 / 보통 / 적음 — CongestionLevel에서 직접 조회 */
+    public String getCongestionLabel() {
+        return congestionLevel != null ? congestionLevel.label() : "-";
+    }
 
     /**
      * API 응답 VO → DTO 변환.
@@ -45,7 +47,7 @@ public class TollGateTrafficDto {
      */
     public static TollGateTrafficDto from(TrafficIcItem item, int rank, double exitVolume,
                                           double maxVol, CongestionLevel congestionLevel,
-                                          String congestionLabel, String formattedSumTm) {
+                                          String formattedSumTm) {
         return TollGateTrafficDto.builder()
                 .rank(rank)
                 .unitCode(item.getUnitCode())
@@ -55,7 +57,6 @@ public class TollGateTrafficDto {
                 .formattedVolume(String.format("%.0f 대", exitVolume))
                 .sumTm(formattedSumTm)
                 .congestionLevel(congestionLevel)
-                .congestionLabel(congestionLabel)
                 .barWidth(maxVol > 0 ? (int) (exitVolume / maxVol * 100) : 0)
                 .build();
     }

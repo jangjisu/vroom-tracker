@@ -12,17 +12,16 @@ import com.vroomtracker.dto.DashboardData;
 import com.vroomtracker.dto.NationwideTrafficDto;
 import com.vroomtracker.dto.RegionTrafficDto;
 import com.vroomtracker.dto.TollGateTrafficDto;
+import com.vroomtracker.util.TrafficUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -35,12 +34,6 @@ public class TrafficService {
 
     @Value("${ex.api.key}")
     private String apiKey;
-
-    @Value("${traffic.congestion.high-threshold}")
-    private double highThreshold;
-
-    @Value("${traffic.congestion.medium-threshold}")
-    private double mediumThreshold;
 
     private static final String JSON = "json";
 
@@ -137,7 +130,7 @@ public class TrafficService {
                 .values().stream()
                 .map(group -> {
                     double total = group.stream()
-                            .mapToDouble(i -> parseAmount(i.getTrafficAmount()))
+                            .mapToDouble(i -> TrafficUtils.parseAmount(i.getTrafficAmount()))
                             .sum();
                     // 대표 행: 가장 최근 집계시간 기준
                     TrafficIcItem rep = group.stream()
@@ -156,8 +149,8 @@ public class TrafficService {
                     UnitSummary us = aggregated.get(i);
                     return TollGateTrafficDto.from(
                             us.rep(), i + 1, us.totalVol(), maxVol,
-                            congestionLevel(us.totalVol()), congestionLabel(us.totalVol()),
-                            formatSumTm(us.rep().getSumTm())
+                            CongestionLevel.from(us.totalVol()),
+                            TrafficUtils.formatSumTm(us.rep().getSumTm())
                     );
                 })
                 .toList();
@@ -168,19 +161,19 @@ public class TrafficService {
         double totalVol = allItems.stream()
                 .filter(i -> "1".equals(i.getInoutType()) || i.getInoutType() == null)
                 .filter(i -> i.getTrafficAmount() != null && !i.getTrafficAmount().isBlank())
-                .mapToDouble(i -> parseAmount(i.getTrafficAmount()))
+                .mapToDouble(i -> TrafficUtils.parseAmount(i.getTrafficAmount()))
                 .sum();
 
         long congestedCount = allItems.stream()
                 .filter(i -> i.getTrafficAmount() != null)
-                .filter(i -> parseAmount(i.getTrafficAmount()) >= highThreshold)
+                .filter(i -> CongestionLevel.from(TrafficUtils.parseAmount(i.getTrafficAmount())) == CongestionLevel.HIGH)
                 .count();
 
         String latestSumTm = allItems.stream()
                 .filter(i -> i.getSumTm() != null)
                 .map(TrafficIcItem::getSumTm)
                 .max(Comparator.naturalOrder())
-                .map(this::formatSumTm)
+                .map(TrafficUtils::formatSumTm)
                 .orElse("-");
 
         return NationwideTrafficDto.of(
@@ -205,11 +198,11 @@ public class TrafficService {
                     String regionName = group.get(0).getRegionName();
                     long entrance = group.stream()
                             .filter(i -> "0".equals(i.getInoutType()))
-                            .mapToLong(i -> (long) parseAmount(i.getTrafficAmount()))
+                            .mapToLong(i -> (long) TrafficUtils.parseAmount(i.getTrafficAmount()))
                             .sum();
                     long exit = group.stream()
                             .filter(i -> "1".equals(i.getInoutType()))
-                            .mapToLong(i -> (long) parseAmount(i.getTrafficAmount()))
+                            .mapToLong(i -> (long) TrafficUtils.parseAmount(i.getTrafficAmount()))
                             .sum();
                     String rawSumTm = group.stream()
                             .map(i -> i.getSumDate() != null && i.getSumTm() != null
@@ -217,7 +210,7 @@ public class TrafficService {
                             .filter(s -> !s.isBlank())
                             .max(Comparator.naturalOrder())
                             .orElse("-");
-                    return new RegionSummary(e.getKey(), regionName, entrance, exit, formatSumTm(rawSumTm));
+                    return new RegionSummary(e.getKey(), regionName, entrance, exit, TrafficUtils.formatSumTm(rawSumTm));
                 })
                 .sorted(Comparator.comparingLong(RegionSummary::exitVolume).reversed())
                 .toList();
@@ -238,42 +231,4 @@ public class TrafficService {
                 .toList();
     }
 
-    // ================================================================
-    // 유틸
-    // ================================================================
-
-    private double parseAmount(String amount) {
-        try {
-            return Double.parseDouble(amount.trim());
-        } catch (NumberFormatException e) {
-            return 0.0;
-        }
-    }
-
-    private String formatSumTm(String sumTm) {
-        if (sumTm == null || sumTm.length() < 10) return sumTm;
-        try {
-            if (sumTm.length() == 10) {
-                return DateTimeFormatter.ofPattern("yyyy-MM-dd HH시")
-                        .format(DateTimeFormatter.ofPattern("yyyyMMddHH").parse(sumTm));
-            }
-            if (sumTm.length() == 12) {
-                return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        .format(DateTimeFormatter.ofPattern("yyyyMMddHHmm").parse(sumTm));
-            }
-        } catch (Exception ignored) {}
-        return sumTm;
-    }
-
-    private CongestionLevel congestionLevel(double vol) {
-        if (vol >= highThreshold) return CongestionLevel.HIGH;
-        if (vol >= mediumThreshold) return CongestionLevel.MEDIUM;
-        return CongestionLevel.LOW;
-    }
-
-    private String congestionLabel(double vol) {
-        if (vol >= highThreshold) return "많음";
-        if (vol >= mediumThreshold) return "보통";
-        return "적음";
-    }
 }
