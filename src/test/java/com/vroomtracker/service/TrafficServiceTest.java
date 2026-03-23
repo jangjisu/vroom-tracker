@@ -38,8 +38,6 @@ class TrafficServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(trafficService, "apiKey", "test-api-key");
-        ReflectionTestUtils.setField(trafficService, "highThreshold", 5.0);
-        ReflectionTestUtils.setField(trafficService, "mediumThreshold", 2.0);
     }
 
     // ================================================================
