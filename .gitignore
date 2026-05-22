@@ -47,4 +47,12 @@ data/
 TODO.md
 CLAUDE.md
 API.md
-data.md
+rules/
+
+### OS metadata ###
+.DS_Store
+
+### Local harness docs / run state ###
+docs/harness/**/*.md
+harness/**/*.md
+harness/runs/current/state.env
