@@ -1,0 +1,30 @@
+package com.vroomtracker.client.response;
+
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class RestStopResponse {
+
+    private String code;
+    private String message;
+    private String count;
+    private String pageSize;
+    private List<RestStopItem> list;
+
+    public boolean isSuccess() {
+        return "SUCCESS".equals(code);
+    }
+
+    public int getPageSizeAsInt() {
+        try {
+            return Integer.parseInt(pageSize);
+        } catch (NumberFormatException e) {
+            return 1;
+        }
+    }
+}
