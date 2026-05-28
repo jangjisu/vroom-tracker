@@ -14,7 +14,7 @@ if [ -z "$java_files" ]; then
   pass "code" "check-lombok-data" "변경된 Java 파일이 없습니다."
 fi
 
-violations=$(printf '%s\n' "$java_files" | xargs grep -n '@Data' 2>/dev/null || true)
+violations=$(printf '%s\n' "$java_files" | xargs grep -nE '@Data([^A-Za-z0-9_]|$)' 2>/dev/null || true)
 
 if [ -n "$violations" ]; then
   printf '%s\n' "$violations" >&2
