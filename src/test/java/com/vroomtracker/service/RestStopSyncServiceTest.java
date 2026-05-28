@@ -89,29 +89,9 @@ class RestStopSyncServiceTest {
     }
 
     @Test
-    @DisplayName("DB에 좌표가 누락된 데이터가 있으면 서버 시작 시 휴게소 목록을 다시 적재한다")
-    void initializeRestStopsIfEmpty_refreshesWhenCoordinatesAreMissing() {
-        when(restStopRepository.count()).thenReturn(1L);
-        when(restStopRepository.countByXValueIsNullOrYValueIsNull()).thenReturn(1L);
-        runTransactionCallback();
-        RestStopItem restStop = restStopItem("001", "서울만남(부산)휴게소");
-        when(exApiClient.getLocationInfoRest("test-key", "json", "99", "1"))
-                .thenReturn(restStopResponse("SUCCESS", "1", List.of(restStop)));
-
-        int savedCount = restStopSyncService.initializeRestStopsIfEmpty();
-
-        assertThat(savedCount).isEqualTo(1);
-        verify(restStopRepository).deleteAllInBatch();
-        List<RestStopEntity> savedEntities = captureSavedEntities();
-        assertThat(savedEntities).extracting(RestStopEntity::getXValue).containsExactly("127.042514");
-        assertThat(savedEntities).extracting(RestStopEntity::getYValue).containsExactly("37.459939");
-    }
-
-    @Test
     @DisplayName("DB에 데이터가 있으면 서버 시작 시 초기 적재를 생략한다")
     void initializeRestStopsIfEmpty_skipsWhenTableHasData() {
         when(restStopRepository.count()).thenReturn(1L);
-        when(restStopRepository.countByXValueIsNullOrYValueIsNull()).thenReturn(0L);
 
         int savedCount = restStopSyncService.initializeRestStopsIfEmpty();
 

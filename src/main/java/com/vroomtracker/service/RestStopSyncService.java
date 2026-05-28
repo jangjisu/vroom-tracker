@@ -28,7 +28,7 @@ public class RestStopSyncService {
     private String apiKey;
 
     public int initializeRestStopsIfEmpty() {
-        if (!needsInitialSync()) {
+        if (restStopRepository.count() > 0) {
             return 0;
         }
 
@@ -76,9 +76,5 @@ public class RestStopSyncService {
     private void replaceRestStops(List<RestStopItem> items) {
         restStopRepository.deleteAllInBatch();
         restStopRepository.saveAll(items.stream().map(RestStopEntity::from).toList());
-    }
-
-    private boolean needsInitialSync() {
-        return restStopRepository.count() == 0 || restStopRepository.countByXValueIsNullOrYValueIsNull() > 0;
     }
 }
