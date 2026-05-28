@@ -27,20 +27,20 @@ class RestStopResponseTest {
     }
 
     @Test
-    @DisplayName("pageSize를 정수로 변환한다")
-    void getPageSizeAsInt_returnsParsedValue() {
+    @DisplayName("pageSize를 총 페이지 수로 변환한다")
+    void getTotalPageCount_returnsParsedValue() {
         RestStopResponse response = new RestStopResponse();
         ReflectionTestUtils.setField(response, "pageSize", "20");
 
-        assertThat(response.getPageSizeAsInt()).isEqualTo(20);
+        assertThat(response.getTotalPageCount()).isEqualTo(20);
     }
 
     @Test
-    @DisplayName("pageSize가 숫자가 아니면 기본값 1을 반환한다")
-    void getPageSizeAsInt_returnsDefaultWhenInvalid() {
+    @DisplayName("pageSize가 숫자가 아니면 총 페이지 수 기본값 1을 반환한다")
+    void getTotalPageCount_returnsDefaultWhenInvalid() {
         RestStopResponse response = new RestStopResponse();
         ReflectionTestUtils.setField(response, "pageSize", "abc");
 
-        assertThat(response.getPageSizeAsInt()).isEqualTo(1);
+        assertThat(response.getTotalPageCount()).isEqualTo(1);
     }
 }
