@@ -16,6 +16,5 @@ public interface ExApiClient {
             @RequestParam("key") String key,
             @RequestParam("type") String type,
             @RequestParam(value = "numOfRows", required = false) String numOfRows,
-            @RequestParam(value = "pageNo", required = false) String pageNo
-    );
+            @RequestParam(value = "pageNo", required = false) String pageNo);
 }

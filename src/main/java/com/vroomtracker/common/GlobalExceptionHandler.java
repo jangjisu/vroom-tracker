@@ -13,16 +13,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         log.warn("Request parameter type mismatch: {}", e.getMessage());
-        return ResponseEntity
-                .status(ResponseCode.INVALID_PARAMETER.getHttpStatus())
+        return ResponseEntity.status(ResponseCode.INVALID_PARAMETER.getHttpStatus())
                 .body(ApiResponse.error(ResponseCode.INVALID_PARAMETER));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         log.error("Unhandled exception", e);
-        return ResponseEntity
-                .status(ResponseCode.INTERNAL_ERROR.getHttpStatus())
+        return ResponseEntity.status(ResponseCode.INTERNAL_ERROR.getHttpStatus())
                 .body(ApiResponse.error(ResponseCode.INTERNAL_ERROR));
     }
 }

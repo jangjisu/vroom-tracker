@@ -15,6 +15,5 @@ class VroomTrackerApplicationTests {
 
     @Test
     @DisplayName("Spring Application Context 가 정상적으로 로드된다")
-    void contextLoads() {
-    }
+    void contextLoads() {}
 }

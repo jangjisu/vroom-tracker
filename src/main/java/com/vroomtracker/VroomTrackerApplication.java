@@ -8,8 +8,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableFeignClients
 public class VroomTrackerApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(VroomTrackerApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(VroomTrackerApplication.class, args);
+    }
 }

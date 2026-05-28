@@ -1,13 +1,13 @@
 package com.vroomtracker.controller;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * TrafficController 는 GET / 에서 HTML 껍데기만 서빙합니다.
@@ -23,9 +23,7 @@ class TrafficControllerTest {
     @Test
     @DisplayName("index_returns200AndIndexView")
     void index_returns200AndIndexView() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("index"));
+        mockMvc.perform(get("/")).andExpect(status().isOk()).andExpect(view().name("index"));
     }
 
     @Test
