@@ -2,6 +2,10 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.0'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'checkstyle'
+	id 'jacoco'
+	id 'com.diffplug.spotless' version '8.6.0'
+	id 'org.sonarqube' version '7.3.0.8198'
 }
 
 group = 'com.vroomtracker'
@@ -44,4 +48,52 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy tasks.named('jacocoTestReport')
+}
+
+checkstyle {
+	configDirectory = file("$rootDir/config/checkstyle")
+}
+
+jacocoTestReport {
+	dependsOn tasks.named('test')
+
+	reports {
+		xml.required = true
+		html.required = true
+	}
+}
+
+jacocoTestCoverageVerification {
+	dependsOn tasks.named('test')
+
+	violationRules {
+		rule {
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.60
+			}
+		}
+	}
+}
+
+tasks.named('check') {
+	dependsOn tasks.named('jacocoTestCoverageVerification')
+}
+
+spotless {
+	java {
+		target 'src/**/*.java'
+		palantirJavaFormat('2.90.0')
+	}
+}
+
+sonar {
+	properties {
+		property 'sonar.projectKey', 'vroom-tracker'
+		property 'sonar.projectName', 'vroom-tracker'
+		property 'sonar.sources', 'src/main/java'
+		property 'sonar.tests', 'src/test/java'
+	}
 }
