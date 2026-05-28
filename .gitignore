@@ -43,16 +43,14 @@ application-secret.properties
 ### H2 file DB (local data) ###
 data/
 
-### Personal task tracking / dev rules (not for version control) ###
+### Personal task tracking (not for version control) ###
 TODO.md
 CLAUDE.md
 API.md
-rules/
 
 ### OS metadata ###
 .DS_Store
 
-### Local harness docs / run state ###
-docs/harness/**/*.md
-harness/**/*.md
+### Local harness run state ###
 harness/runs/current/state.env
+harness/runs/current/commit-message.txt

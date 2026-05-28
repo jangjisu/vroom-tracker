@@ -1,0 +1,15 @@
+# 백엔드 규칙 인덱스
+
+Java 파일 수정 시 수정 대상에 해당하는 파일만 읽는다.
+
+기계적으로 검증 가능한 항목은 `harness/hooks/code` 와 `harness/hooks/verify` 가 판단한다.
+이 문서는 레이어별 설계 판단이 필요할 때만 사용한다.
+
+**Entity 또는 DTO 클래스를 추가하거나 수정하는 경우**
+→ `entity-dto.md` 를 읽어라
+
+**Service 클래스를 추가하거나 수정하는 경우**
+→ `service.md` 를 읽어라
+
+**Controller 클래스를 추가하거나 수정하는 경우**
+→ `controller.md` 를 읽어라
