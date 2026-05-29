@@ -19,7 +19,7 @@ public class RestStopResponse {
         return "SUCCESS".equals(code);
     }
 
-    public int getPageSizeAsInt() {
+    public int getTotalPageCount() {
         try {
             return Integer.parseInt(pageSize);
         } catch (NumberFormatException e) {

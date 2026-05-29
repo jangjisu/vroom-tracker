@@ -5,6 +5,7 @@ import static com.vroomtracker.support.RestStopTestFixtures.restStopResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -46,22 +46,18 @@ class RestStopSyncServiceTest {
     @BeforeEach
     void setUp() {
         restStopSyncService = new RestStopSyncService(exApiClient, restStopRepository, transactionTemplate);
-        ReflectionTestUtils.setField(restStopSyncService, "apiKey", "test-key");
     }
 
     @Test
-    @DisplayName("pageSize만큼 휴게소 API를 호출하고 전체 목록을 교체 저장한다")
+    @DisplayName("총 페이지 수만큼 휴게소 API를 호출하고 전체 목록을 교체 저장한다")
     void refreshRestStops_fetchesAllPagesAndReplacesRows() {
         runTransactionCallback();
         RestStopItem first = restStopItem("001", "서울만남(부산)휴게소");
         RestStopItem second = restStopItem("002", "죽전(서울)휴게소");
         RestStopItem third = restStopItem("003", "기흥(부산)휴게소");
-        when(exApiClient.getLocationInfoRest("test-key", "json", "99", "1"))
-                .thenReturn(restStopResponse("SUCCESS", "3", List.of(first)));
-        when(exApiClient.getLocationInfoRest("test-key", "json", "99", "2"))
-                .thenReturn(restStopResponse("SUCCESS", "3", List.of(second)));
-        when(exApiClient.getLocationInfoRest("test-key", "json", "99", "3"))
-                .thenReturn(restStopResponse("SUCCESS", "3", List.of(third)));
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("SUCCESS", "3", List.of(first)));
+        when(exApiClient.getLocationInfoRest(2)).thenReturn(restStopResponse("SUCCESS", "3", List.of(second)));
+        when(exApiClient.getLocationInfoRest(3)).thenReturn(restStopResponse("SUCCESS", "3", List.of(third)));
 
         int savedCount = restStopSyncService.refreshRestStops();
 
@@ -77,8 +73,7 @@ class RestStopSyncServiceTest {
         when(restStopRepository.count()).thenReturn(0L);
         runTransactionCallback();
         RestStopItem restStop = restStopItem("001", "서울만남(부산)휴게소");
-        when(exApiClient.getLocationInfoRest("test-key", "json", "99", "1"))
-                .thenReturn(restStopResponse("SUCCESS", "1", List.of(restStop)));
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("SUCCESS", "1", List.of(restStop)));
 
         int savedCount = restStopSyncService.initializeRestStopsIfEmpty();
 
@@ -96,7 +91,7 @@ class RestStopSyncServiceTest {
         int savedCount = restStopSyncService.initializeRestStopsIfEmpty();
 
         assertThat(savedCount).isZero();
-        verify(exApiClient, never()).getLocationInfoRest(any(), any(), any(), any());
+        verify(exApiClient, never()).getLocationInfoRest(anyInt());
         verify(restStopRepository, never()).deleteAllInBatch();
         verify(restStopRepository, never()).saveAll(any());
     }
@@ -104,8 +99,7 @@ class RestStopSyncServiceTest {
     @Test
     @DisplayName("API 응답이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestStops_doesNotReplaceRowsWhenApiFails() {
-        when(exApiClient.getLocationInfoRest("test-key", "json", "99", "1"))
-                .thenReturn(restStopResponse("ERROR", "1", List.of()));
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("ERROR", "1", List.of()));
 
         assertThatThrownBy(() -> restStopSyncService.refreshRestStops())
                 .isInstanceOf(IllegalStateException.class)
