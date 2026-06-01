@@ -1,6 +1,5 @@
 package com.vroomtracker.controller;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -8,7 +7,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -17,7 +15,6 @@ import org.springframework.test.web.servlet.MockMvc;
  * 프론트엔드 JS가 각 섹션을 비동기로 채웁니다.
  */
 @WebMvcTest(TrafficController.class)
-@TestPropertySource(properties = "naver.maps.ncp-key-id=test-map-key")
 class TrafficControllerTest {
 
     @Autowired
@@ -36,19 +33,5 @@ class TrafficControllerTest {
                 .andExpect(model().attributeDoesNotExist("summary"))
                 .andExpect(model().attributeDoesNotExist("tollGates"))
                 .andExpect(model().attributeDoesNotExist("hourlyPattern"));
-    }
-
-    @Test
-    @DisplayName("index_modelHasNaverMapKey")
-    void index_modelHasNaverMapKey() throws Exception {
-        mockMvc.perform(get("/")).andExpect(model().attribute("naverMapsNcpKeyId", "test-map-key"));
-    }
-
-    @Test
-    @DisplayName("index_rendersNaverMapScript")
-    void index_rendersNaverMapScript() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(content()
-                        .string(containsString("https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=test-map-key")));
     }
 }

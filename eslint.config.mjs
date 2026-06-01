@@ -9,8 +9,11 @@ export default [
         clearTimeout: 'readonly',
         console: 'readonly',
         document: 'readonly',
+        encodeURIComponent: 'readonly',
         fetch: 'readonly',
+        navigator: 'readonly',
         Number: 'readonly',
+        Promise: 'readonly',
         setTimeout: 'readonly',
         window: 'readonly'
       }
