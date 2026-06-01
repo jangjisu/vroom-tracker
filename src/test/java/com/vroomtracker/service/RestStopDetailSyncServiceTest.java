@@ -5,6 +5,7 @@ import static com.vroomtracker.support.RestStopTestFixtures.restStopDetailRespon
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -46,6 +47,38 @@ class RestStopDetailSyncServiceTest {
     void setUp() {
         restStopDetailSyncService =
                 new RestStopDetailSyncService(exApiClient, restStopDetailRepository, transactionTemplate);
+    }
+
+    @Test
+    @DisplayName("DB가 비어 있으면 서버 시작 시 휴게소 상세 목록을 적재한다")
+    void initializeRestStopDetailsIfEmpty_refreshesWhenTableIsEmpty() {
+        when(restStopDetailRepository.count()).thenReturn(0L);
+        runTransactionCallback();
+        RestStopDetailItem detail = restStopDetailItem("A00078", "건천(부산)휴게소");
+        when(exApiClient.getConvenienceServiceArea(1))
+                .thenReturn(restStopDetailResponse("SUCCESS", "1", List.of(detail)));
+
+        int savedCount = restStopDetailSyncService.initializeRestStopDetailsIfEmpty();
+
+        assertThat(savedCount).isEqualTo(1);
+        verify(restStopDetailRepository).deleteAllInBatch();
+        List<RestStopDetailEntity> savedEntities = captureSavedEntities();
+        assertThat(savedEntities)
+                .extracting(RestStopDetailEntity::getServiceAreaCode)
+                .containsExactly("A00078");
+    }
+
+    @Test
+    @DisplayName("DB에 상세 데이터가 있으면 서버 시작 시 초기 적재를 생략한다")
+    void initializeRestStopDetailsIfEmpty_skipsWhenTableHasData() {
+        when(restStopDetailRepository.count()).thenReturn(1L);
+
+        int savedCount = restStopDetailSyncService.initializeRestStopDetailsIfEmpty();
+
+        assertThat(savedCount).isZero();
+        verify(exApiClient, never()).getConvenienceServiceArea(anyInt());
+        verify(restStopDetailRepository, never()).deleteAllInBatch();
+        verify(restStopDetailRepository, never()).saveAll(any());
     }
 
     @Test

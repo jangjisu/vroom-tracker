@@ -21,6 +21,14 @@ public class RestStopDetailSyncService {
     private final RestStopDetailRepository restStopDetailRepository;
     private final TransactionTemplate transactionTemplate;
 
+    public int initializeRestStopDetailsIfEmpty() {
+        if (restStopDetailRepository.count() > 0) {
+            return 0;
+        }
+
+        return refreshRestStopDetails();
+    }
+
     public int refreshRestStopDetails() {
         List<RestStopDetailItem> items = fetchAllRestStopDetails();
 
