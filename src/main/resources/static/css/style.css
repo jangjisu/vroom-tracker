@@ -67,7 +67,7 @@ body {
     overflow: hidden;
 }
 
-.leaflet-popup-content {
+.rest-stop-map-popup {
     min-width: 160px;
 }
 
