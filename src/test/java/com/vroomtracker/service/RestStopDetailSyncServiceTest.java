@@ -1,0 +1,104 @@
+package com.vroomtracker.service;
+
+import static com.vroomtracker.support.RestStopTestFixtures.restStopDetailItem;
+import static com.vroomtracker.support.RestStopTestFixtures.restStopDetailResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.response.RestStopDetailItem;
+import com.vroomtracker.domain.RestStopDetailEntity;
+import com.vroomtracker.repository.RestStopDetailRepository;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
+
+@ExtendWith(MockitoExtension.class)
+class RestStopDetailSyncServiceTest {
+
+    @Mock
+    private ExApiClient exApiClient;
+
+    @Mock
+    private RestStopDetailRepository restStopDetailRepository;
+
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
+    private RestStopDetailSyncService restStopDetailSyncService;
+
+    @BeforeEach
+    void setUp() {
+        restStopDetailSyncService =
+                new RestStopDetailSyncService(exApiClient, restStopDetailRepository, transactionTemplate);
+    }
+
+    @Test
+    @DisplayName("총 페이지 수만큼 휴게소 상세 API를 호출하고 전체 목록을 교체 저장한다")
+    void refreshRestStopDetails_fetchesAllPagesAndReplacesRows() {
+        runTransactionCallback();
+        RestStopDetailItem first = restStopDetailItem("A00078", "건천(부산)휴게소");
+        RestStopDetailItem second = restStopDetailItem("A00315", "처인휴게소");
+        when(exApiClient.getConvenienceServiceArea(1))
+                .thenReturn(restStopDetailResponse("SUCCESS", "2", List.of(first)));
+        when(exApiClient.getConvenienceServiceArea(2))
+                .thenReturn(restStopDetailResponse("SUCCESS", "2", List.of(second)));
+
+        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
+
+        assertThat(savedCount).isEqualTo(2);
+        verify(restStopDetailRepository).deleteAllInBatch();
+        List<RestStopDetailEntity> savedEntities = captureSavedEntities();
+        assertThat(savedEntities)
+                .extracting(RestStopDetailEntity::getServiceAreaCode)
+                .containsExactly("A00078", "A00315");
+    }
+
+    @Test
+    @DisplayName("상세 API 응답이 실패하면 기존 DB를 교체하지 않는다")
+    void refreshRestStopDetails_doesNotReplaceRowsWhenApiFails() {
+        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(restStopDetailResponse("ERROR", "1", List.of()));
+
+        assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to fetch rest stop detail page: 1");
+
+        verify(restStopDetailRepository, never()).deleteAllInBatch();
+        verify(restStopDetailRepository, never()).saveAll(any());
+    }
+
+    private void runTransactionCallback() {
+        doAnswer(invocation -> {
+                    Consumer<TransactionStatus> action = invocation.getArgument(0);
+                    action.accept(mock(TransactionStatus.class));
+                    return null;
+                })
+                .when(transactionTemplate)
+                .executeWithoutResult(any());
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<RestStopDetailEntity> captureSavedEntities() {
+        ArgumentCaptor<Iterable<RestStopDetailEntity>> captor = ArgumentCaptor.forClass(Iterable.class);
+        verify(restStopDetailRepository).saveAll(captor.capture());
+
+        List<RestStopDetailEntity> entities = new ArrayList<>();
+        captor.getValue().forEach(entities::add);
+        return entities;
+    }
+}
