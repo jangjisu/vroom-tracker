@@ -39,6 +39,103 @@ body {
     border-bottom: 1px solid #2d2d2d;
 }
 
+/* ===== Rest Stop Map ===== */
+.rest-stop-map-shell {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.rest-stop-map-summary {
+    min-width: 120px;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid #d7dde8;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.rest-stop-map-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.rest-stop-map-layout:has(.rest-stop-detail-panel:not(.d-none)) {
+    grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.rest-stop-map {
+    width: 100%;
+    min-height: 520px;
+    height: calc(100vh - 190px);
+    border: 1px solid #d7dde8;
+    border-radius: 8px;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.rest-stop-map-popup {
+    min-width: 120px;
+    font-weight: 700;
+}
+
+.rest-stop-detail-panel {
+    position: relative;
+    min-height: 520px;
+    padding: 1.25rem;
+    border: 1px solid #d7dde8;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.rest-stop-detail-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+.rest-stop-detail-kicker {
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.rest-stop-detail-list {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 0.75rem 0.85rem;
+    margin: 0;
+}
+
+.rest-stop-detail-list dt {
+    color: #6c757d;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.rest-stop-detail-list dd {
+    margin: 0;
+    color: #212529;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 991.98px) {
+    .rest-stop-map-layout:has(.rest-stop-detail-panel:not(.d-none)) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .rest-stop-detail-panel {
+        min-height: auto;
+    }
+}
+
 /* ===== Summary Cards ===== */
 .summary-card {
     border: none;

@@ -17,6 +17,39 @@
 </nav>
 
 <div class="container-fluid px-4 py-4">
+    <section class="rest-stop-map-shell">
+        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+            <div>
+                <h1 class="h4 mb-1">휴게소 위치 지도</h1>
+                <p class="text-secondary mb-0">전국 고속도로 휴게소 위치를 지도에서 확인합니다.</p>
+            </div>
+            <div class="rest-stop-map-summary">
+                <span id="restStopMapStatus">불러오는 중</span>
+            </div>
+        </div>
+        <div class="rest-stop-map-layout">
+            <div id="restStopMap" class="rest-stop-map" aria-label="휴게소 위치 지도"></div>
+            <aside id="restStopDetailPanel" class="rest-stop-detail-panel d-none" aria-labelledby="restStopDetailName">
+                <button id="restStopDetailClose" class="btn-close rest-stop-detail-close" type="button"
+                        aria-label="상세 정보 닫기"></button>
+                <div class="rest-stop-detail-kicker">선택한 휴게소</div>
+                <h2 id="restStopDetailName" class="h5 mb-3"></h2>
+                <dl class="rest-stop-detail-list">
+                    <dt>노선</dt>
+                    <dd id="restStopDetailRoute"></dd>
+                    <dt>휴게소 코드</dt>
+                    <dd id="restStopDetailUnitCode"></dd>
+                    <dt>표준 휴게소 코드</dt>
+                    <dd id="restStopDetailStdRestCode"></dd>
+                    <dt>서비스 영역 코드</dt>
+                    <dd id="restStopDetailServiceAreaCode"></dd>
+                    <dt>좌표</dt>
+                    <dd id="restStopDetailCoordinates"></dd>
+                </dl>
+            </aside>
+        </div>
+        <div id="restStopMapError" class="alert alert-warning mt-3 mb-0 d-none" role="alert"></div>
+    </section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
