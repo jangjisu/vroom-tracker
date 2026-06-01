@@ -1,5 +1,6 @@
 package com.vroomtracker.client;
 
+import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
 import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -25,4 +26,8 @@ public interface ExApiFeignClient {
             @RequestParam("type") String type,
             @RequestParam(value = "numOfRows", required = false) String numOfRows,
             @RequestParam(value = "pageNo", required = false) String pageNo);
+
+    @GetMapping("/openapi/restinfo/hiwaySvarInfoList")
+    HighwayServiceAreaInfoResponse getHighwayServiceAreaInfoList(
+            @RequestParam("key") String key, @RequestParam("type") String type);
 }
