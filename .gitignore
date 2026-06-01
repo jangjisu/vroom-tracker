@@ -50,6 +50,7 @@ data/
 TODO.md
 CLAUDE.md
 API.md
+docs/**
 
 ### OS metadata ###
 .DS_Store
