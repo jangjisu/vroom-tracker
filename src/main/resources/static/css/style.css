@@ -39,6 +39,38 @@ body {
     border-bottom: 1px solid #2d2d2d;
 }
 
+/* ===== Rest Stop Map ===== */
+.rest-stop-map-shell {
+    max-width: 1440px;
+    margin: 0 auto;
+}
+
+.rest-stop-map-summary {
+    min-width: 120px;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid #d7dde8;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.rest-stop-map {
+    width: 100%;
+    min-height: 520px;
+    height: calc(100vh - 190px);
+    border: 1px solid #d7dde8;
+    border-radius: 8px;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.leaflet-popup-content {
+    min-width: 160px;
+}
+
 /* ===== Summary Cards ===== */
 .summary-card {
     border: none;
