@@ -1,5 +1,6 @@
 package com.vroomtracker.client;
 
+import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,11 @@ public class ExApiClient {
 
     public RestStopResponse getLocationInfoRest(int pageNo) {
         return exApiFeignClient.getLocationInfoRest(
+                apiKey, ExApiResponseFormat.JSON.value(), REST_STOP_NUM_OF_ROWS, String.valueOf(pageNo));
+    }
+
+    public RestStopDetailResponse getConvenienceServiceArea(int pageNo) {
+        return exApiFeignClient.getConvenienceServiceArea(
                 apiKey, ExApiResponseFormat.JSON.value(), REST_STOP_NUM_OF_ROWS, String.valueOf(pageNo));
     }
 }
