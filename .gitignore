@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Node / frontend tooling ###
+node_modules/
+
 ### Secret / Local config ###
 application-local.properties
 application-secret.properties

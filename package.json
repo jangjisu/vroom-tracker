@@ -1,0 +1,10 @@
+{
+  "name": "vroom-tracker",
+  "private": true,
+  "scripts": {
+    "lint": "eslint \"src/main/resources/static/js/**/*.js\""
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
+  }
+}
