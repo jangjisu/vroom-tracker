@@ -65,10 +65,7 @@ function loadNaverMapsScript(ncpKeyId) {
         return Promise.resolve();
     }
 
-    const existingScript = document.getElementById(NAVER_MAPS_SCRIPT_ID);
-    if (existingScript) {
-        return waitForScriptLoad(existingScript);
-    }
+    document.getElementById(NAVER_MAPS_SCRIPT_ID)?.remove();
 
     const script = document.createElement('script');
     script.id = NAVER_MAPS_SCRIPT_ID;
