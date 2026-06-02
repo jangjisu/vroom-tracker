@@ -57,7 +57,7 @@ class RestStopQueryServiceTest {
     }
 
     @Test
-    @DisplayName("serviceAreaCode 기준으로 휴게소 상세 정보를 조합한다")
+    @DisplayName("serviceAreaCode 기준으로 조회한 휴게소 상세 응답을 반환한다")
     void findDetailByServiceAreaCode_returnsComposedDetail() {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
         RestStopDetailItem detailItem = restStopDetailItem("A00001", "서울만남(부산)휴게소");

@@ -8,9 +8,7 @@ import com.vroomtracker.repository.HighwayServiceAreaInfoRepository;
 import com.vroomtracker.repository.RestStopDetailRepository;
 import com.vroomtracker.repository.RestStopRepository;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,62 +38,6 @@ public class RestStopQueryService {
         List<HighwayServiceAreaInfoEntity> infos =
                 highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode(serviceAreaCode);
 
-        String detailAddress = textOf(detail, RestStopDetailEntity::getSvarAddr);
-        String fallbackAddress = minText(infos, HighwayServiceAreaInfoEntity::getServiceAreaAddress);
-
-        return RestStopDetailViewResponse.of(
-                restStop,
-                firstNonNull(detailAddress, fallbackAddress),
-                textOf(detail, RestStopDetailEntity::getConvenience),
-                textOf(detail, RestStopDetailEntity::getMaintenanceYn),
-                textOf(detail, RestStopDetailEntity::getTruckSaYn),
-                minText(infos, HighwayServiceAreaInfoEntity::getDirectionTypeName),
-                sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getCompactCarParkingCount),
-                sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getFullSizeCarParkingCount),
-                sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getDisabledParkingCount));
-    }
-
-    private <T> String minText(List<T> items, Function<T, String> getter) {
-        return items.stream()
-                .map(getter)
-                .filter(this::hasText)
-                .map(String::trim)
-                .min(String::compareTo)
-                .orElse(null);
-    }
-
-    private String textOf(Optional<RestStopDetailEntity> detail, Function<RestStopDetailEntity, String> getter) {
-        return detail.map(getter).filter(this::hasText).map(String::trim).orElse(null);
-    }
-
-    private Integer sumIntegerValues(
-            List<HighwayServiceAreaInfoEntity> infos, Function<HighwayServiceAreaInfoEntity, String> getter) {
-        List<Integer> values = infos.stream()
-                .map(getter)
-                .map(this::parseInteger)
-                .filter(Objects::nonNull)
-                .toList();
-
-        if (values.isEmpty()) {
-            return null;
-        }
-
-        return values.stream().mapToInt(Integer::intValue).sum();
-    }
-
-    private Integer parseInteger(String value) {
-        if (!hasText(value)) {
-            return null;
-        }
-
-        return Integer.valueOf(value.trim());
-    }
-
-    private String firstNonNull(String first, String second) {
-        return first != null ? first : second;
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.trim().isEmpty();
+        return RestStopDetailViewResponse.of(restStop, detail, infos);
     }
 }
