@@ -1,10 +1,12 @@
 package com.vroomtracker.client;
 
+import static com.vroomtracker.support.RestStopTestFixtures.highwayServiceAreaInfoResponse;
 import static com.vroomtracker.support.RestStopTestFixtures.restStopDetailResponse;
 import static com.vroomtracker.support.RestStopTestFixtures.restStopResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
 import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopResponse;
 import java.util.List;
@@ -48,6 +50,17 @@ class ExApiClientTest {
                 .thenReturn(response);
 
         RestStopDetailResponse result = exApiClient.getConvenienceServiceArea(2);
+
+        assertThat(result).isSameAs(response);
+    }
+
+    @Test
+    @DisplayName("고속도로 휴게소 정보 API 호출 시 공통 인증키와 JSON 포맷을 적용한다")
+    void getHighwayServiceAreaInfoList_appliesDefaultParameters() {
+        HighwayServiceAreaInfoResponse response = highwayServiceAreaInfoResponse("SUCCESS", List.of());
+        when(exApiFeignClient.getHighwayServiceAreaInfoList("test-key", "json")).thenReturn(response);
+
+        HighwayServiceAreaInfoResponse result = exApiClient.getHighwayServiceAreaInfoList();
 
         assertThat(result).isSameAs(response);
     }
