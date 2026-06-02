@@ -70,7 +70,7 @@ class RestStopQueryServiceTest {
         HighwayServiceAreaInfoEntity secondInfo = highwayServiceAreaInfo("A00001", "5", "7", "");
 
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
-        when(restStopDetailRepository.findAllByServiceAreaCode("A00001")).thenReturn(List.of(detail));
+        when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(detail));
         when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A00001"))
                 .thenReturn(List.of(firstInfo, secondInfo));
 
@@ -98,7 +98,7 @@ class RestStopQueryServiceTest {
     void findDetailByServiceAreaCode_returnsNullFieldsWhenOptionalDataMissing() {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
-        when(restStopDetailRepository.findAllByServiceAreaCode("A00001")).thenReturn(List.of());
+        when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.empty());
         when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A00001"))
                 .thenReturn(List.of());
 

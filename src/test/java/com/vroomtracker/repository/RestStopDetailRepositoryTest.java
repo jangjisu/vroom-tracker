@@ -31,13 +31,11 @@ class RestStopDetailRepositoryTest {
     }
 
     @Test
-    @DisplayName("serviceAreaCode 기준으로 휴게소 상세 entity 목록을 조회한다")
-    void findAllByServiceAreaCode_returnsSavedRestStopDetails() {
+    @DisplayName("serviceAreaCode 기준으로 휴게소 상세 entity를 단건 조회한다")
+    void findByServiceAreaCode_returnsSavedRestStopDetail() {
         RestStopDetailEntity detail = RestStopDetailEntity.from(restStopDetailItem("A00078", "건천(부산)휴게소"));
         restStopDetailRepository.save(detail);
 
-        List<RestStopDetailEntity> details = restStopDetailRepository.findAllByServiceAreaCode("A00078");
-
-        assertThat(details).containsExactly(detail);
+        assertThat(restStopDetailRepository.findByServiceAreaCode("A00078")).contains(detail);
     }
 }

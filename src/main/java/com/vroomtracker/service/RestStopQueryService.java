@@ -36,19 +36,19 @@ public class RestStopQueryService {
     }
 
     private RestStopDetailViewResponse buildDetailResponse(RestStopEntity restStop, String serviceAreaCode) {
-        List<RestStopDetailEntity> details = restStopDetailRepository.findAllByServiceAreaCode(serviceAreaCode);
+        Optional<RestStopDetailEntity> detail = restStopDetailRepository.findByServiceAreaCode(serviceAreaCode);
         List<HighwayServiceAreaInfoEntity> infos =
                 highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode(serviceAreaCode);
 
-        String detailAddress = minText(details, RestStopDetailEntity::getSvarAddr);
+        String detailAddress = textOf(detail, RestStopDetailEntity::getSvarAddr);
         String fallbackAddress = minText(infos, HighwayServiceAreaInfoEntity::getServiceAreaAddress);
 
         return RestStopDetailViewResponse.of(
                 restStop,
                 firstNonNull(detailAddress, fallbackAddress),
-                minText(details, RestStopDetailEntity::getConvenience),
-                resolveYn(details, RestStopDetailEntity::getMaintenanceYn),
-                resolveYn(details, RestStopDetailEntity::getTruckSaYn),
+                textOf(detail, RestStopDetailEntity::getConvenience),
+                textOf(detail, RestStopDetailEntity::getMaintenanceYn),
+                textOf(detail, RestStopDetailEntity::getTruckSaYn),
                 minText(infos, HighwayServiceAreaInfoEntity::getDirectionTypeName),
                 sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getCompactCarParkingCount),
                 sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getFullSizeCarParkingCount),
@@ -64,16 +64,8 @@ public class RestStopQueryService {
                 .orElse(null);
     }
 
-    private String resolveYn(List<RestStopDetailEntity> details, Function<RestStopDetailEntity, String> getter) {
-        if (details.stream().map(getter).anyMatch("O"::equals)) {
-            return "O";
-        }
-
-        if (details.stream().map(getter).anyMatch("X"::equals)) {
-            return "X";
-        }
-
-        return null;
+    private String textOf(Optional<RestStopDetailEntity> detail, Function<RestStopDetailEntity, String> getter) {
+        return detail.map(getter).filter(this::hasText).map(String::trim).orElse(null);
     }
 
     private Integer sumIntegerValues(
