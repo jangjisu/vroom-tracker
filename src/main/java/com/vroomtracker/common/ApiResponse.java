@@ -16,11 +16,11 @@ public class ApiResponse<T> {
         return new ApiResponse<>(ResponseCode.SUCCESS.name(), ResponseCode.SUCCESS.getDefaultMessage(), data);
     }
 
-    public static ApiResponse<Void> error(ResponseCode code) {
+    public static <T> ApiResponse<T> error(ResponseCode code) {
         return new ApiResponse<>(code.name(), code.getDefaultMessage(), null);
     }
 
-    public static ApiResponse<Void> error(ResponseCode code, String message) {
+    public static <T> ApiResponse<T> error(ResponseCode code, String message) {
         return new ApiResponse<>(code.name(), message, null);
     }
 }
