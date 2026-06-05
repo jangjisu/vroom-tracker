@@ -75,7 +75,8 @@ export EX_API_KEY=YOUR_API_KEY_HERE
 - JUnit test
 - JaCoCo line coverage verification
 
-JaCoCo line coverage 최소 기준은 `60%`입니다.
+JaCoCo 전체 line coverage 최소 기준은 `95%`입니다.
+하네스 검증에서는 신규·변경 실행 라인과 변경 조건 분기의 `100%` 커버리지도 확인합니다.
 
 ---
 

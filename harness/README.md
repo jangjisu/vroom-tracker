@@ -1,12 +1,13 @@
 # 하네스
 
-이 하네스는 하나의 작업을 다음 5단계 게이트로 나누어 진행한다.
+이 하네스는 하나의 작업을 다음 6단계 게이트로 나누어 진행한다.
 
 1. 계획 생성
 2. 스펙 영향도 확인
-3. 코드 작성
-4. 검증
-5. Commit
+3. 계획 확정 및 리뷰
+4. 코드 작성
+5. 검증
+6. Commit / Push
 
 각 게이트는 안정적인 큰 단계이고, 각 단계 안에는 통과 조건을 검사하는 작은 shell hook들이 있다.
 
@@ -29,6 +30,7 @@ cp harness/runs/current/state.env.example harness/runs/current/state.env
 harness/harness.sh list
 harness/harness.sh verify plan
 harness/harness.sh verify spec
+harness/harness.sh verify review
 harness/harness.sh verify code
 harness/harness.sh verify verify
 harness/harness.sh verify commit

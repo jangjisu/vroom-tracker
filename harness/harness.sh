@@ -8,11 +8,12 @@ usage() {
   cat <<'USAGE'
 Usage:
   harness/harness.sh list
-  harness/harness.sh verify <plan|spec|code|verify|commit|all>
+  harness/harness.sh verify <plan|spec|review|code|verify|commit|all>
 
 Steps:
   plan     - planning gate
   spec     - API/spec impact gate
+  review   - finalized plan and review gate
   code     - code and test writing gate
   verify   - verification evidence gate
   commit   - git commit readiness gate
@@ -23,6 +24,7 @@ step_dir() {
   case "$1" in
     plan) echo "$ROOT_DIR/harness/hooks/plan" ;;
     spec) echo "$ROOT_DIR/harness/hooks/spec" ;;
+    review) echo "$ROOT_DIR/harness/hooks/review" ;;
     code) echo "$ROOT_DIR/harness/hooks/code" ;;
     verify) echo "$ROOT_DIR/harness/hooks/verify" ;;
     commit) echo "$ROOT_DIR/harness/hooks/commit" ;;
@@ -94,7 +96,7 @@ case "$command" in
     fi
 
     if [ "$1" = "all" ]; then
-      for step in plan spec code verify commit; do
+      for step in plan spec review code verify commit; do
         run_step "$step"
       done
     else

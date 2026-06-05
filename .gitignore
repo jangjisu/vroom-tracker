@@ -42,6 +42,7 @@ node_modules/
 ### Secret / Local config ###
 application-local.properties
 application-secret.properties
+.compound-engineering/*.local.yaml
 
 ### H2 file DB (local data) ###
 data/
@@ -49,7 +50,6 @@ data/
 ### Personal task tracking (not for version control) ###
 TODO.md
 CLAUDE.md
-API.md
 
 ### OS metadata ###
 .DS_Store

@@ -10,9 +10,9 @@ cd "$(repo_root)"
 
 if ! ./gradlew jacocoTestCoverageVerification --console=plain; then
 	fail_autofixable "verify" "check-jacoco-coverage" \
-		"JaCoCo line coverage 60% 기준을 만족하지 못했습니다." \
+		"JaCoCo 전체 line coverage 95% 기준을 만족하지 못했습니다." \
 		"code" \
 		"테스트를 보강하거나 불필요한 미사용 코드를 정리한 뒤 다시 검증하세요."
 fi
 
-pass "verify" "check-jacoco-coverage" "JaCoCo line coverage 60% 기준을 만족합니다."
+pass "verify" "check-jacoco-coverage" "JaCoCo 전체 line coverage 95% 기준을 만족합니다."
