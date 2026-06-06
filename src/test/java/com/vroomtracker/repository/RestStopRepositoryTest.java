@@ -29,4 +29,13 @@ class RestStopRepositoryTest {
         assertThat(restStops.get(0).getUnitCode()).isEqualTo("001");
         assertThat(restStops.get(0).getUnitName()).isEqualTo("서울만남(부산)휴게소");
     }
+
+    @Test
+    @DisplayName("serviceAreaCode 기준으로 휴게소 entity를 조회한다")
+    void findByServiceAreaCode_returnsSavedRestStop() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        restStopRepository.save(restStop);
+
+        assertThat(restStopRepository.findByServiceAreaCode("A00001")).contains(restStop);
+    }
 }
