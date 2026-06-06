@@ -6,6 +6,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)
 . "$ROOT_DIR/harness/lib/state.sh"
 
 load_state "$1"
+cd "$(repo_root)"
 
 if [ "${COMPOUND_CODE_REVIEW_STATUS:-}" != "completed" ]; then
   fail_autofixable "verify" "check-compound-review" \
@@ -14,8 +15,23 @@ if [ "${COMPOUND_CODE_REVIEW_STATUS:-}" != "completed" ]; then
     "ce-code-review를 수행하고 COMPOUND_CODE_REVIEW_STATUS=completed로 기록하세요."
 fi
 
+if [ -z "${COMPOUND_CODE_REVIEW_FILE:-}" ] || [ ! -s "$COMPOUND_CODE_REVIEW_FILE" ]; then
+  fail_autofixable "verify" "check-compound-review" \
+    "Compound Engineering 코드 리뷰 결과 파일이 없습니다." \
+    "verify" \
+    "리뷰 결과를 harness/runs/current/reviews에 저장하고 COMPOUND_CODE_REVIEW_FILE 경로를 기록하세요."
+fi
+
 case "${COMPOUND_KNOWLEDGE_STATUS:-}" in
-  completed | not-required) ;;
+  completed)
+    if [ -z "${COMPOUND_KNOWLEDGE_FILE:-}" ] || [ ! -s "$COMPOUND_KNOWLEDGE_FILE" ]; then
+      fail_autofixable "verify" "check-compound-review" \
+        "Compound 학습 기록 파일이 없습니다." \
+        "verify" \
+        "ce-compound 결과 파일 경로를 COMPOUND_KNOWLEDGE_FILE에 기록하세요."
+    fi
+    ;;
+  not-required) ;;
   *)
     fail_autofixable "verify" "check-compound-review" \
       "Compound 학습 기록 여부가 결정되지 않았습니다." \

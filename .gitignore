@@ -57,3 +57,4 @@ CLAUDE.md
 ### Local harness run state ###
 harness/runs/current/state.env
 harness/runs/current/commit-message.txt
+harness/runs/current/reviews/

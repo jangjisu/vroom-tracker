@@ -82,6 +82,7 @@ rules/frontend.md
 ## 하네스 작업 흐름
 
 백엔드/API/프론트처럼 구현이 필요한 작업은 다음 6단계를 기준으로 진행한다.
+구현 작업에서는 프로젝트 Skill인 `vroom-workflow`를 사용하며, 상세 역할과 실행 순서는 `harness/WORKFLOW.md`에서 확인한다.
 
 1. 계획 생성
 2. 스펙 영향도 확인

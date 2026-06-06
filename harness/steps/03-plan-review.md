@@ -14,11 +14,15 @@
 
 | 조건 | 리뷰 |
 |---|---|
+| 코드 변경이 있는 모든 작업 | `/gstack-plan-eng-review` |
+| 신규 기능, 제품 가치·범위·우선순위 영향 | `/gstack-plan-ceo-review` |
 | API, CLI, 하네스 등 개발자 경험에 영향 | `/gstack-plan-devex-review` |
 | 인증, 비밀키, 외부 입력, 의존성, 배포 등 보안 영향 | `/gstack-cso`의 변경 범위 리뷰 |
+| 화면 구조와 사용자 흐름 영향 | `/gstack-plan-design-review` |
 
 모든 작업에서 전문 리뷰 전체를 실행하지 않는다.
 리뷰가 필요하지 않다면 계획에 판단 이유를 남긴다.
+실행한 리뷰는 `harness/runs/current/reviews`에 결과 파일을 남긴다.
 
 이 단계를 통과하기 전에는 구현을 시작하지 않는다.
 승인된 설계는 Superpowers의 writing-plans 방식으로 실행 가능한 작업 단위로 확정한다.
