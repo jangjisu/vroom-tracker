@@ -11,7 +11,7 @@ if [ -z "${SCOPE:-}" ]; then
   fail_needs_user "plan" "check-scope" \
     "이번 run의 작업 범위가 정해지지 않았습니다." \
     "plan" \
-    "SCOPE 값을 backend, frontend, api-integration, git 중 현재 먼저 진행할 범위로 정하세요."
+    "SCOPE 값을 backend, frontend, api-integration, documentation-harness, git 중 현재 먼저 진행할 범위로 정하세요."
 fi
 
 if [ -n "${CATEGORIES:-}" ] && printf '%s' "$CATEGORIES" | grep -q ','; then

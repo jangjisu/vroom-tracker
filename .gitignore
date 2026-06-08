@@ -42,6 +42,7 @@ node_modules/
 ### Secret / Local config ###
 application-local.properties
 application-secret.properties
+.compound-engineering/*.local.yaml
 
 ### H2 file DB (local data) ###
 data/
@@ -58,3 +59,4 @@ docs/**
 ### Local harness run state ###
 harness/runs/current/state.env
 harness/runs/current/commit-message.txt
+harness/runs/current/reviews/
