@@ -28,24 +28,57 @@
             </div>
         </div>
         <div class="rest-stop-map-layout">
-            <div id="restStopMap" class="rest-stop-map" aria-label="휴게소 위치 지도"></div>
-            <aside id="restStopDetailPanel" class="rest-stop-detail-panel d-none" aria-labelledby="restStopDetailName">
-                <button id="restStopDetailClose" class="btn-close rest-stop-detail-close" type="button"
-                        aria-label="상세 정보 닫기"></button>
-                <div class="rest-stop-detail-kicker">선택한 휴게소</div>
-                <h2 id="restStopDetailName" class="h5 mb-3"></h2>
-                <dl class="rest-stop-detail-list">
-                    <dt>노선</dt>
-                    <dd id="restStopDetailRoute"></dd>
-                    <dt>휴게소 코드</dt>
-                    <dd id="restStopDetailUnitCode"></dd>
-                    <dt>표준 휴게소 코드</dt>
-                    <dd id="restStopDetailStdRestCode"></dd>
-                    <dt>서비스 영역 코드</dt>
-                    <dd id="restStopDetailServiceAreaCode"></dd>
-                    <dt>좌표</dt>
-                    <dd id="restStopDetailCoordinates"></dd>
-                </dl>
+            <div id="restStopMap" class="rest-stop-map" tabindex="0" aria-label="휴게소 위치 지도"></div>
+            <aside id="restStopDetailPanel" class="rest-stop-detail-panel d-none"
+                   aria-labelledby="restStopDetailName" aria-busy="false">
+                <div class="rest-stop-detail-header">
+                    <div>
+                        <div class="rest-stop-detail-kicker">선택한 휴게소</div>
+                        <h2 id="restStopDetailName" class="rest-stop-detail-name"></h2>
+                    </div>
+                    <button id="restStopDetailClose" class="btn-close rest-stop-detail-close" type="button"
+                            aria-label="상세 정보 닫기"></button>
+                </div>
+                <div id="restStopDetailStatus" class="rest-stop-detail-status" aria-live="polite"></div>
+                <div id="restStopDetailContent" class="rest-stop-detail-content d-none">
+                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailLocationHeading">
+                        <h3 id="restStopDetailLocationHeading" class="rest-stop-detail-section-title">위치 정보</h3>
+                        <dl class="rest-stop-detail-list">
+                            <dt>노선</dt>
+                            <dd id="restStopDetailRoute"></dd>
+                            <dt>방향</dt>
+                            <dd id="restStopDetailDirection"></dd>
+                            <dt>주소</dt>
+                            <dd id="restStopDetailAddress"></dd>
+                        </dl>
+                    </section>
+                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailConvenienceHeading">
+                        <h3 id="restStopDetailConvenienceHeading" class="rest-stop-detail-section-title">편의시설</h3>
+                        <ul id="restStopDetailConvenience" class="rest-stop-detail-tags"></ul>
+                        <p id="restStopDetailConvenienceFallback"
+                           class="rest-stop-detail-missing d-none"></p>
+                    </section>
+                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailOperationHeading">
+                        <h3 id="restStopDetailOperationHeading" class="rest-stop-detail-section-title">운영 상태</h3>
+                        <dl class="rest-stop-detail-list">
+                            <dt>경정비</dt>
+                            <dd id="restStopDetailMaintenance"></dd>
+                            <dt>화물휴게소</dt>
+                            <dd id="restStopDetailFreight"></dd>
+                        </dl>
+                    </section>
+                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailParkingHeading">
+                        <h3 id="restStopDetailParkingHeading" class="rest-stop-detail-section-title">주차 정보</h3>
+                        <dl class="rest-stop-detail-list">
+                            <dt>소형차</dt>
+                            <dd id="restStopDetailCompactParking"></dd>
+                            <dt>대형차</dt>
+                            <dd id="restStopDetailFullSizeParking"></dd>
+                            <dt>장애인</dt>
+                            <dd id="restStopDetailDisabledParking"></dd>
+                        </dl>
+                    </section>
+                </div>
             </aside>
         </div>
         <div id="restStopMapError" class="alert alert-warning mt-3 mb-0 d-none" role="alert"></div>
