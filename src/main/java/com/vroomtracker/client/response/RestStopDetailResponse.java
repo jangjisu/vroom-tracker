@@ -1,0 +1,31 @@
+package com.vroomtracker.client.response;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class RestStopDetailResponse {
+
+    private String code;
+    private String message;
+    private String count;
+    private String pageSize;
+    private List<RestStopDetailItem> list;
+
+    public boolean isSuccess() {
+        return "SUCCESS".equals(code);
+    }
+
+    public int getTotalPageCount() {
+        try {
+            return Integer.parseInt(pageSize);
+        } catch (NumberFormatException e) {
+            return 1;
+        }
+    }
+}

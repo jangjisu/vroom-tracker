@@ -1,5 +1,9 @@
 package com.vroomtracker.support;
 
+import com.vroomtracker.client.response.HighwayServiceAreaInfoItem;
+import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
+import com.vroomtracker.client.response.RestStopDetailItem;
+import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopItem;
 import com.vroomtracker.client.response.RestStopResponse;
 import java.lang.reflect.Constructor;
@@ -29,6 +33,68 @@ public final class RestStopTestFixtures {
         ReflectionTestUtils.setField(response, "message", "인증키가 유효합니다.");
         ReflectionTestUtils.setField(response, "count", String.valueOf(items.size()));
         ReflectionTestUtils.setField(response, "pageSize", pageSize);
+        ReflectionTestUtils.setField(response, "list", items);
+        return response;
+    }
+
+    public static RestStopDetailItem restStopDetailItem(String serviceAreaCode, String serviceAreaName) {
+        RestStopDetailItem item = instantiate(RestStopDetailItem.class);
+        ReflectionTestUtils.setField(item, "routeName", "경부선");
+        ReflectionTestUtils.setField(item, "serviceAreaCode", serviceAreaCode);
+        ReflectionTestUtils.setField(item, "serviceAreaName", serviceAreaName);
+        ReflectionTestUtils.setField(item, "telNo", "054-751-6890");
+        ReflectionTestUtils.setField(item, "brand", "투썸플레이스");
+        ReflectionTestUtils.setField(item, "routeCode", "0010");
+        ReflectionTestUtils.setField(item, "serviceAreaCode2", "000054");
+        ReflectionTestUtils.setField(item, "svarAddr", "경북 경주시 건천읍방내리 14");
+        ReflectionTestUtils.setField(item, "convenience", "수유실");
+        ReflectionTestUtils.setField(item, "maintenanceYn", "X");
+        ReflectionTestUtils.setField(item, "truckSaYn", "X");
+        return item;
+    }
+
+    public static RestStopDetailResponse restStopDetailResponse(
+            String code, String pageSize, List<RestStopDetailItem> items) {
+        RestStopDetailResponse response = instantiate(RestStopDetailResponse.class);
+        ReflectionTestUtils.setField(response, "code", code);
+        ReflectionTestUtils.setField(response, "message", "인증키가 유효합니다.");
+        ReflectionTestUtils.setField(response, "count", String.valueOf(items.size()));
+        ReflectionTestUtils.setField(response, "pageSize", pageSize);
+        ReflectionTestUtils.setField(response, "list", items);
+        return response;
+    }
+
+    public static HighwayServiceAreaInfoItem highwayServiceAreaInfoItem(
+            String serviceAreaCode, String serviceAreaName) {
+        HighwayServiceAreaInfoItem item = instantiate(HighwayServiceAreaInfoItem.class);
+        ReflectionTestUtils.setField(item, "serviceAreaCode", serviceAreaCode);
+        ReflectionTestUtils.setField(item, "serviceAreaName", serviceAreaName);
+        ReflectionTestUtils.setField(item, "routeCode", "2510");
+        ReflectionTestUtils.setField(item, "routeName", "호남선의 지선");
+        ReflectionTestUtils.setField(item, "headquartersCode", "400000");
+        ReflectionTestUtils.setField(item, "headquartersName", "대전충남본부");
+        ReflectionTestUtils.setField(item, "branchOfficeCode", "410200");
+        ReflectionTestUtils.setField(item, "branchOfficeName", "대전");
+        ReflectionTestUtils.setField(item, "facilityTypeCode", "0");
+        ReflectionTestUtils.setField(item, "facilityTypeName", "휴게소");
+        ReflectionTestUtils.setField(item, "directionTypeCode", "1");
+        ReflectionTestUtils.setField(item, "directionTypeName", "하행");
+        ReflectionTestUtils.setField(item, "postalCode", "30535 ");
+        ReflectionTestUtils.setField(item, "serviceAreaAddress", "대전광역시 유성구 방현동 86");
+        ReflectionTestUtils.setField(item, "compactCarParkingCount", "0");
+        ReflectionTestUtils.setField(item, "fullSizeCarParkingCount", "0");
+        ReflectionTestUtils.setField(item, "disabledParkingCount", "0");
+        ReflectionTestUtils.setField(item, "businessFacilityCode", "A00282");
+        ReflectionTestUtils.setField(item, "representativeTelNo", "0420000000");
+        return item;
+    }
+
+    public static HighwayServiceAreaInfoResponse highwayServiceAreaInfoResponse(
+            String code, List<HighwayServiceAreaInfoItem> items) {
+        HighwayServiceAreaInfoResponse response = instantiate(HighwayServiceAreaInfoResponse.class);
+        ReflectionTestUtils.setField(response, "code", code);
+        ReflectionTestUtils.setField(response, "message", "인증키가 유효합니다.");
+        ReflectionTestUtils.setField(response, "count", String.valueOf(items.size()));
         ReflectionTestUtils.setField(response, "list", items);
         return response;
     }
