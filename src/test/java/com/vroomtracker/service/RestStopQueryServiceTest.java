@@ -1,6 +1,7 @@
 package com.vroomtracker.service;
 
 import static com.vroomtracker.support.RestStopTestFixtures.highwayServiceAreaInfoItem;
+import static com.vroomtracker.support.RestStopTestFixtures.restOilItem;
 import static com.vroomtracker.support.RestStopTestFixtures.restStopDetailItem;
 import static com.vroomtracker.support.RestStopTestFixtures.restStopItem;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,9 +11,11 @@ import com.vroomtracker.client.response.HighwayServiceAreaInfoItem;
 import com.vroomtracker.client.response.RestStopDetailItem;
 import com.vroomtracker.controller.response.RestStopDetailViewResponse;
 import com.vroomtracker.domain.HighwayServiceAreaInfoEntity;
+import com.vroomtracker.domain.RestOilEntity;
 import com.vroomtracker.domain.RestStopDetailEntity;
 import com.vroomtracker.domain.RestStopEntity;
 import com.vroomtracker.repository.HighwayServiceAreaInfoRepository;
+import com.vroomtracker.repository.RestOilRepository;
 import com.vroomtracker.repository.RestStopDetailRepository;
 import com.vroomtracker.repository.RestStopRepository;
 import java.util.List;
@@ -37,12 +40,15 @@ class RestStopQueryServiceTest {
     @Mock
     private HighwayServiceAreaInfoRepository highwayServiceAreaInfoRepository;
 
+    @Mock
+    private RestOilRepository restOilRepository;
+
     private RestStopQueryService restStopQueryService;
 
     @BeforeEach
     void setUp() {
         restStopQueryService = new RestStopQueryService(
-                restStopRepository, restStopDetailRepository, highwayServiceAreaInfoRepository);
+                restStopRepository, restStopDetailRepository, highwayServiceAreaInfoRepository, restOilRepository);
     }
 
     @Test
@@ -68,11 +74,15 @@ class RestStopQueryServiceTest {
 
         HighwayServiceAreaInfoEntity firstInfo = highwayServiceAreaInfo("A00001", "10", "20", "1");
         HighwayServiceAreaInfoEntity secondInfo = highwayServiceAreaInfo("A00001", "5", "7", "");
+        RestOilEntity firstConvenience = restOilConvenience("00:00", "24:00", "쉼터", "고객쉼터");
+        RestOilEntity secondConvenience = restOilConvenience("08:00", "20:00", "세차장", null);
 
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
         when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(detail));
         when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A00001"))
                 .thenReturn(List.of(firstInfo, secondInfo));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+                .thenReturn(List.of(firstConvenience, secondConvenience));
 
         Optional<RestStopDetailViewResponse> result = restStopQueryService.findDetailByServiceAreaCode("A00001");
 
@@ -91,6 +101,11 @@ class RestStopQueryServiceTest {
         assertThat(response.compactCarParkingCount()).isEqualTo(15);
         assertThat(response.fullSizeCarParkingCount()).isEqualTo(27);
         assertThat(response.disabledParkingCount()).isEqualTo(1);
+        assertThat(response.oilStationConveniences())
+                .extracting("startTime", "endTime", "name", "description")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("00:00", "24:00", "쉼터", "고객쉼터"),
+                        org.assertj.core.groups.Tuple.tuple("08:00", "20:00", "세차장", null));
     }
 
     @Test
@@ -100,6 +115,8 @@ class RestStopQueryServiceTest {
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
         when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.empty());
         when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A00001"))
+                .thenReturn(List.of());
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
                 .thenReturn(List.of());
 
         Optional<RestStopDetailViewResponse> result = restStopQueryService.findDetailByServiceAreaCode("A00001");
@@ -114,6 +131,7 @@ class RestStopQueryServiceTest {
         assertThat(response.compactCarParkingCount()).isNull();
         assertThat(response.fullSizeCarParkingCount()).isNull();
         assertThat(response.disabledParkingCount()).isNull();
+        assertThat(response.oilStationConveniences()).isEmpty();
     }
 
     @Test
@@ -137,5 +155,14 @@ class RestStopQueryServiceTest {
         ReflectionTestUtils.setField(item, "fullSizeCarParkingCount", fullSizeCarParkingCount);
         ReflectionTestUtils.setField(item, "disabledParkingCount", disabledParkingCount);
         return HighwayServiceAreaInfoEntity.from(item);
+    }
+
+    private RestOilEntity restOilConvenience(String startTime, String endTime, String name, String description) {
+        var item = restOilItem("000002", "서울만남(부산)주유소");
+        ReflectionTestUtils.setField(item, "startTime", startTime);
+        ReflectionTestUtils.setField(item, "endTime", endTime);
+        ReflectionTestUtils.setField(item, "convenienceName", name);
+        ReflectionTestUtils.setField(item, "convenienceDescription", description);
+        return RestOilEntity.from(item);
     }
 }

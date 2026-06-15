@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.vroomtracker.controller.response.OilStationConvenienceResponse;
 import com.vroomtracker.controller.response.RestStopDetailViewResponse;
 import com.vroomtracker.domain.RestStopEntity;
 import com.vroomtracker.service.RestStopQueryService;
@@ -58,7 +59,20 @@ class RestStopControllerTest {
     @DisplayName("GET /api/rest-stops/{serviceAreaCode}는 휴게소 상세 정보를 ApiResponse로 반환한다")
     void getRestStopDetail_returnsRestStopDetail() throws Exception {
         RestStopDetailViewResponse response = new RestStopDetailViewResponse(
-                "A00001", "서울만남(부산)휴게소", "경부선", "127.042514", "37.459939", "경기 성남시", "수유실", "O", "X", "하행", 15, 27, 1);
+                "A00001",
+                "서울만남(부산)휴게소",
+                "경부선",
+                "127.042514",
+                "37.459939",
+                "경기 성남시",
+                "수유실",
+                "O",
+                "X",
+                "하행",
+                15,
+                27,
+                1,
+                List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터")));
         when(restStopQueryService.findDetailByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/api/rest-stops/A00001"))
@@ -77,7 +91,13 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.direction").value("하행"))
                 .andExpect(jsonPath("$.data.compactCarParkingCount").value(15))
                 .andExpect(jsonPath("$.data.fullSizeCarParkingCount").value(27))
-                .andExpect(jsonPath("$.data.disabledParkingCount").value(1));
+                .andExpect(jsonPath("$.data.disabledParkingCount").value(1))
+                .andExpect(
+                        jsonPath("$.data.oilStationConveniences[0].startTime").value("00:00"))
+                .andExpect(jsonPath("$.data.oilStationConveniences[0].endTime").value("24:00"))
+                .andExpect(jsonPath("$.data.oilStationConveniences[0].name").value("쉼터"))
+                .andExpect(
+                        jsonPath("$.data.oilStationConveniences[0].description").value("고객쉼터"));
     }
 
     @Test

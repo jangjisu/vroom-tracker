@@ -2,6 +2,8 @@ package com.vroomtracker.support;
 
 import com.vroomtracker.client.response.HighwayServiceAreaInfoItem;
 import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
+import com.vroomtracker.client.response.RestOilItem;
+import com.vroomtracker.client.response.RestOilResponse;
 import com.vroomtracker.client.response.RestStopDetailItem;
 import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopItem;
@@ -95,6 +97,34 @@ public final class RestStopTestFixtures {
         ReflectionTestUtils.setField(response, "code", code);
         ReflectionTestUtils.setField(response, "message", "인증키가 유효합니다.");
         ReflectionTestUtils.setField(response, "count", String.valueOf(items.size()));
+        ReflectionTestUtils.setField(response, "list", items);
+        return response;
+    }
+
+    public static RestOilItem restOilItem(String standardRestCode, String standardRestName) {
+        RestOilItem item = instantiate(RestOilItem.class);
+        ReflectionTestUtils.setField(item, "standardRestCode", standardRestCode);
+        ReflectionTestUtils.setField(item, "standardRestName", standardRestName);
+        ReflectionTestUtils.setField(item, "startTime", "00:00");
+        ReflectionTestUtils.setField(item, "endTime", "24:00");
+        ReflectionTestUtils.setField(item, "originalModifierId", "SYSTEM");
+        ReflectionTestUtils.setField(item, "originalModifiedDateTime", "26/06/15");
+        ReflectionTestUtils.setField(item, "lastModifiedUser", "SYSTEM");
+        ReflectionTestUtils.setField(item, "lastModifiedDateTime", "2026-06-15");
+        ReflectionTestUtils.setField(item, "serviceAreaAddress", "서울시 서초구");
+        ReflectionTestUtils.setField(item, "routeCode", "0010");
+        ReflectionTestUtils.setField(item, "routeName", "경부선");
+        ReflectionTestUtils.setField(item, "convenienceCode", "07");
+        ReflectionTestUtils.setField(item, "convenienceName", "쉼터");
+        ReflectionTestUtils.setField(item, "convenienceDescription", "고객쉼터");
+        return item;
+    }
+
+    public static RestOilResponse restOilResponse(String code, List<RestOilItem> items) {
+        RestOilResponse response = instantiate(RestOilResponse.class);
+        ReflectionTestUtils.setField(response, "code", code);
+        ReflectionTestUtils.setField(response, "message", "인증키가 유효합니다.");
+        ReflectionTestUtils.setField(response, "count", items.size());
         ReflectionTestUtils.setField(response, "list", items);
         return response;
     }

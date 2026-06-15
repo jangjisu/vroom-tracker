@@ -2,9 +2,11 @@ package com.vroomtracker.service;
 
 import com.vroomtracker.controller.response.RestStopDetailViewResponse;
 import com.vroomtracker.domain.HighwayServiceAreaInfoEntity;
+import com.vroomtracker.domain.RestOilEntity;
 import com.vroomtracker.domain.RestStopDetailEntity;
 import com.vroomtracker.domain.RestStopEntity;
 import com.vroomtracker.repository.HighwayServiceAreaInfoRepository;
+import com.vroomtracker.repository.RestOilRepository;
 import com.vroomtracker.repository.RestStopDetailRepository;
 import com.vroomtracker.repository.RestStopRepository;
 import java.util.List;
@@ -20,6 +22,7 @@ public class RestStopQueryService {
     private final RestStopRepository restStopRepository;
     private final RestStopDetailRepository restStopDetailRepository;
     private final HighwayServiceAreaInfoRepository highwayServiceAreaInfoRepository;
+    private final RestOilRepository restOilRepository;
 
     @Transactional(readOnly = true)
     public List<RestStopEntity> findAll() {
@@ -37,7 +40,11 @@ public class RestStopQueryService {
         Optional<RestStopDetailEntity> detail = restStopDetailRepository.findByServiceAreaCode(serviceAreaCode);
         List<HighwayServiceAreaInfoEntity> infos =
                 highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode(serviceAreaCode);
+        String normalizedStationName = RestOilEntity.normalizeStationName(restStop.getUnitName());
+        List<RestOilEntity> oilStationConveniences =
+                restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc(
+                        restStop.getRouteNo(), normalizedStationName);
 
-        return RestStopDetailViewResponse.of(restStop, detail, infos);
+        return RestStopDetailViewResponse.of(restStop, detail, infos, oilStationConveniences);
     }
 }
