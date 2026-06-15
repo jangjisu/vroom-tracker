@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -105,11 +106,26 @@ class RestStopDetailSyncServiceTest {
     @Test
     @DisplayName("상세 API 응답이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestStopDetails_doesNotReplaceRowsWhenApiFails() {
-        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(restStopDetailResponse("ERROR", "1", List.of()));
+        var response = restStopDetailResponse("ERROR", "1", List.of());
+        ReflectionTestUtils.setField(response, "message", "인증키가 유효하지 않습니다.");
+        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(response);
 
         assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Failed to fetch rest stop detail page: 1");
+                .hasMessage("Failed to fetch rest stop detail API. pageNo=1, message=인증키가 유효하지 않습니다.");
+
+        verify(restStopDetailRepository, never()).deleteAllInBatch();
+        verify(restStopDetailRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("상세 API 응답이 없으면 페이지와 원인을 포함해 실패한다")
+    void refreshRestStopDetails_reportsEmptyResponse() {
+        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(null);
+
+        assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Failed to fetch rest stop detail API. pageNo=1, message=empty response");
 
         verify(restStopDetailRepository, never()).deleteAllInBatch();
         verify(restStopDetailRepository, never()).saveAll(any());

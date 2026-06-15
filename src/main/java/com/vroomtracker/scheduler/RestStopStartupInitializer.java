@@ -20,19 +20,35 @@ public class RestStopStartupInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        int savedCount = restStopSyncService.initializeRestStopsIfEmpty();
-        if (savedCount > 0) {
-            log.info("Initial rest stop sync completed. savedCount={}", savedCount);
-        } else {
+        initializeRestStops();
+        initializeRestStopDetails();
+    }
+
+    private void initializeRestStops() {
+        try {
+            int savedCount = restStopSyncService.initializeRestStopsIfEmpty();
+            if (savedCount > 0) {
+                log.info("Initial rest stop sync completed. savedCount={}", savedCount);
+                return;
+            }
+
             log.info("Initial rest stop sync skipped because rest_stop table already has data.");
+        } catch (RuntimeException e) {
+            log.error("Initial rest stop sync failed. cause={}", e.getMessage(), e);
         }
+    }
 
-        int detailSavedCount = restStopDetailSyncService.initializeRestStopDetailsIfEmpty();
-        if (detailSavedCount > 0) {
-            log.info("Initial rest stop detail sync completed. detailSavedCount={}", detailSavedCount);
-            return;
+    private void initializeRestStopDetails() {
+        try {
+            int detailSavedCount = restStopDetailSyncService.initializeRestStopDetailsIfEmpty();
+            if (detailSavedCount > 0) {
+                log.info("Initial rest stop detail sync completed. detailSavedCount={}", detailSavedCount);
+                return;
+            }
+
+            log.info("Initial rest stop detail sync skipped because rest_stop_detail table already has data.");
+        } catch (RuntimeException e) {
+            log.error("Initial rest stop detail sync failed. cause={}", e.getMessage(), e);
         }
-
-        log.info("Initial rest stop detail sync skipped because rest_stop_detail table already has data.");
     }
 }

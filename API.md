@@ -11,6 +11,7 @@
 
 ```text
 User-Agent: vroom-tracker
+Accept: application/json
 ```
 
 동일 endpoint를 호출해 다음 결과를 실측했다.
@@ -26,6 +27,32 @@ HTTP/1.1 강제 여부는 결과에 영향을 주지 않았다. endpoint, query 
 ---
 
 ## 현재 연동 API
+
+### conveniServiceArea — 휴게소 편의시설 정보
+
+#### 서버 오류 응답
+
+동일 요청에서 `Accept` 헤더에 따라 같은 upstream 서버 오류가 다른 형식으로 반환되는 것을 확인했다.
+
+| 요청 조건 | HTTP 상태 | Content-Type | 본문 |
+|---|---|---|---|
+| `Accept` 없음 또는 HTML 선호 | `200 OK` | `text/html` | 시스템 장애 HTML |
+| `Accept: application/json` | `200 OK` | `application/json` | `exception.message`를 포함한 JSON |
+
+실측한 upstream 오류 메시지는 다음과 같다.
+
+```text
+For input string: ""
+```
+
+stack trace상 한국도로공사 서버의 `ConveniServiceAreaListVO`가 빈 문자열을 숫자로 변환하다 실패한 오류다. 오류인데도 HTTP 상태가 `200 OK`이므로 상태 코드만으로 성공을 판단하지 않고 `code`와 `exception.message`를 확인해야 한다.
+
+현재 `RestStopDetailResponse.getErrorMessage()`는 다음 우선순위로 오류 메시지를 반환한다.
+
+1. upstream 서버 오류의 `exception.message`
+2. 인증키 오류 등 일반 API 실패 응답의 최상위 `message`
+
+---
 
 ### locationinfoRest — 휴게소 위치 정보
 

@@ -16,9 +16,18 @@ public class RestStopDetailResponse {
     private String count;
     private String pageSize;
     private List<RestStopDetailItem> list;
+    private UpstreamException exception;
 
     public boolean isSuccess() {
         return "SUCCESS".equals(code);
+    }
+
+    public String getErrorMessage() {
+        if (exception == null) {
+            return message;
+        }
+
+        return exception.message();
     }
 
     public int getTotalPageCount() {
@@ -28,4 +37,7 @@ public class RestStopDetailResponse {
             return 1;
         }
     }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record UpstreamException(String message) {}
 }
