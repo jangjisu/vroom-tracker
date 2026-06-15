@@ -40,6 +40,10 @@
 가격 데이터는 상세 조회마다 외부 API를 호출하지 않고 3시간마다 `curStateStation` 1~3페이지를
 동기화해 저장한다.
 
+휴게소 상세 응답은 `rest_oil`에서 조회한 첫 번째 `standard_rest_code`로 `rest_oil_price`를
+조회해 `oilInfo`에 가격 정보를 포함한다. `oilInfo.oilStationConveniences`는 같은 `rest_oil`
+조회 결과를 변환하며, 가격 데이터가 없어도 `oilInfo`와 편의시설 배열은 유지한다.
+
 현재 개발 중인 데이터 관계는 실제 데이터와 코드가 기본 브랜치에 통합된 뒤 이 표에 반영한다.
 
 ## 갱신 원칙

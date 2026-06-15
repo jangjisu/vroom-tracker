@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.vroomtracker.controller.response.OilInfoResponse;
 import com.vroomtracker.controller.response.OilStationConvenienceResponse;
 import com.vroomtracker.controller.response.RestStopDetailViewResponse;
 import com.vroomtracker.domain.RestStopEntity;
@@ -72,7 +73,13 @@ class RestStopControllerTest {
                 15,
                 27,
                 1,
-                List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터")));
+                new OilInfoResponse(
+                        "AD",
+                        "1,999원",
+                        "1,997원",
+                        "1,157원",
+                        "02-573-7430",
+                        List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"))));
         when(restStopQueryService.findDetailByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/api/rest-stops/A00001"))
@@ -92,12 +99,19 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.compactCarParkingCount").value(15))
                 .andExpect(jsonPath("$.data.fullSizeCarParkingCount").value(27))
                 .andExpect(jsonPath("$.data.disabledParkingCount").value(1))
-                .andExpect(
-                        jsonPath("$.data.oilStationConveniences[0].startTime").value("00:00"))
-                .andExpect(jsonPath("$.data.oilStationConveniences[0].endTime").value("24:00"))
-                .andExpect(jsonPath("$.data.oilStationConveniences[0].name").value("쉼터"))
-                .andExpect(
-                        jsonPath("$.data.oilStationConveniences[0].description").value("고객쉼터"));
+                .andExpect(jsonPath("$.data.oilInfo.oilCompany").value("AD"))
+                .andExpect(jsonPath("$.data.oilInfo.gasolinePrice").value("1,999원"))
+                .andExpect(jsonPath("$.data.oilInfo.dieselPrice").value("1,997원"))
+                .andExpect(jsonPath("$.data.oilInfo.lpgPrice").value("1,157원"))
+                .andExpect(jsonPath("$.data.oilInfo.telNo").value("02-573-7430"))
+                .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].startTime")
+                        .value("00:00"))
+                .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].endTime")
+                        .value("24:00"))
+                .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].name")
+                        .value("쉼터"))
+                .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].description")
+                        .value("고객쉼터"));
     }
 
     @Test
