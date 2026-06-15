@@ -13,7 +13,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.ExApiException;
 import com.vroomtracker.client.response.RestStopDetailItem;
+import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.domain.RestStopDetailEntity;
 import com.vroomtracker.repository.RestStopDetailRepository;
 import java.util.ArrayList;
@@ -103,16 +105,31 @@ class RestStopDetailSyncServiceTest {
     }
 
     @Test
-    @DisplayName("상세 API 응답이 실패하면 기존 DB를 교체하지 않는다")
+    @DisplayName("상세 API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestStopDetails_doesNotReplaceRowsWhenApiFails() {
-        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(restStopDetailResponse("ERROR", "1", List.of()));
+        ExApiException exception =
+                new ExApiException("https://data.ex.co.kr/openapi/business/conveniServiceArea?key=test-key", "failed");
+        when(exApiClient.getConvenienceServiceArea(1)).thenThrow(exception);
 
         assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Failed to fetch rest stop detail page: 1");
+                .isSameAs(exception);
 
         verify(restStopDetailRepository, never()).deleteAllInBatch();
         verify(restStopDetailRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("상세 API 응답 성공 여부는 Client 계약을 신뢰하고 다시 검사하지 않는다")
+    void refreshRestStopDetails_doesNotCheckApiSuccessAgain() {
+        runTransactionCallback();
+        RestStopDetailResponse response = mock(RestStopDetailResponse.class);
+        when(response.getTotalPageCount()).thenReturn(1);
+        when(response.getList()).thenReturn(List.of());
+        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(response);
+
+        restStopDetailSyncService.refreshRestStopDetails();
+
+        verify(response, never()).isSuccess();
     }
 
     private void runTransactionCallback() {

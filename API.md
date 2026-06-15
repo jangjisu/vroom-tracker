@@ -11,6 +11,7 @@
 
 ```text
 User-Agent: vroom-tracker
+Accept: application/json
 ```
 
 동일 endpoint를 호출해 다음 결과를 실측했다.
@@ -23,9 +24,51 @@ User-Agent: vroom-tracker
 
 HTTP/1.1 강제 여부는 결과에 영향을 주지 않았다. endpoint, query parameter와 response 구조는 변경되지 않는다.
 
+### 공통 실패 exception
+
+`ExApiClient`는 빈 응답, API 실패 응답, Feign·네트워크·디코딩 예외를 다음 형식의 `ExApiException`으로 변환한다.
+
+```text
+Failed to fetch API. requestUrl=<실제 요청 URL>, message=<실패 원인>
+```
+
+`requestUrl`에는 endpoint와 실제 호출한 모든 query parameter가 포함된다. 장애 로그에서 URL을 바로 실행해 재현할 수 있도록 `key`도 마스킹하지 않고 runtime 값을 그대로 포함한다.
+
+```text
+Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/conveniServiceArea?key=4041555581&type=json&numOfRows=99&pageNo=2, message=For input string: ""
+```
+
+API 키 평문 포함은 로그 접근자와 외부 로그 저장소에 키가 노출될 수 있는 운영상 위험이 있다. 이 프로젝트에서는 장애 재현 편의성을 우선한 명시적 결정으로 적용한다.
+
 ---
 
 ## 현재 연동 API
+
+### conveniServiceArea — 휴게소 편의시설 정보
+
+#### 서버 오류 응답
+
+동일 요청에서 `Accept` 헤더에 따라 같은 upstream 서버 오류가 다른 형식으로 반환되는 것을 확인했다.
+
+| 요청 조건 | HTTP 상태 | Content-Type | 본문 |
+|---|---|---|---|
+| `Accept` 없음 또는 HTML 선호 | `200 OK` | `text/html` | 시스템 장애 HTML |
+| `Accept: application/json` | `200 OK` | `application/json` | `exception.message`를 포함한 JSON |
+
+실측한 upstream 오류 메시지는 다음과 같다.
+
+```text
+For input string: ""
+```
+
+stack trace상 한국도로공사 서버의 `ConveniServiceAreaListVO`가 빈 문자열을 숫자로 변환하다 실패한 오류다. 오류인데도 HTTP 상태가 `200 OK`이므로 상태 코드만으로 성공을 판단하지 않고 `code`와 `exception.message`를 확인해야 한다.
+
+현재 `RestStopDetailResponse.getErrorMessage()`는 다음 우선순위로 오류 메시지를 반환한다.
+
+1. upstream 서버 오류의 `exception.message`
+2. 인증키 오류 등 일반 API 실패 응답의 최상위 `message`
+
+---
 
 ### locationinfoRest — 휴게소 위치 정보
 

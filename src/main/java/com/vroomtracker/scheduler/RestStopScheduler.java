@@ -19,13 +19,35 @@ public class RestStopScheduler {
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void syncRestStopsDaily() {
-        int savedCount = restStopSyncService.refreshRestStops();
-        int detailSavedCount = restStopDetailSyncService.refreshRestStopDetails();
-        int serviceAreaInfoSavedCount = highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos();
-        log.info(
-                "Rest stop sync completed. savedCount={}, detailSavedCount={}, serviceAreaInfoSavedCount={}",
-                savedCount,
-                detailSavedCount,
-                serviceAreaInfoSavedCount);
+        refreshRestStops();
+        refreshRestStopDetails();
+        refreshHighwayServiceAreaInfos();
+    }
+
+    private void refreshRestStops() {
+        try {
+            int savedCount = restStopSyncService.refreshRestStops();
+            log.info("Scheduled rest stop sync completed. savedCount={}", savedCount);
+        } catch (RuntimeException e) {
+            log.error("Scheduled rest stop sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void refreshRestStopDetails() {
+        try {
+            int savedCount = restStopDetailSyncService.refreshRestStopDetails();
+            log.info("Scheduled rest stop detail sync completed. savedCount={}", savedCount);
+        } catch (RuntimeException e) {
+            log.error("Scheduled rest stop detail sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void refreshHighwayServiceAreaInfos() {
+        try {
+            int savedCount = highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos();
+            log.info("Scheduled highway service area info sync completed. savedCount={}", savedCount);
+        } catch (RuntimeException e) {
+            log.error("Scheduled highway service area info sync failed. cause={}", e.getMessage(), e);
+        }
     }
 }

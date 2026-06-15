@@ -28,6 +28,8 @@ class ExApiFeignConfigurationTest {
                 feignClientProperties.getConfig().get("ex-api");
         Map<String, Collection<String>> headers = exApiConfiguration.getDefaultRequestHeaders();
 
-        assertThat(headers).containsEntry("User-Agent", List.of("vroom-tracker"));
+        assertThat(headers)
+                .containsEntry("User-Agent", List.of("vroom-tracker"))
+                .containsEntry("Accept", List.of("application/json"));
     }
 }

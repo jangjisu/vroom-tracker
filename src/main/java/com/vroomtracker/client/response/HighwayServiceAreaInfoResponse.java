@@ -9,14 +9,20 @@ import lombok.NoArgsConstructor;
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class HighwayServiceAreaInfoResponse {
+public class HighwayServiceAreaInfoResponse implements ExApiResponse {
 
     private String code;
     private String message;
     private String count;
     private List<HighwayServiceAreaInfoItem> list;
 
+    @Override
     public boolean isSuccess() {
         return "SUCCESS".equals(code);
+    }
+
+    @Override
+    public String getErrorMessage() {
+        return message;
     }
 }

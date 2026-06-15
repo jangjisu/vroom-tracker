@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RestStopResponse {
+public class RestStopResponse implements ExApiResponse {
 
     private String code;
     private String message;
@@ -15,8 +15,14 @@ public class RestStopResponse {
     private String pageSize;
     private List<RestStopItem> list;
 
+    @Override
     public boolean isSuccess() {
         return "SUCCESS".equals(code);
+    }
+
+    @Override
+    public String getErrorMessage() {
+        return message;
     }
 
     public int getTotalPageCount() {

@@ -9,16 +9,27 @@ import lombok.NoArgsConstructor;
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RestStopDetailResponse {
+public class RestStopDetailResponse implements ExApiResponse {
 
     private String code;
     private String message;
     private String count;
     private String pageSize;
     private List<RestStopDetailItem> list;
+    private UpstreamException exception;
 
+    @Override
     public boolean isSuccess() {
         return "SUCCESS".equals(code);
+    }
+
+    @Override
+    public String getErrorMessage() {
+        if (exception == null) {
+            return message;
+        }
+
+        return exception.message();
     }
 
     public int getTotalPageCount() {
@@ -28,4 +39,7 @@ public class RestStopDetailResponse {
             return 1;
         }
     }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record UpstreamException(String message) {}
 }

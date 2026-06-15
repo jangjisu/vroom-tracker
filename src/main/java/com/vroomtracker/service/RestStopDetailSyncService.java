@@ -51,13 +51,7 @@ public class RestStopDetailSyncService {
     }
 
     private RestStopDetailResponse fetchPage(int pageNo) {
-        RestStopDetailResponse response = exApiClient.getConvenienceServiceArea(pageNo);
-
-        if (response == null || !response.isSuccess()) {
-            throw new IllegalStateException("Failed to fetch rest stop detail page: " + pageNo);
-        }
-
-        return response;
+        return exApiClient.getConvenienceServiceArea(pageNo);
     }
 
     private void addItems(List<RestStopDetailItem> items, RestStopDetailResponse response) {

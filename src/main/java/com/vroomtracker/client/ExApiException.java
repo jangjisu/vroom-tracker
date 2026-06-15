@@ -1,0 +1,16 @@
+package com.vroomtracker.client;
+
+public class ExApiException extends RuntimeException {
+
+    public ExApiException(String requestUrl, String message) {
+        super(buildMessage(requestUrl, message));
+    }
+
+    public ExApiException(String requestUrl, String message, Throwable cause) {
+        super(buildMessage(requestUrl, message), cause);
+    }
+
+    private static String buildMessage(String requestUrl, String message) {
+        return "Failed to fetch API. requestUrl=" + requestUrl + ", message=" + message;
+    }
+}
