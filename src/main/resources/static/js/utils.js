@@ -23,7 +23,8 @@ export function showApiUnavailableAlert() {
     alert.id = 'apiUnavailableAlert';
     alert.className = 'alert alert-warning alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
     alert.style.zIndex = '9999';
-    alert.style.minWidth = '360px';
+    alert.style.width = 'calc(100% - 2rem)';
+    alert.style.maxWidth = '360px';
     alert.innerHTML = `
         일시적으로 데이터를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>

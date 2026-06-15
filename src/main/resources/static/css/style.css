@@ -86,30 +86,81 @@ body {
 .rest-stop-detail-panel {
     position: relative;
     min-height: 520px;
-    padding: 1.25rem;
     border: 1px solid #d7dde8;
     border-radius: 8px;
     background-color: #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    overflow-y: auto;
+}
+
+.rest-stop-detail-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.25rem 0.9rem;
+    border-bottom: 1px solid #e9ecef;
+    background-color: #fff;
 }
 
 .rest-stop-detail-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin: -0.65rem -0.65rem 0 0;
+    background-position: center;
 }
 
 .rest-stop-detail-kicker {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
     color: #6c757d;
     font-size: 0.78rem;
     font-weight: 700;
 }
 
+.rest-stop-detail-name {
+    margin: 0;
+    padding: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.rest-stop-detail-status {
+    padding: 1.25rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.rest-stop-detail-content {
+    padding: 0 1.25rem 1.25rem;
+}
+
+.rest-stop-detail-section {
+    padding: 1.1rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.rest-stop-detail-section:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.rest-stop-detail-section-title {
+    margin: 0 0 0.8rem;
+    color: #343a40;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
 .rest-stop-detail-list {
     display: grid;
-    grid-template-columns: 110px minmax(0, 1fr);
-    gap: 0.75rem 0.85rem;
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 0.65rem 0.75rem;
     margin: 0;
 }
 
@@ -126,6 +177,30 @@ body {
     overflow-wrap: anywhere;
 }
 
+.rest-stop-detail-missing {
+    margin: 0;
+    color: #868e96 !important;
+}
+
+.rest-stop-detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rest-stop-detail-tags li {
+    padding: 0.3rem 0.55rem;
+    border: 1px solid #cbd8ef;
+    border-radius: 6px;
+    background-color: #f3f7fd;
+    color: #31527f;
+    font-size: 0.78rem;
+    line-height: 1.2;
+}
+
 @media (max-width: 991.98px) {
     .rest-stop-map-layout:has(.rest-stop-detail-panel:not(.d-none)) {
         grid-template-columns: minmax(0, 1fr);
@@ -133,6 +208,7 @@ body {
 
     .rest-stop-detail-panel {
         min-height: auto;
+        max-height: min(70vh, 620px);
     }
 }
 

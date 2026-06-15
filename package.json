@@ -1,8 +1,10 @@
 {
   "name": "vroom-tracker",
   "private": true,
+  "type": "module",
   "scripts": {
-    "lint": "eslint \"src/main/resources/static/js/**/*.js\""
+    "lint": "eslint \"src/main/resources/static/js/**/*.js\"",
+    "test:js": "node --test src/test/js/*.test.js"
   },
   "devDependencies": {
     "eslint": "^9.0.0"
