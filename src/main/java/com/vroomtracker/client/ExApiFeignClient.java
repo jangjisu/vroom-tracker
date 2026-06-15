@@ -25,6 +25,7 @@ public interface ExApiFeignClient {
     String TYPE_PARAMETER = "type";
     String NUM_OF_ROWS_PARAMETER = "numOfRows";
     String PAGE_NO_PARAMETER = "pageNo";
+    String SERVICE_AREA_CODE2_PARAMETER = "serviceAreaCode2";
 
     String REST_STOP_NUM_OF_ROWS = "99";
 
@@ -55,4 +56,12 @@ public interface ExApiFeignClient {
             @RequestParam(TYPE_PARAMETER) String type,
             @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
             @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo);
+
+    @GetMapping(CUR_STATE_STATION_PATH)
+    RestOilPriceResponse getCurStateStation(
+            @RequestParam(KEY_PARAMETER) String key,
+            @RequestParam(TYPE_PARAMETER) String type,
+            @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
+            @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo,
+            @RequestParam(value = SERVICE_AREA_CODE2_PARAMETER, required = false) String serviceAreaCode2);
 }

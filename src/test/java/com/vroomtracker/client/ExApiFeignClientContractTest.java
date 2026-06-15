@@ -65,6 +65,18 @@ class ExApiFeignClientContractTest {
         assertRequestParameterNames(method);
     }
 
+    @Test
+    @DisplayName("주유소 가격 단건 API 명세는 serviceAreaCode2 공통 상수를 사용한다")
+    void getCurStateStationWithServiceAreaCode2_usesInterfaceContractConstants() throws Exception {
+        Method method = ExApiFeignClient.class.getMethod(
+                "getCurStateStation", String.class, String.class, String.class, String.class, String.class);
+
+        assertThat(method.getAnnotation(GetMapping.class).value())
+                .containsExactly(ExApiFeignClient.CUR_STATE_STATION_PATH);
+        assertRequestParameterNames(method);
+        assertThat(requestParameterName(method, 4)).isEqualTo(ExApiFeignClient.SERVICE_AREA_CODE2_PARAMETER);
+    }
+
     private void assertRequestParameterNames(Method method) {
         assertThat(requestParameterName(method, 0)).isEqualTo(ExApiFeignClient.KEY_PARAMETER);
         assertThat(requestParameterName(method, 1)).isEqualTo(ExApiFeignClient.TYPE_PARAMETER);

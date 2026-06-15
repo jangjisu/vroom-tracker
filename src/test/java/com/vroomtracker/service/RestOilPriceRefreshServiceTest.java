@@ -1,0 +1,177 @@
+package com.vroomtracker.service;
+
+import static com.vroomtracker.support.RestStopTestFixtures.restOilItem;
+import static com.vroomtracker.support.RestStopTestFixtures.restOilPriceItem;
+import static com.vroomtracker.support.RestStopTestFixtures.restOilPriceResponse;
+import static com.vroomtracker.support.RestStopTestFixtures.restStopItem;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.response.RestOilPriceItem;
+import com.vroomtracker.controller.response.OilInfoResponse;
+import com.vroomtracker.domain.RestOilEntity;
+import com.vroomtracker.domain.RestOilPriceEntity;
+import com.vroomtracker.domain.RestStopEntity;
+import com.vroomtracker.repository.RestOilPriceRepository;
+import com.vroomtracker.repository.RestOilRepository;
+import com.vroomtracker.repository.RestStopRepository;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
+
+@ExtendWith(MockitoExtension.class)
+class RestOilPriceRefreshServiceTest {
+
+    @Mock
+    private RestStopRepository restStopRepository;
+
+    @Mock
+    private RestOilRepository restOilRepository;
+
+    @Mock
+    private RestOilPriceRepository restOilPriceRepository;
+
+    @Mock
+    private ExApiClient exApiClient;
+
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
+    private RestOilPriceRefreshService restOilPriceRefreshService;
+
+    @BeforeEach
+    void setUp() {
+        restOilPriceRefreshService = new RestOilPriceRefreshService(
+                restStopRepository, restOilRepository, restOilPriceRepository, exApiClient, transactionTemplate);
+    }
+
+    @Test
+    @DisplayName("휴게소 기준으로 주유소 가격을 실시간 조회해 기존 가격 row를 갱신한다")
+    void refreshRestOilPrice_updatesExistingRow() {
+        runTransactionCallback();
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        RestOilEntity convenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceEntity existing = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceItem changed = restOilPriceItem("000002", "서울만남(부산)주유소");
+        ReflectionTestUtils.setField(changed, "gasolinePrice", "1,888원");
+        when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+                .thenReturn(List.of(convenience));
+        when(exApiClient.getCurStateStationByServiceAreaCode2("000002"))
+                .thenReturn(restOilPriceResponse("SUCCESS", List.of(changed)));
+        when(restOilPriceRepository.findByServiceAreaCode2("000002")).thenReturn(Optional.of(existing));
+
+        Optional<OilInfoResponse> result = restOilPriceRefreshService.refreshByServiceAreaCode("A00001");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().gasolinePrice()).isEqualTo("1,888원");
+        assertThat(result.get().oilStationConveniences()).hasSize(1);
+        verify(restOilPriceRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("저장된 가격 row가 없으면 새 가격 row를 저장한다")
+    void refreshRestOilPrice_insertsWhenPriceMissing() {
+        runTransactionCallback();
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        RestOilEntity convenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceItem fetched = restOilPriceItem("000002", "서울만남(부산)주유소");
+        when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+                .thenReturn(List.of(convenience));
+        when(exApiClient.getCurStateStationByServiceAreaCode2("000002"))
+                .thenReturn(restOilPriceResponse("SUCCESS", List.of(fetched)));
+        when(restOilPriceRepository.findByServiceAreaCode2("000002")).thenReturn(Optional.empty());
+        when(restOilPriceRepository.save(any(RestOilPriceEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Optional<OilInfoResponse> result = restOilPriceRefreshService.refreshByServiceAreaCode("A00001");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().gasolinePrice()).isEqualTo("1,999원");
+        verify(restOilPriceRepository).save(any(RestOilPriceEntity.class));
+    }
+
+    @Test
+    @DisplayName("휴게소가 없으면 단건 가격 갱신 대상이 없다")
+    void refreshRestOilPrice_returnsEmptyWhenRestStopMissing() {
+        when(restStopRepository.findByServiceAreaCode("UNKNOWN")).thenReturn(Optional.empty());
+
+        Optional<OilInfoResponse> result = restOilPriceRefreshService.refreshByServiceAreaCode("UNKNOWN");
+
+        assertThat(result).isEmpty();
+        verify(exApiClient, never()).getCurStateStationByServiceAreaCode2(any());
+    }
+
+    @Test
+    @DisplayName("주유소 매핑이 없으면 단건 가격 갱신 대상이 없다")
+    void refreshRestOilPrice_returnsEmptyWhenOilMappingMissing() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+                .thenReturn(List.of());
+
+        Optional<OilInfoResponse> result = restOilPriceRefreshService.refreshByServiceAreaCode("A00001");
+
+        assertThat(result).isEmpty();
+        verify(exApiClient, never()).getCurStateStationByServiceAreaCode2(any());
+    }
+
+    @Test
+    @DisplayName("upstream 단건 가격 결과가 없으면 DB를 변경하지 않는다")
+    void refreshRestOilPrice_returnsEmptyWhenUpstreamResultMissing() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        RestOilEntity convenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
+        when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+                .thenReturn(List.of(convenience));
+        when(exApiClient.getCurStateStationByServiceAreaCode2("000002"))
+                .thenReturn(restOilPriceResponse("SUCCESS", List.of()));
+
+        Optional<OilInfoResponse> result = restOilPriceRefreshService.refreshByServiceAreaCode("A00001");
+
+        assertThat(result).isEmpty();
+        verify(restOilPriceRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("upstream 단건 가격 list가 null이면 DB를 변경하지 않는다")
+    void refreshRestOilPrice_returnsEmptyWhenUpstreamListIsNull() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        RestOilEntity convenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
+        var response = restOilPriceResponse("SUCCESS", List.of());
+        ReflectionTestUtils.setField(response, "list", null);
+        when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+                .thenReturn(List.of(convenience));
+        when(exApiClient.getCurStateStationByServiceAreaCode2("000002")).thenReturn(response);
+
+        Optional<OilInfoResponse> result = restOilPriceRefreshService.refreshByServiceAreaCode("A00001");
+
+        assertThat(result).isEmpty();
+        verify(restOilPriceRepository, never()).save(any());
+    }
+
+    private void runTransactionCallback() {
+        doAnswer(invocation -> {
+                    TransactionCallback<?> action = invocation.getArgument(0);
+                    return action.doInTransaction(
+                            org.mockito.Mockito.mock(org.springframework.transaction.TransactionStatus.class));
+                })
+                .when(transactionTemplate)
+                .execute(any());
+    }
+}

@@ -43,6 +43,8 @@
 휴게소 상세 응답은 `rest_oil`에서 조회한 첫 번째 `standard_rest_code`로 `rest_oil_price`를
 조회해 `oilInfo`에 가격 정보를 포함한다. `oilInfo.oilStationConveniences`는 같은 `rest_oil`
 조회 결과를 변환하며, 가격 데이터가 없어도 `oilInfo`와 편의시설 배열은 유지한다.
+단건 가격 갱신 API도 같은 연결 키를 사용하며, upstream에서 단건 결과가 내려오면
+`rest_oil_price.service_area_code2` 기준으로 update 또는 insert한다.
 
 현재 개발 중인 데이터 관계는 실제 데이터와 코드가 기본 브랜치에 통합된 뒤 이 표에 반영한다.
 

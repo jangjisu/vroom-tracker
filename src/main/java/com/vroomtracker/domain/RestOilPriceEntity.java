@@ -44,6 +44,18 @@ public class RestOilPriceEntity {
     private String serviceAreaAddress;
 
     private RestOilPriceEntity(RestOilPriceItem item) {
+        apply(item);
+    }
+
+    public static RestOilPriceEntity from(RestOilPriceItem item) {
+        return new RestOilPriceEntity(item);
+    }
+
+    public void updateFrom(RestOilPriceItem item) {
+        apply(item);
+    }
+
+    private void apply(RestOilPriceItem item) {
         this.routeCode = item.getRouteCode();
         this.serviceAreaCode = item.getServiceAreaCode();
         this.routeName = item.getRouteName();
@@ -59,9 +71,5 @@ public class RestOilPriceEntity {
         this.pageNo = item.getPageNo();
         this.serviceAreaCode2 = item.getServiceAreaCode2();
         this.serviceAreaAddress = item.getServiceAreaAddress();
-    }
-
-    public static RestOilPriceEntity from(RestOilPriceItem item) {
-        return new RestOilPriceEntity(item);
     }
 }

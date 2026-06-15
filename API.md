@@ -231,6 +231,7 @@ GET https://data.ex.co.kr/openapi/business/curStateStation
 | `direction` | 선택 | 방향 |
 
 현재 `ExApiClient`는 전체 목록 조회를 위해 `key`, `type`, `numOfRows=99`, `pageNo=1..3`만 전달한다.
+단건 실시간 가격 갱신에서는 `pageNo=1`과 `serviceAreaCode2`를 함께 전달한다.
 
 #### 2026-06-16 실측 결과
 
@@ -279,8 +280,52 @@ GET https://data.ex.co.kr/openapi/business/curStateStation
 - 성공 여부는 `RestOilPriceResponse.isSuccess()`에서 판단한다.
 - 원본 행은 `RestOilPriceItem`에 보존하고, 저장 시 문자열 값을 임의 변환하지 않는다.
 - `RestOilPriceSyncService`는 페이지 1~3만 호출해 전체 교체 저장한다.
+- `RestOilPriceRefreshService`는 `serviceAreaCode2`로 단건 조회한 첫 번째 list 항목만 저장한다.
 - 페이지 중 하나라도 실패하면 DB 교체 트랜잭션을 실행하지 않아 기존 데이터를 보존한다.
 - 빈 응답, 실패 코드와 Feign 예외는 `ExApiClient` 공통 `fetch()`에서 처리한다.
+
+---
+
+## 내부 API
+
+### POST /api/rest-stops/{serviceAreaCode}/oil-price/refresh
+
+특정 휴게소의 주유소 가격을 한국도로공사 `curStateStation` API에서 단건 조회해
+`rest_oil_price`에 반영하고, 갱신된 `oilInfo`를 반환한다.
+
+#### 요청
+
+| 위치 | 이름 | 설명 |
+|---|---|---|
+| Path | `serviceAreaCode` | 휴게소 위치 API의 영업부대시설코드 |
+
+#### 응답
+
+성공 시:
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": {
+    "oilCompany": "AD",
+    "gasolinePrice": "1,999원",
+    "dieselPrice": "1,997원",
+    "lpgPrice": "1,157원",
+    "telNo": "02-573-7430",
+    "oilStationConveniences": [
+      {
+        "startTime": "00:00",
+        "endTime": "24:00",
+        "name": "쉼터",
+        "description": "고객쉼터"
+      }
+    ]
+  }
+}
+```
+
+갱신 대상 휴게소, 주유소 매핑 또는 upstream 단건 결과가 없으면 `NOT_FOUND`를 반환한다.
 
 ---
 

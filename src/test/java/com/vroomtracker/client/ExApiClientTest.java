@@ -96,6 +96,19 @@ class ExApiClientTest {
     }
 
     @Test
+    @DisplayName("주유소 가격 단건 API 호출 시 주유소 코드를 적용한다")
+    void getCurStateStationByServiceAreaCode2_appliesServiceAreaCode2() throws Exception {
+        RestOilPriceResponse response =
+                new ObjectMapper().readValue("{\"code\":\"SUCCESS\"}", RestOilPriceResponse.class);
+        when(exApiFeignClient.getCurStateStation("test-key", "json", "99", "1", "000002"))
+                .thenReturn(response);
+
+        RestOilPriceResponse result = exApiClient.getCurStateStationByServiceAreaCode2("000002");
+
+        assertThat(result).isSameAs(response);
+    }
+
+    @Test
     @DisplayName("휴게소 위치 API 실패에 실제 요청 URL과 일반 오류 메시지를 포함한다")
     void getLocationInfoRest_includesRequestUrlAndResponseMessageWhenApiFails() {
         RestStopResponse response = restStopResponse("ERROR", "1", List.of());
@@ -164,6 +177,20 @@ class ExApiClientTest {
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
                         "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/curStateStation?key=test-key&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
+    }
+
+    @Test
+    @DisplayName("주유소 가격 단건 API 실패에 실제 요청 URL과 오류 메시지를 포함한다")
+    void getCurStateStationByServiceAreaCode2_includesRequestUrlWhenApiFails() throws Exception {
+        RestOilPriceResponse response = new ObjectMapper()
+                .readValue("{\"code\":\"ERROR\",\"message\":\"인증키가 유효하지 않습니다.\"}", RestOilPriceResponse.class);
+        when(exApiFeignClient.getCurStateStation("test-key", "json", "99", "1", "000002"))
+                .thenReturn(response);
+
+        assertThatThrownBy(() -> exApiClient.getCurStateStationByServiceAreaCode2("000002"))
+                .isInstanceOf(ExApiException.class)
+                .hasMessage(
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/curStateStation?key=test-key&type=json&numOfRows=99&pageNo=1&serviceAreaCode2=000002, message=인증키가 유효하지 않습니다.");
     }
 
     @Test
