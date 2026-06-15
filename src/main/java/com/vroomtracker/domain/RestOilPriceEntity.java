@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,17 +43,32 @@ public class RestOilPriceEntity {
     private String serviceAreaCode2;
 
     private String serviceAreaAddress;
+    private LocalDateTime lastRefreshedAt;
 
     private RestOilPriceEntity(RestOilPriceItem item) {
         apply(item);
+    }
+
+    private RestOilPriceEntity(RestOilPriceItem item, LocalDateTime refreshedAt) {
+        apply(item);
+        this.lastRefreshedAt = refreshedAt;
     }
 
     public static RestOilPriceEntity from(RestOilPriceItem item) {
         return new RestOilPriceEntity(item);
     }
 
+    public static RestOilPriceEntity from(RestOilPriceItem item, LocalDateTime refreshedAt) {
+        return new RestOilPriceEntity(item, refreshedAt);
+    }
+
     public void updateFrom(RestOilPriceItem item) {
         apply(item);
+    }
+
+    public void updateFrom(RestOilPriceItem item, LocalDateTime refreshedAt) {
+        apply(item);
+        this.lastRefreshedAt = refreshedAt;
     }
 
     private void apply(RestOilPriceItem item) {

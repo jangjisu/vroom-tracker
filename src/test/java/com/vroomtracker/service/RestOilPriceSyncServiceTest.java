@@ -15,6 +15,10 @@ import com.vroomtracker.client.ExApiException;
 import com.vroomtracker.client.response.RestOilPriceItem;
 import com.vroomtracker.domain.RestOilPriceEntity;
 import com.vroomtracker.repository.RestOilPriceRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -41,11 +45,14 @@ class RestOilPriceSyncServiceTest {
     @Mock
     private TransactionTemplate transactionTemplate;
 
+    private final Clock clock = Clock.fixed(Instant.parse("2026-06-15T22:30:00Z"), ZoneId.of("Asia/Seoul"));
+
     private RestOilPriceSyncService restOilPriceSyncService;
 
     @BeforeEach
     void setUp() {
-        restOilPriceSyncService = new RestOilPriceSyncService(exApiClient, restOilPriceRepository, transactionTemplate);
+        restOilPriceSyncService =
+                new RestOilPriceSyncService(exApiClient, restOilPriceRepository, transactionTemplate, clock);
     }
 
     @Test
@@ -96,6 +103,9 @@ class RestOilPriceSyncServiceTest {
         assertThat(savedEntities)
                 .extracting(RestOilPriceEntity::getServiceAreaCode2)
                 .containsExactly("000002", "000006", "000010");
+        assertThat(savedEntities)
+                .extracting(RestOilPriceEntity::getLastRefreshedAt)
+                .containsOnly(LocalDateTime.of(2026, 6, 16, 7, 30));
     }
 
     @Test

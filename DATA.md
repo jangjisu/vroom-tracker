@@ -45,6 +45,8 @@
 조회 결과를 변환하며, 가격 데이터가 없어도 `oilInfo`와 편의시설 배열은 유지한다.
 단건 가격 갱신 API도 같은 연결 키를 사용하며, upstream에서 단건 결과가 내려오면
 `rest_oil_price.service_area_code2` 기준으로 update 또는 insert한다.
+`rest_oil_price.last_refreshed_at`은 가격 row가 마지막으로 갱신된 시각이다. 단건 가격 갱신 API는
+이 값이 현재 시각 기준 10분 이내면 외부 API 호출 없이 저장값을 반환한다.
 
 현재 개발 중인 데이터 관계는 실제 데이터와 코드가 기본 브랜치에 통합된 뒤 이 표에 반영한다.
 

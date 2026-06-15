@@ -4,6 +4,7 @@ import static com.vroomtracker.support.RestStopTestFixtures.restOilPriceItem;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.vroomtracker.client.response.RestOilPriceItem;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -51,5 +52,27 @@ class RestOilPriceEntityTest {
         assertThat(entity.getDieselPrice()).isEqualTo("1,777원");
         assertThat(entity.getLpgPrice()).isEqualTo("X");
         assertThat(entity.getTelNo()).isEqualTo("02-000-0000");
+    }
+
+    @Test
+    @DisplayName("주유소 가격 생성 시 갱신 시각을 저장한다")
+    void from_setsLastRefreshedAt() {
+        LocalDateTime refreshedAt = LocalDateTime.of(2026, 6, 16, 7, 30);
+
+        RestOilPriceEntity entity = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"), refreshedAt);
+
+        assertThat(entity.getLastRefreshedAt()).isEqualTo(refreshedAt);
+    }
+
+    @Test
+    @DisplayName("주유소 가격 갱신 시 갱신 시각도 바꾼다")
+    void updateFrom_updatesLastRefreshedAt() {
+        RestOilPriceEntity entity = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceItem changed = restOilPriceItem("000002", "서울만남(부산)주유소");
+        LocalDateTime refreshedAt = LocalDateTime.of(2026, 6, 16, 7, 40);
+
+        entity.updateFrom(changed, refreshedAt);
+
+        assertThat(entity.getLastRefreshedAt()).isEqualTo(refreshedAt);
     }
 }

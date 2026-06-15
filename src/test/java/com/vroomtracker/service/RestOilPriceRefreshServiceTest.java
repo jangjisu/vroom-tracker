@@ -20,6 +20,10 @@ import com.vroomtracker.domain.RestStopEntity;
 import com.vroomtracker.repository.RestOilPriceRepository;
 import com.vroomtracker.repository.RestOilRepository;
 import com.vroomtracker.repository.RestStopRepository;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,12 +54,14 @@ class RestOilPriceRefreshServiceTest {
     @Mock
     private TransactionTemplate transactionTemplate;
 
+    private final Clock clock = Clock.fixed(Instant.parse("2026-06-15T22:30:00Z"), ZoneId.of("Asia/Seoul"));
+
     private RestOilPriceRefreshService restOilPriceRefreshService;
 
     @BeforeEach
     void setUp() {
         restOilPriceRefreshService = new RestOilPriceRefreshService(
-                restStopRepository, restOilRepository, restOilPriceRepository, exApiClient, transactionTemplate);
+                restStopRepository, restOilRepository, restOilPriceRepository, exApiClient, transactionTemplate, clock);
     }
 
     @Test
@@ -64,7 +70,8 @@ class RestOilPriceRefreshServiceTest {
         runTransactionCallback();
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
         RestOilEntity convenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
-        RestOilPriceEntity existing = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceEntity existing = RestOilPriceEntity.from(
+                restOilPriceItem("000002", "서울만남(부산)주유소"), LocalDateTime.of(2026, 6, 16, 7, 10));
         RestOilPriceItem changed = restOilPriceItem("000002", "서울만남(부산)주유소");
         ReflectionTestUtils.setField(changed, "gasolinePrice", "1,888원");
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
@@ -79,7 +86,27 @@ class RestOilPriceRefreshServiceTest {
         assertThat(result).isPresent();
         assertThat(result.get().gasolinePrice()).isEqualTo("1,888원");
         assertThat(result.get().oilStationConveniences()).hasSize(1);
+        assertThat(existing.getLastRefreshedAt()).isEqualTo(LocalDateTime.of(2026, 6, 16, 7, 30));
         verify(restOilPriceRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("최근 10분 이내 갱신된 가격 row가 있으면 외부 API 호출 없이 DB 값을 반환한다")
+    void refreshRestOilPrice_returnsCachedRowWhenFresh() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        RestOilEntity convenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceEntity cached = RestOilPriceEntity.from(
+                restOilPriceItem("000002", "서울만남(부산)주유소"), LocalDateTime.of(2026, 6, 16, 7, 25));
+        when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+                .thenReturn(List.of(convenience));
+        when(restOilPriceRepository.findByServiceAreaCode2("000002")).thenReturn(Optional.of(cached));
+
+        Optional<OilInfoResponse> result = restOilPriceRefreshService.refreshByServiceAreaCode("A00001");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().gasolinePrice()).isEqualTo("1,999원");
+        verify(exApiClient, never()).getCurStateStationByServiceAreaCode2(any());
     }
 
     @Test
@@ -103,6 +130,28 @@ class RestOilPriceRefreshServiceTest {
         assertThat(result).isPresent();
         assertThat(result.get().gasolinePrice()).isEqualTo("1,999원");
         verify(restOilPriceRepository).save(any(RestOilPriceEntity.class));
+    }
+
+    @Test
+    @DisplayName("갱신 시각이 없으면 외부 API를 호출해 갱신한다")
+    void refreshRestOilPrice_refreshesWhenCachedRowHasNoTimestamp() {
+        runTransactionCallback();
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        RestOilEntity convenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceEntity existing = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceItem changed = restOilPriceItem("000002", "서울만남(부산)주유소");
+        ReflectionTestUtils.setField(changed, "gasolinePrice", "1,777원");
+        when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+                .thenReturn(List.of(convenience));
+        when(restOilPriceRepository.findByServiceAreaCode2("000002")).thenReturn(Optional.of(existing));
+        when(exApiClient.getCurStateStationByServiceAreaCode2("000002"))
+                .thenReturn(restOilPriceResponse("SUCCESS", List.of(changed)));
+
+        Optional<OilInfoResponse> result = restOilPriceRefreshService.refreshByServiceAreaCode("A00001");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().gasolinePrice()).isEqualTo("1,777원");
     }
 
     @Test

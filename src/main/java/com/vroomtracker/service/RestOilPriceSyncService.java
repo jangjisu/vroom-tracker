@@ -5,6 +5,8 @@ import com.vroomtracker.client.response.RestOilPriceItem;
 import com.vroomtracker.client.response.RestOilPriceResponse;
 import com.vroomtracker.domain.RestOilPriceEntity;
 import com.vroomtracker.repository.RestOilPriceRepository;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class RestOilPriceSyncService {
     private final ExApiClient exApiClient;
     private final RestOilPriceRepository restOilPriceRepository;
     private final TransactionTemplate transactionTemplate;
+    private final Clock clock;
 
     public int initializeRestOilPricesIfEmpty() {
         if (restOilPriceRepository.count() > 0) {
@@ -57,7 +60,9 @@ public class RestOilPriceSyncService {
 
     private void replaceRestOilPrices(List<RestOilPriceItem> items) {
         restOilPriceRepository.deleteAllInBatch();
-        restOilPriceRepository.saveAll(
-                items.stream().map(RestOilPriceEntity::from).toList());
+        LocalDateTime refreshedAt = LocalDateTime.now(clock);
+        restOilPriceRepository.saveAll(items.stream()
+                .map(item -> RestOilPriceEntity.from(item, refreshedAt))
+                .toList());
     }
 }

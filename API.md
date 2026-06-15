@@ -292,6 +292,7 @@ GET https://data.ex.co.kr/openapi/business/curStateStation
 
 특정 휴게소의 주유소 가격을 한국도로공사 `curStateStation` API에서 단건 조회해
 `rest_oil_price`에 반영하고, 갱신된 `oilInfo`를 반환한다.
+동일 주유소 가격이 최근 10분 이내 갱신된 경우에는 외부 API를 호출하지 않고 DB 값을 반환한다.
 
 #### 요청
 
@@ -326,6 +327,7 @@ GET https://data.ex.co.kr/openapi/business/curStateStation
 ```
 
 갱신 대상 휴게소, 주유소 매핑 또는 upstream 단건 결과가 없으면 `NOT_FOUND`를 반환한다.
+최근 10분 이내 저장값이 있으면 `SUCCESS`를 반환하며, 응답 형태는 upstream 호출 성공 시와 같다.
 
 ---
 
