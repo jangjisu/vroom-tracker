@@ -1,5 +1,14 @@
 package com.vroomtracker.client;
 
+import static com.vroomtracker.client.ExApiFeignClient.CONVENIENCE_SERVICE_AREA_PATH;
+import static com.vroomtracker.client.ExApiFeignClient.HIGHWAY_SERVICE_AREA_INFO_PATH;
+import static com.vroomtracker.client.ExApiFeignClient.KEY_PARAMETER;
+import static com.vroomtracker.client.ExApiFeignClient.LOCATION_INFO_REST_PATH;
+import static com.vroomtracker.client.ExApiFeignClient.NUM_OF_ROWS_PARAMETER;
+import static com.vroomtracker.client.ExApiFeignClient.PAGE_NO_PARAMETER;
+import static com.vroomtracker.client.ExApiFeignClient.REST_STOP_NUM_OF_ROWS;
+import static com.vroomtracker.client.ExApiFeignClient.TYPE_PARAMETER;
+
 import com.vroomtracker.client.response.ExApiResponse;
 import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
 import com.vroomtracker.client.response.RestStopDetailResponse;
@@ -11,11 +20,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class ExApiClient {
-
-    private static final String LOCATION_INFO_REST_PATH = "/openapi/locationinfo/locationinfoRest";
-    private static final String CONVENIENCE_SERVICE_AREA_PATH = "/openapi/business/conveniServiceArea";
-    private static final String HIGHWAY_SERVICE_AREA_INFO_PATH = "/openapi/restinfo/hiwaySvarInfoList";
-    private static final String REST_STOP_NUM_OF_ROWS = "99";
 
     private final ExApiFeignClient exApiFeignClient;
     private final String apiUrl;
@@ -33,8 +37,8 @@ public class ExApiClient {
     public RestStopResponse getLocationInfoRest(int pageNo) {
         String pageNumber = String.valueOf(pageNo);
         String requestUrl = requestUrl(LOCATION_INFO_REST_PATH)
-                .queryParam("numOfRows", REST_STOP_NUM_OF_ROWS)
-                .queryParam("pageNo", pageNumber)
+                .queryParam(NUM_OF_ROWS_PARAMETER, REST_STOP_NUM_OF_ROWS)
+                .queryParam(PAGE_NO_PARAMETER, pageNumber)
                 .build()
                 .encode()
                 .toUriString();
@@ -48,8 +52,8 @@ public class ExApiClient {
     public RestStopDetailResponse getConvenienceServiceArea(int pageNo) {
         String pageNumber = String.valueOf(pageNo);
         String requestUrl = requestUrl(CONVENIENCE_SERVICE_AREA_PATH)
-                .queryParam("numOfRows", REST_STOP_NUM_OF_ROWS)
-                .queryParam("pageNo", pageNumber)
+                .queryParam(NUM_OF_ROWS_PARAMETER, REST_STOP_NUM_OF_ROWS)
+                .queryParam(PAGE_NO_PARAMETER, pageNumber)
                 .build()
                 .encode()
                 .toUriString();
@@ -72,8 +76,8 @@ public class ExApiClient {
     private UriComponentsBuilder requestUrl(String path) {
         return UriComponentsBuilder.fromUriString(apiUrl)
                 .path(path)
-                .queryParam("key", apiKey)
-                .queryParam("type", ExApiResponseFormat.JSON.value());
+                .queryParam(KEY_PARAMETER, apiKey)
+                .queryParam(TYPE_PARAMETER, ExApiResponseFormat.JSON.value());
     }
 
     private <T extends ExApiResponse> T fetch(String requestUrl, Supplier<T> request) {

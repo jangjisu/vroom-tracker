@@ -13,21 +13,32 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient(name = "ex-api", url = "${ex.api.url}")
 public interface ExApiFeignClient {
 
-    @GetMapping("/openapi/locationinfo/locationinfoRest")
+    String LOCATION_INFO_REST_PATH = "/openapi/locationinfo/locationinfoRest";
+    String CONVENIENCE_SERVICE_AREA_PATH = "/openapi/business/conveniServiceArea";
+    String HIGHWAY_SERVICE_AREA_INFO_PATH = "/openapi/restinfo/hiwaySvarInfoList";
+
+    String KEY_PARAMETER = "key";
+    String TYPE_PARAMETER = "type";
+    String NUM_OF_ROWS_PARAMETER = "numOfRows";
+    String PAGE_NO_PARAMETER = "pageNo";
+
+    String REST_STOP_NUM_OF_ROWS = "99";
+
+    @GetMapping(LOCATION_INFO_REST_PATH)
     RestStopResponse getLocationInfoRest(
-            @RequestParam("key") String key,
-            @RequestParam("type") String type,
-            @RequestParam(value = "numOfRows", required = false) String numOfRows,
-            @RequestParam(value = "pageNo", required = false) String pageNo);
+            @RequestParam(KEY_PARAMETER) String key,
+            @RequestParam(TYPE_PARAMETER) String type,
+            @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
+            @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo);
 
-    @GetMapping("/openapi/business/conveniServiceArea")
+    @GetMapping(CONVENIENCE_SERVICE_AREA_PATH)
     RestStopDetailResponse getConvenienceServiceArea(
-            @RequestParam("key") String key,
-            @RequestParam("type") String type,
-            @RequestParam(value = "numOfRows", required = false) String numOfRows,
-            @RequestParam(value = "pageNo", required = false) String pageNo);
+            @RequestParam(KEY_PARAMETER) String key,
+            @RequestParam(TYPE_PARAMETER) String type,
+            @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
+            @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo);
 
-    @GetMapping("/openapi/restinfo/hiwaySvarInfoList")
+    @GetMapping(HIGHWAY_SERVICE_AREA_INFO_PATH)
     HighwayServiceAreaInfoResponse getHighwayServiceAreaInfoList(
-            @RequestParam("key") String key, @RequestParam("type") String type);
+            @RequestParam(KEY_PARAMETER) String key, @RequestParam(TYPE_PARAMETER) String type);
 }
