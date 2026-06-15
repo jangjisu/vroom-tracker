@@ -5,6 +5,26 @@
 
 ---
 
+## 공통 요청 헤더
+
+한국도로공사 OpenAPI를 호출하는 `ex-api` Feign Client는 모든 요청에 다음 헤더를 보낸다.
+
+```text
+User-Agent: vroom-tracker
+```
+
+동일 endpoint를 호출해 다음 결과를 실측했다.
+
+| 요청 조건 | 결과 |
+|---|---|
+| 기본 `curl/8.7.1` User-Agent | `400 Request Blocked` |
+| User-Agent 없음 | `400 Request Blocked` |
+| `User-Agent: vroom-tracker` | `200 OK` |
+
+HTTP/1.1 강제 여부는 결과에 영향을 주지 않았다. endpoint, query parameter와 response 구조는 변경되지 않는다.
+
+---
+
 ## 현재 연동 API
 
 ### locationinfoRest — 휴게소 위치 정보
