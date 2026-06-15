@@ -1,6 +1,7 @@
 package com.vroomtracker.client;
 
 import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
+import com.vroomtracker.client.response.RestOilResponse;
 import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -16,6 +17,7 @@ public interface ExApiFeignClient {
     String LOCATION_INFO_REST_PATH = "/openapi/locationinfo/locationinfoRest";
     String CONVENIENCE_SERVICE_AREA_PATH = "/openapi/business/conveniServiceArea";
     String HIGHWAY_SERVICE_AREA_INFO_PATH = "/openapi/restinfo/hiwaySvarInfoList";
+    String REST_OIL_LIST_PATH = "/openapi/restinfo/restOilList";
 
     String KEY_PARAMETER = "key";
     String TYPE_PARAMETER = "type";
@@ -41,4 +43,7 @@ public interface ExApiFeignClient {
     @GetMapping(HIGHWAY_SERVICE_AREA_INFO_PATH)
     HighwayServiceAreaInfoResponse getHighwayServiceAreaInfoList(
             @RequestParam(KEY_PARAMETER) String key, @RequestParam(TYPE_PARAMETER) String type);
+
+    @GetMapping(REST_OIL_LIST_PATH)
+    RestOilResponse getRestOilList(@RequestParam(KEY_PARAMETER) String key, @RequestParam(TYPE_PARAMETER) String type);
 }

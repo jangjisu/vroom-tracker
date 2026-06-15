@@ -1,0 +1,39 @@
+package com.vroomtracker.repository;
+
+import static com.vroomtracker.support.RestStopTestFixtures.restOilItem;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.vroomtracker.client.response.RestOilItem;
+import com.vroomtracker.domain.RestOilEntity;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
+
+@DataJpaTest
+@ActiveProfiles("test")
+class RestOilRepositoryTest {
+
+    @Autowired
+    private RestOilRepository restOilRepository;
+
+    @Test
+    @DisplayName("노선 코드와 정규화 시설명 기준으로 주유소 편의시설 여러 행을 조회한다")
+    void findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc_returnsMatchingRows() {
+        RestOilEntity first = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
+        RestOilItem secondItem = restOilItem("000002", "서울만남(부산)주유소");
+        ReflectionTestUtils.setField(secondItem, "convenienceName", "세차장");
+        RestOilEntity second = RestOilEntity.from(secondItem);
+        RestOilItem differentRouteItem = restOilItem("000600", "서울만남(부산)주유소");
+        ReflectionTestUtils.setField(differentRouteItem, "routeCode", "9999");
+        restOilRepository.saveAll(List.of(first, second, RestOilEntity.from(differentRouteItem)));
+
+        List<RestOilEntity> result =
+                restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)");
+
+        assertThat(result).containsExactly(first, second);
+    }
+}

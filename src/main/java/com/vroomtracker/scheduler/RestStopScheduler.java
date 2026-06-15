@@ -1,6 +1,7 @@
 package com.vroomtracker.scheduler;
 
 import com.vroomtracker.service.HighwayServiceAreaInfoSyncService;
+import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
 import com.vroomtracker.service.RestStopSyncService;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +17,14 @@ public class RestStopScheduler {
     private final RestStopSyncService restStopSyncService;
     private final RestStopDetailSyncService restStopDetailSyncService;
     private final HighwayServiceAreaInfoSyncService highwayServiceAreaInfoSyncService;
+    private final RestOilSyncService restOilSyncService;
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void syncRestStopsDaily() {
         refreshRestStops();
         refreshRestStopDetails();
         refreshHighwayServiceAreaInfos();
+        refreshRestOils();
     }
 
     private void refreshRestStops() {
@@ -48,6 +51,15 @@ public class RestStopScheduler {
             log.info("Scheduled highway service area info sync completed. savedCount={}", savedCount);
         } catch (RuntimeException e) {
             log.error("Scheduled highway service area info sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void refreshRestOils() {
+        try {
+            int savedCount = restOilSyncService.refreshRestOils();
+            log.info("Scheduled rest oil sync completed. savedCount={}", savedCount);
+        } catch (RuntimeException e) {
+            log.error("Scheduled rest oil sync failed. cause={}", e.getMessage(), e);
         }
     }
 }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
 import com.vroomtracker.service.RestStopSyncService;
 import org.junit.jupiter.api.DisplayName;
@@ -27,21 +28,26 @@ class RestStopStartupInitializerTest {
     private RestStopDetailSyncService restStopDetailSyncService;
 
     @Mock
+    private RestOilSyncService restOilSyncService;
+
+    @Mock
     private ApplicationArguments applicationArguments;
 
     @InjectMocks
     private RestStopStartupInitializer restStopStartupInitializer;
 
     @Test
-    @DisplayName("서버 시작 시 휴게소 위치와 상세 초기 적재를 service에 위임한다")
+    @DisplayName("서버 시작 시 휴게소 위치와 상세, 주유소 편의시설 초기 적재를 service에 위임한다")
     void run_delegatesInitialSyncToService() {
         when(restStopSyncService.initializeRestStopsIfEmpty()).thenReturn(203);
         when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(215);
+        when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(429);
 
         restStopStartupInitializer.run(applicationArguments);
 
         verify(restStopSyncService).initializeRestStopsIfEmpty();
         verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
+        verify(restOilSyncService).initializeRestOilsIfEmpty();
     }
 
     @Test
@@ -55,6 +61,7 @@ class RestStopStartupInitializerTest {
                 .doesNotThrowAnyException();
 
         verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
+        verify(restOilSyncService).initializeRestOilsIfEmpty();
         assertThat(output)
                 .contains("Initial rest stop sync failed.")
                 .contains("location API failed")
@@ -72,18 +79,35 @@ class RestStopStartupInitializerTest {
                 .doesNotThrowAnyException();
 
         assertThat(output).contains("Initial rest stop detail sync failed.").contains("detail API failed");
+        verify(restOilSyncService).initializeRestOilsIfEmpty();
     }
 
     @Test
-    @DisplayName("초기 적재할 데이터가 있으면 두 동기화를 생략했다고 기록한다")
+    @DisplayName("주유소 편의시설 초기 동기화 실패가 앱 시작으로 전파되지 않는다")
+    void run_doesNotPropagateRestOilSyncFailure(CapturedOutput output) {
+        when(restStopSyncService.initializeRestStopsIfEmpty()).thenReturn(203);
+        when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(215);
+        when(restOilSyncService.initializeRestOilsIfEmpty())
+                .thenThrow(new IllegalStateException("rest oil API failed"));
+
+        assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
+                .doesNotThrowAnyException();
+
+        assertThat(output).contains("Initial rest oil sync failed.").contains("rest oil API failed");
+    }
+
+    @Test
+    @DisplayName("초기 적재할 데이터가 있으면 모든 동기화를 생략했다고 기록한다")
     void run_logsSkippedSyncs(CapturedOutput output) {
         when(restStopSyncService.initializeRestStopsIfEmpty()).thenReturn(0);
         when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(0);
+        when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(0);
 
         restStopStartupInitializer.run(applicationArguments);
 
         assertThat(output)
                 .contains("Initial rest stop sync skipped because rest_stop table already has data.")
-                .contains("Initial rest stop detail sync skipped because rest_stop_detail table already has data.");
+                .contains("Initial rest stop detail sync skipped because rest_stop_detail table already has data.")
+                .contains("Initial rest oil sync skipped because rest_oil table already has data.");
     }
 }
