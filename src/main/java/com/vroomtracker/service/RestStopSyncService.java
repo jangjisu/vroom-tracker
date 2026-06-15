@@ -51,13 +51,7 @@ public class RestStopSyncService {
     }
 
     private RestStopResponse fetchPage(int pageNo) {
-        RestStopResponse response = exApiClient.getLocationInfoRest(pageNo);
-
-        if (response == null || !response.isSuccess()) {
-            throw new IllegalStateException("Failed to fetch rest stop page: " + pageNo);
-        }
-
-        return response;
+        return exApiClient.getLocationInfoRest(pageNo);
     }
 
     private void addItems(List<RestStopItem> items, RestStopResponse response) {

@@ -13,7 +13,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.ExApiException;
 import com.vroomtracker.client.response.RestStopItem;
+import com.vroomtracker.client.response.RestStopResponse;
 import com.vroomtracker.domain.RestStopEntity;
 import com.vroomtracker.repository.RestStopRepository;
 import java.util.ArrayList;
@@ -97,16 +99,30 @@ class RestStopSyncServiceTest {
     }
 
     @Test
-    @DisplayName("API 응답이 실패하면 기존 DB를 교체하지 않는다")
+    @DisplayName("API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestStops_doesNotReplaceRowsWhenApiFails() {
-        when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("ERROR", "1", List.of()));
+        ExApiException exception = new ExApiException(
+                "https://data.ex.co.kr/openapi/locationinfo/locationinfoRest?key=test-key", "failed");
+        when(exApiClient.getLocationInfoRest(1)).thenThrow(exception);
 
-        assertThatThrownBy(() -> restStopSyncService.refreshRestStops())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Failed to fetch rest stop page: 1");
+        assertThatThrownBy(() -> restStopSyncService.refreshRestStops()).isSameAs(exception);
 
         verify(restStopRepository, never()).deleteAllInBatch();
         verify(restStopRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("API 응답 성공 여부는 Client 계약을 신뢰하고 다시 검사하지 않는다")
+    void refreshRestStops_doesNotCheckApiSuccessAgain() {
+        runTransactionCallback();
+        RestStopResponse response = mock(RestStopResponse.class);
+        when(response.getTotalPageCount()).thenReturn(1);
+        when(response.getList()).thenReturn(List.of());
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(response);
+
+        restStopSyncService.refreshRestStops();
+
+        verify(response, never()).isSuccess();
     }
 
     private void runTransactionCallback() {

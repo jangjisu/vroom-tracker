@@ -13,7 +13,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.ExApiException;
 import com.vroomtracker.client.response.RestStopDetailItem;
+import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.domain.RestStopDetailEntity;
 import com.vroomtracker.repository.RestStopDetailRepository;
 import java.util.ArrayList;
@@ -26,7 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -104,31 +105,31 @@ class RestStopDetailSyncServiceTest {
     }
 
     @Test
-    @DisplayName("상세 API 응답이 실패하면 기존 DB를 교체하지 않는다")
+    @DisplayName("상세 API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestStopDetails_doesNotReplaceRowsWhenApiFails() {
-        var response = restStopDetailResponse("ERROR", "1", List.of());
-        ReflectionTestUtils.setField(response, "message", "인증키가 유효하지 않습니다.");
-        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(response);
+        ExApiException exception =
+                new ExApiException("https://data.ex.co.kr/openapi/business/conveniServiceArea?key=test-key", "failed");
+        when(exApiClient.getConvenienceServiceArea(1)).thenThrow(exception);
 
         assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Failed to fetch rest stop detail API. pageNo=1, message=인증키가 유효하지 않습니다.");
+                .isSameAs(exception);
 
         verify(restStopDetailRepository, never()).deleteAllInBatch();
         verify(restStopDetailRepository, never()).saveAll(any());
     }
 
     @Test
-    @DisplayName("상세 API 응답이 없으면 페이지와 원인을 포함해 실패한다")
-    void refreshRestStopDetails_reportsEmptyResponse() {
-        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(null);
+    @DisplayName("상세 API 응답 성공 여부는 Client 계약을 신뢰하고 다시 검사하지 않는다")
+    void refreshRestStopDetails_doesNotCheckApiSuccessAgain() {
+        runTransactionCallback();
+        RestStopDetailResponse response = mock(RestStopDetailResponse.class);
+        when(response.getTotalPageCount()).thenReturn(1);
+        when(response.getList()).thenReturn(List.of());
+        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(response);
 
-        assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Failed to fetch rest stop detail API. pageNo=1, message=empty response");
+        restStopDetailSyncService.refreshRestStopDetails();
 
-        verify(restStopDetailRepository, never()).deleteAllInBatch();
-        verify(restStopDetailRepository, never()).saveAll(any());
+        verify(response, never()).isSuccess();
     }
 
     private void runTransactionCallback() {

@@ -24,6 +24,22 @@ Accept: application/json
 
 HTTP/1.1 강제 여부는 결과에 영향을 주지 않았다. endpoint, query parameter와 response 구조는 변경되지 않는다.
 
+### 공통 실패 exception
+
+`ExApiClient`는 빈 응답, API 실패 응답, Feign·네트워크·디코딩 예외를 다음 형식의 `ExApiException`으로 변환한다.
+
+```text
+Failed to fetch API. requestUrl=<실제 요청 URL>, message=<실패 원인>
+```
+
+`requestUrl`에는 endpoint와 실제 호출한 모든 query parameter가 포함된다. 장애 로그에서 URL을 바로 실행해 재현할 수 있도록 `key`도 마스킹하지 않고 runtime 값을 그대로 포함한다.
+
+```text
+Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/conveniServiceArea?key=4041555581&type=json&numOfRows=99&pageNo=2, message=For input string: ""
+```
+
+API 키 평문 포함은 로그 접근자와 외부 로그 저장소에 키가 노출될 수 있는 운영상 위험이 있다. 이 프로젝트에서는 장애 재현 편의성을 우선한 명시적 결정으로 적용한다.
+
 ---
 
 ## 현재 연동 API

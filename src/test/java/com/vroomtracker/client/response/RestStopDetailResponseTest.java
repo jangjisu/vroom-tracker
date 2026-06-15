@@ -63,6 +63,7 @@ class RestStopDetailResponseTest {
 
         RestStopDetailResponse response = objectMapper.readValue(json, RestStopDetailResponse.class);
 
+        assertThat(response).isInstanceOf(ExApiResponse.class);
         assertThat(response.getErrorMessage()).isEqualTo("For input string: \"\"");
         assertThat(response.isSuccess()).isFalse();
     }

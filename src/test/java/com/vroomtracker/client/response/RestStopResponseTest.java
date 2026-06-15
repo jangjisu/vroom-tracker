@@ -27,6 +27,16 @@ class RestStopResponseTest {
     }
 
     @Test
+    @DisplayName("EX API 공통 응답으로 일반 실패 메시지를 반환한다")
+    void getErrorMessage_returnsResponseMessage() {
+        RestStopResponse response = new RestStopResponse();
+        ReflectionTestUtils.setField(response, "message", "인증키가 유효하지 않습니다.");
+
+        assertThat(response).isInstanceOf(ExApiResponse.class);
+        assertThat(response.getErrorMessage()).isEqualTo("인증키가 유효하지 않습니다.");
+    }
+
+    @Test
     @DisplayName("pageSize를 총 페이지 수로 변환한다")
     void getTotalPageCount_returnsParsedValue() {
         RestStopResponse response = new RestStopResponse();

@@ -12,7 +12,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.vroomtracker.client.ExApiClient;
+import com.vroomtracker.client.ExApiException;
 import com.vroomtracker.client.response.HighwayServiceAreaInfoItem;
+import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
 import com.vroomtracker.domain.HighwayServiceAreaInfoEntity;
 import com.vroomtracker.repository.HighwayServiceAreaInfoRepository;
 import java.util.ArrayList;
@@ -68,17 +70,30 @@ class HighwayServiceAreaInfoSyncServiceTest {
     }
 
     @Test
-    @DisplayName("고속도로 휴게소 정보 API 응답이 실패하면 기존 DB를 교체하지 않는다")
+    @DisplayName("고속도로 휴게소 정보 API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshHighwayServiceAreaInfos_doesNotReplaceRowsWhenApiFails() {
-        when(exApiClient.getHighwayServiceAreaInfoList())
-                .thenReturn(highwayServiceAreaInfoResponse("ERROR", List.of()));
+        ExApiException exception =
+                new ExApiException("https://data.ex.co.kr/openapi/restinfo/hiwaySvarInfoList?key=test-key", "failed");
+        when(exApiClient.getHighwayServiceAreaInfoList()).thenThrow(exception);
 
         assertThatThrownBy(() -> highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Failed to fetch highway service area info list");
+                .isSameAs(exception);
 
         verify(highwayServiceAreaInfoRepository, never()).deleteAllInBatch();
         verify(highwayServiceAreaInfoRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("고속도로 휴게소 정보 API 성공 여부는 Client 계약을 신뢰하고 다시 검사하지 않는다")
+    void refreshHighwayServiceAreaInfos_doesNotCheckApiSuccessAgain() {
+        runTransactionCallback();
+        HighwayServiceAreaInfoResponse response = mock(HighwayServiceAreaInfoResponse.class);
+        when(response.getList()).thenReturn(List.of());
+        when(exApiClient.getHighwayServiceAreaInfoList()).thenReturn(response);
+
+        highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos();
+
+        verify(response, never()).isSuccess();
     }
 
     private void runTransactionCallback() {

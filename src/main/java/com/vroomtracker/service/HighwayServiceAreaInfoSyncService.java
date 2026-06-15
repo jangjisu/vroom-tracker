@@ -29,10 +29,6 @@ public class HighwayServiceAreaInfoSyncService {
     private List<HighwayServiceAreaInfoItem> fetchHighwayServiceAreaInfos() {
         HighwayServiceAreaInfoResponse response = exApiClient.getHighwayServiceAreaInfoList();
 
-        if (response == null || !response.isSuccess()) {
-            throw new IllegalStateException("Failed to fetch highway service area info list");
-        }
-
         if (response.getList() == null) {
             return List.of();
         }

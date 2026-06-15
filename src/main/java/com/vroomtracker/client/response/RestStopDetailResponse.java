@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RestStopDetailResponse {
+public class RestStopDetailResponse implements ExApiResponse {
 
     private String code;
     private String message;
@@ -18,10 +18,12 @@ public class RestStopDetailResponse {
     private List<RestStopDetailItem> list;
     private UpstreamException exception;
 
+    @Override
     public boolean isSuccess() {
         return "SUCCESS".equals(code);
     }
 
+    @Override
     public String getErrorMessage() {
         if (exception == null) {
             return message;

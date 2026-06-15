@@ -25,4 +25,14 @@ class HighwayServiceAreaInfoResponseTest {
 
         assertThat(response.isSuccess()).isFalse();
     }
+
+    @Test
+    @DisplayName("EX API 공통 응답으로 일반 실패 메시지를 반환한다")
+    void getErrorMessage_returnsResponseMessage() {
+        HighwayServiceAreaInfoResponse response = new HighwayServiceAreaInfoResponse();
+        ReflectionTestUtils.setField(response, "message", "인증키가 유효하지 않습니다.");
+
+        assertThat(response).isInstanceOf(ExApiResponse.class);
+        assertThat(response.getErrorMessage()).isEqualTo("인증키가 유효하지 않습니다.");
+    }
 }
