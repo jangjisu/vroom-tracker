@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.vroomtracker.service.RestOilPriceSyncService;
 import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
 import com.vroomtracker.service.RestStopSyncService;
@@ -31,6 +32,9 @@ class RestStopStartupInitializerTest {
     private RestOilSyncService restOilSyncService;
 
     @Mock
+    private RestOilPriceSyncService restOilPriceSyncService;
+
+    @Mock
     private ApplicationArguments applicationArguments;
 
     @InjectMocks
@@ -42,12 +46,14 @@ class RestStopStartupInitializerTest {
         when(restStopSyncService.initializeRestStopsIfEmpty()).thenReturn(203);
         when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(215);
         when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(429);
+        when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(226);
 
         restStopStartupInitializer.run(applicationArguments);
 
         verify(restStopSyncService).initializeRestStopsIfEmpty();
         verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
         verify(restOilSyncService).initializeRestOilsIfEmpty();
+        verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
     }
 
     @Test
@@ -62,6 +68,7 @@ class RestStopStartupInitializerTest {
 
         verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
         verify(restOilSyncService).initializeRestOilsIfEmpty();
+        verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
         assertThat(output)
                 .contains("Initial rest stop sync failed.")
                 .contains("location API failed")
@@ -80,6 +87,7 @@ class RestStopStartupInitializerTest {
 
         assertThat(output).contains("Initial rest stop detail sync failed.").contains("detail API failed");
         verify(restOilSyncService).initializeRestOilsIfEmpty();
+        verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
     }
 
     @Test
@@ -94,6 +102,22 @@ class RestStopStartupInitializerTest {
                 .doesNotThrowAnyException();
 
         assertThat(output).contains("Initial rest oil sync failed.").contains("rest oil API failed");
+        verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
+    }
+
+    @Test
+    @DisplayName("주유소 가격 초기 동기화 실패가 앱 시작으로 전파되지 않는다")
+    void run_doesNotPropagateRestOilPriceSyncFailure(CapturedOutput output) {
+        when(restStopSyncService.initializeRestStopsIfEmpty()).thenReturn(203);
+        when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(215);
+        when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(429);
+        when(restOilPriceSyncService.initializeRestOilPricesIfEmpty())
+                .thenThrow(new IllegalStateException("rest oil price API failed"));
+
+        assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
+                .doesNotThrowAnyException();
+
+        assertThat(output).contains("Initial rest oil price sync failed.").contains("rest oil price API failed");
     }
 
     @Test
@@ -102,12 +126,14 @@ class RestStopStartupInitializerTest {
         when(restStopSyncService.initializeRestStopsIfEmpty()).thenReturn(0);
         when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(0);
         when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(0);
+        when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(0);
 
         restStopStartupInitializer.run(applicationArguments);
 
         assertThat(output)
                 .contains("Initial rest stop sync skipped because rest_stop table already has data.")
                 .contains("Initial rest stop detail sync skipped because rest_stop_detail table already has data.")
-                .contains("Initial rest oil sync skipped because rest_oil table already has data.");
+                .contains("Initial rest oil sync skipped because rest_oil table already has data.")
+                .contains("Initial rest oil price sync skipped because rest_oil_price table already has data.");
     }
 }
