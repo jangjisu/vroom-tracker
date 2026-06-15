@@ -135,6 +135,75 @@ GET https://data.ex.co.kr/openapi/locationinfo/locationinfoRest
 
 ---
 
+### restOilList — 휴게소 편의시설 현황(주유소)
+
+전국 고속도로 주유소의 편의시설과 운영시간을 반환한다.
+
+#### 엔드포인트
+
+```text
+GET https://data.ex.co.kr/openapi/restinfo/restOilList
+```
+
+#### 요청 파라미터
+
+| 파라미터 | 조건 | 설명 |
+|---|---|---|
+| `key` | 필수 | 인증키 |
+| `type` | 필수 | 현재 앱에서는 `json`만 사용 |
+| `routeCd` | 선택 | 노선코드 |
+| `routeNm` | 선택 | 노선명 |
+| `stdRestCd` | 선택 | 휴게소/주유소코드 |
+| `stdRestNm` | 선택 | 휴게소/주유소명 |
+
+현재 `ExApiClient`는 전체 목록 조회를 위해 `key`, `type`만 전달한다.
+페이지네이션 파라미터는 없으며 전체 목록이 한 응답으로 반환된다.
+
+#### 2026-06-15 실측 결과
+
+- HTTP 상태: `200 OK`
+- Content-Type: `application/json; charset=utf-8`
+- 성공 코드: `"SUCCESS"`
+- `count`: 숫자 `429`
+- 동일한 `stdRestCd`에 서로 다른 `psCode` 행이 여러 개 존재한다.
+- `routeNm`과 `psDesc`는 `null`일 수 있다.
+- 제공 문서에는 `count`가 string으로 표기되어 있지만 실제 JSON은 숫자다.
+
+```json
+{
+  "list": [
+    {
+      "stdRestCd": "000002",
+      "stdRestNm": "서울만남(부산)주유소",
+      "stime": "00:00",
+      "etime": "24:00",
+      "redId": "MANJ03",
+      "redDtime": "16/03/10",
+      "lsttmAltrUser": "SYSTEM",
+      "lsttmAltrDttm": "2026-06-15",
+      "svarAddr": "서울시 서초구 원지동10-16",
+      "routeCd": "0010",
+      "routeNm": "경부선",
+      "psCode": "07",
+      "psName": "쉼터",
+      "psDesc": "고객쉼터-안마기,컴퓨터,팩스,혈압계,신장및체중계,핸드폰충전기,핸드폰소독기"
+    }
+  ],
+  "count": 429,
+  "message": "인증키가 유효합니다.",
+  "code": "SUCCESS"
+}
+```
+
+#### 코드 기준 처리
+
+- 성공 여부는 `RestOilResponse.isSuccess()`에서 판단한다.
+- `count`는 실측 JSON 타입에 맞춰 `int`로 역직렬화한다.
+- 원본 행은 `RestOilItem`에 그대로 보존하며 중복처럼 보이는 휴게소 코드를 합치지 않는다.
+- 빈 응답, 실패 코드와 Feign 예외는 `ExApiClient` 공통 `fetch()`에서 처리한다.
+
+---
+
 ## 다음 API를 추가할 때 기록할 것
 
 새 공공 API를 연결할 때는 추정값이 아니라 실제 호출 결과 기준으로 아래 항목을 남긴다.

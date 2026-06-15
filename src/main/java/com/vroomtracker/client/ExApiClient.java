@@ -6,11 +6,13 @@ import static com.vroomtracker.client.ExApiFeignClient.KEY_PARAMETER;
 import static com.vroomtracker.client.ExApiFeignClient.LOCATION_INFO_REST_PATH;
 import static com.vroomtracker.client.ExApiFeignClient.NUM_OF_ROWS_PARAMETER;
 import static com.vroomtracker.client.ExApiFeignClient.PAGE_NO_PARAMETER;
+import static com.vroomtracker.client.ExApiFeignClient.REST_OIL_LIST_PATH;
 import static com.vroomtracker.client.ExApiFeignClient.REST_STOP_NUM_OF_ROWS;
 import static com.vroomtracker.client.ExApiFeignClient.TYPE_PARAMETER;
 
 import com.vroomtracker.client.response.ExApiResponse;
 import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
+import com.vroomtracker.client.response.RestOilResponse;
 import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopResponse;
 import java.util.function.Supplier;
@@ -71,6 +73,12 @@ public class ExApiClient {
         return fetch(
                 requestUrl,
                 () -> exApiFeignClient.getHighwayServiceAreaInfoList(apiKey, ExApiResponseFormat.JSON.value()));
+    }
+
+    public RestOilResponse getRestOilList() {
+        String requestUrl = requestUrl(REST_OIL_LIST_PATH).build().encode().toUriString();
+
+        return fetch(requestUrl, () -> exApiFeignClient.getRestOilList(apiKey, ExApiResponseFormat.JSON.value()));
     }
 
     private UriComponentsBuilder requestUrl(String path) {

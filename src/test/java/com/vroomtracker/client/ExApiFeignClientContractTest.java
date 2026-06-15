@@ -44,6 +44,16 @@ class ExApiFeignClientContractTest {
         assertThat(requestParameterName(method, 1)).isEqualTo(ExApiFeignClient.TYPE_PARAMETER);
     }
 
+    @Test
+    @DisplayName("주유소 편의시설 API 명세는 인터페이스 공통 상수를 사용한다")
+    void getRestOilList_usesInterfaceContractConstants() throws Exception {
+        Method method = ExApiFeignClient.class.getMethod("getRestOilList", String.class, String.class);
+
+        assertThat(method.getAnnotation(GetMapping.class).value()).containsExactly(ExApiFeignClient.REST_OIL_LIST_PATH);
+        assertThat(requestParameterName(method, 0)).isEqualTo(ExApiFeignClient.KEY_PARAMETER);
+        assertThat(requestParameterName(method, 1)).isEqualTo(ExApiFeignClient.TYPE_PARAMETER);
+    }
+
     private void assertRequestParameterNames(Method method) {
         assertThat(requestParameterName(method, 0)).isEqualTo(ExApiFeignClient.KEY_PARAMETER);
         assertThat(requestParameterName(method, 1)).isEqualTo(ExApiFeignClient.TYPE_PARAMETER);
