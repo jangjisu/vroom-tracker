@@ -61,6 +61,33 @@ export function formatOperationTime(startTime, endTime) {
     return `운영시간 ${String(startTime).trim()} ~ ${String(endTime).trim()}`;
 }
 
+export function hasFoodMenu(foodMenu) {
+    return Boolean(foodMenu) && Array.isArray(foodMenu.menus) && foodMenu.menus.length > 0;
+}
+
+export function orderFoodMenus(menus) {
+    if (!Array.isArray(menus)) {
+        return [];
+    }
+
+    const representatives = menus.filter((menu) => menu?.representative);
+    const others = menus.filter((menu) => !menu?.representative);
+    return [...representatives, ...others];
+}
+
+export function formatFoodCost(value) {
+    if (isMissingValue(value)) {
+        return '가격 정보 없음';
+    }
+
+    const text = String(value).trim();
+    if (/^\d+$/.test(text)) {
+        return `${Number(text).toLocaleString('ko-KR')}원`;
+    }
+
+    return text;
+}
+
 export function formatRefreshedAt(value) {
     if (isMissingValue(value)) {
         return '최근 갱신: 갱신 정보 없음';
