@@ -286,6 +286,94 @@ GET https://data.ex.co.kr/openapi/business/curStateStation
 
 ---
 
+### restBestfoodList — 휴게소 음식 메뉴
+
+전국 고속도로 휴게소의 음식 메뉴명, 가격, 설명, 추천/베스트/프리미엄/계절 구분을 반환한다.
+
+#### 엔드포인트
+
+```text
+GET https://data.ex.co.kr/openapi/restinfo/restBestfoodList
+```
+
+#### 요청 파라미터
+
+| 파라미터 | 조건 | 설명 |
+|---|---|---|
+| `key` | 필수 | 인증키 |
+| `type` | 필수 | 현재 앱에서는 `json`만 사용 |
+| `numOfRows` | 선택 | 페이지당 결과 수 |
+| `pageNo` | 선택 | 출력 페이지 번호 |
+| `routeCd` | 선택 | 노선코드 |
+| `routeNm` | 선택 | 노선명 |
+| `stdRestCd` | 선택 | 휴게소/주유소코드 |
+| `stdRestNm` | 선택 | 휴게소/주유소명 |
+| `recommendyn` | 선택 | 추천메뉴 구분 |
+| `bestfoodyn` | 선택 | 베스트푸드 구분 |
+| `premiumyn` | 선택 | 프리미엄메뉴 구분 |
+
+`conveniServiceArea`/`curStateStation`과 동일하게 페이지네이션(`numOfRows`, `pageNo`)을 사용한다.
+
+#### 2026-06-16 실측 결과
+
+- HTTP 상태: `200 OK`
+- Content-Type: `application/json; charset=utf-8`
+- 성공 코드: `"SUCCESS"`
+- `count`: 숫자 `7214`
+- `pageSize`: 숫자 `73` (numOfRows=99 기준) — 전체 동기화 시 다중 페이지 순회 필요
+- `pageNo`, `numOfRows`: 최상위는 숫자, list 내부의 동일 필드는 `null`
+- 연결 키 `stdRestCd`는 휴게소 코드이며 `locationinfoRest.stdRestCd`와 직접 일치한다. (서울만남(부산)휴게소 = `000001`로 양쪽 동일) — 주유소(`restOilList`)와 달리 정규화 이름 매칭이 필요 없다.
+- `restCd`(`S000001`)는 음식 API 전용 휴게소 코드로 `stdRestCd`와 다르다. 연결에는 `stdRestCd`를 사용한다.
+- 대표메뉴 구분 플래그는 `recommendyn`(추천), `bestfoodyn`(베스트푸드), `premiumyn`(프리미엄) 세 가지로 분리되어 있다.
+- `foodCost`는 `"7000"` 같은 순수 숫자 문자열이며 통화기호·콤마가 없다. (유가의 `"1,999원"`과 다름)
+- `seasonMenu`는 `4`(사계절)/`S`(여름)/`W`(겨울) 구분이다.
+
+```json
+{
+  "count": 7214,
+  "list": [
+    {
+      "pageNo": null,
+      "numOfRows": null,
+      "stdRestCd": "000001",
+      "stdRestNm": "서울만남(부산)휴게소",
+      "restCd": "S000001",
+      "routeCd": "0010",
+      "routeNm": "경부선",
+      "svarAddr": "서울 서초구 원지동10-16",
+      "seq": "272",
+      "foodNm": "농심어묵우동",
+      "foodCost": "7000",
+      "etc": "부산어묵꼬치를 첨가하여 ... 우동.",
+      "foodMaterial": "냉동면 1ea\r\n육수 435ml\r\n...",
+      "recommendyn": "N",
+      "bestfoodyn": "N",
+      "premiumyn": "N",
+      "seasonMenu": "4",
+      "app": "Y",
+      "lsttmAltrUser": "SYSTEM",
+      "lsttmAltrDttm": "2026-06-16",
+      "lastId": "dmsrud527",
+      "lastDtime": "2025-08-28"
+    }
+  ],
+  "pageNo": 1,
+  "numOfRows": 99,
+  "pageSize": 73,
+  "message": "인증키가 유효합니다.",
+  "code": "SUCCESS"
+}
+```
+
+#### 코드 기준 처리 (연동 시)
+
+- 성공 여부는 신규 응답 VO의 `isSuccess()`에서 `"SUCCESS"`로 판단한다.
+- 원본 행은 그대로 보존하고 `foodCost` 등 문자열 값을 임의 변환하지 않는다.
+- 전체 동기화는 `pageSize`만큼 페이지를 순회하며, 페이지 중 하나라도 실패하면 DB 교체 트랜잭션을 실행하지 않아 기존 데이터를 보존한다. (`RestOilPriceSyncService` 패턴)
+- 빈 응답, 실패 코드와 Feign 예외는 `ExApiClient` 공통 `fetch()`에서 처리한다.
+
+---
+
 ## 내부 API
 
 ### POST /api/rest-stops/{serviceAreaCode}/oil-price/refresh

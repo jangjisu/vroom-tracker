@@ -31,7 +31,7 @@ class RestStopDetailViewResponseTest {
         HighwayServiceAreaInfoEntity secondInfo = highwayServiceAreaInfo("5", "7", "");
 
         RestStopDetailViewResponse response = RestStopDetailViewResponse.of(
-                restStop, Optional.of(detail), List.of(firstInfo, secondInfo), List.of(), Optional.empty());
+                restStop, Optional.of(detail), List.of(firstInfo, secondInfo), List.of(), Optional.empty(), List.of());
 
         assertThat(response.serviceAreaCode()).isEqualTo("A00001");
         assertThat(response.restStopName()).isEqualTo("서울만남(부산)휴게소");
@@ -54,8 +54,8 @@ class RestStopDetailViewResponseTest {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
         HighwayServiceAreaInfoEntity info = highwayServiceAreaInfo("10", "20", "1");
 
-        RestStopDetailViewResponse response =
-                RestStopDetailViewResponse.of(restStop, Optional.empty(), List.of(info), List.of(), Optional.empty());
+        RestStopDetailViewResponse response = RestStopDetailViewResponse.of(
+                restStop, Optional.empty(), List.of(info), List.of(), Optional.empty(), List.of());
 
         assertThat(response.address()).isEqualTo("대전광역시 유성구 방현동 86");
     }
@@ -65,8 +65,8 @@ class RestStopDetailViewResponseTest {
     void of_returnsNullFieldsWhenOptionalDataMissing() {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
 
-        RestStopDetailViewResponse response =
-                RestStopDetailViewResponse.of(restStop, Optional.empty(), List.of(), List.of(), Optional.empty());
+        RestStopDetailViewResponse response = RestStopDetailViewResponse.of(
+                restStop, Optional.empty(), List.of(), List.of(), Optional.empty(), List.of());
 
         assertThat(response.address()).isNull();
         assertThat(response.convenience()).isNull();
@@ -94,7 +94,7 @@ class RestStopDetailViewResponseTest {
         RestOilPriceEntity oilPrice = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
 
         RestStopDetailViewResponse response = RestStopDetailViewResponse.of(
-                restStop, Optional.empty(), List.of(), conveniences, Optional.of(oilPrice));
+                restStop, Optional.empty(), List.of(), conveniences, Optional.of(oilPrice), List.of());
 
         assertThat(response.oilInfo().oilCompany()).isEqualTo("AD");
         assertThat(response.oilInfo().gasolinePrice()).isEqualTo("1,999원");

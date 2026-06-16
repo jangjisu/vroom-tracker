@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.vroomtracker.controller.response.FoodMenuItemResponse;
+import com.vroomtracker.controller.response.FoodMenuResponse;
 import com.vroomtracker.controller.response.OilInfoResponse;
 import com.vroomtracker.controller.response.OilStationConvenienceResponse;
 import com.vroomtracker.controller.response.RestStopDetailViewResponse;
@@ -87,7 +89,8 @@ class RestStopControllerTest {
                         "1,157원",
                         "02-573-7430",
                         LocalDateTime.of(2026, 6, 16, 7, 30),
-                        List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"))));
+                        List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"))),
+                new FoodMenuResponse(List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true))));
         when(restStopQueryService.findDetailByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/api/rest-stops/A00001"))
@@ -120,7 +123,9 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].name")
                         .value("쉼터"))
                 .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].description")
-                        .value("고객쉼터"));
+                        .value("고객쉼터"))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].foodName").value("농심어묵우동"))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].representative").value(true));
     }
 
     @Test

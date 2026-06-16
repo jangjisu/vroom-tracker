@@ -1,5 +1,6 @@
 package com.vroomtracker.scheduler;
 
+import com.vroomtracker.service.RestFoodSyncService;
 import com.vroomtracker.service.RestOilPriceSyncService;
 import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
@@ -21,6 +22,7 @@ public class RestStopStartupInitializer implements ApplicationRunner {
     private final RestStopDetailSyncService restStopDetailSyncService;
     private final RestOilSyncService restOilSyncService;
     private final RestOilPriceSyncService restOilPriceSyncService;
+    private final RestFoodSyncService restFoodSyncService;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -28,6 +30,7 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         initializeRestStopDetails();
         initializeRestOils();
         initializeRestOilPrices();
+        initializeRestFoods();
     }
 
     private void initializeRestStops() {
@@ -83,6 +86,20 @@ public class RestStopStartupInitializer implements ApplicationRunner {
             log.info("Initial rest oil price sync skipped because rest_oil_price table already has data.");
         } catch (RuntimeException e) {
             log.error("Initial rest oil price sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void initializeRestFoods() {
+        try {
+            int savedCount = restFoodSyncService.initializeRestFoodsIfEmpty();
+            if (savedCount > 0) {
+                log.info("Initial rest food sync completed. savedCount={}", savedCount);
+                return;
+            }
+
+            log.info("Initial rest food sync skipped because rest_food table already has data.");
+        } catch (RuntimeException e) {
+            log.error("Initial rest food sync failed. cause={}", e.getMessage(), e);
         }
     }
 }

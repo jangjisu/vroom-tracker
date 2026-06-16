@@ -77,6 +77,17 @@ class ExApiFeignClientContractTest {
         assertThat(requestParameterName(method, 4)).isEqualTo(ExApiFeignClient.SERVICE_AREA_CODE2_PARAMETER);
     }
 
+    @Test
+    @DisplayName("휴게소 음식 메뉴 API 명세는 인터페이스 공통 상수를 사용한다")
+    void getRestBestfoodList_usesInterfaceContractConstants() throws Exception {
+        Method method = ExApiFeignClient.class.getMethod(
+                "getRestBestfoodList", String.class, String.class, String.class, String.class);
+
+        assertThat(method.getAnnotation(GetMapping.class).value())
+                .containsExactly(ExApiFeignClient.REST_BESTFOOD_LIST_PATH);
+        assertRequestParameterNames(method);
+    }
+
     private void assertRequestParameterNames(Method method) {
         assertThat(requestParameterName(method, 0)).isEqualTo(ExApiFeignClient.KEY_PARAMETER);
         assertThat(requestParameterName(method, 1)).isEqualTo(ExApiFeignClient.TYPE_PARAMETER);

@@ -1,6 +1,7 @@
 package com.vroomtracker.scheduler;
 
 import com.vroomtracker.service.HighwayServiceAreaInfoSyncService;
+import com.vroomtracker.service.RestFoodSyncService;
 import com.vroomtracker.service.RestOilPriceSyncService;
 import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
@@ -20,6 +21,7 @@ public class RestStopScheduler {
     private final HighwayServiceAreaInfoSyncService highwayServiceAreaInfoSyncService;
     private final RestOilSyncService restOilSyncService;
     private final RestOilPriceSyncService restOilPriceSyncService;
+    private final RestFoodSyncService restFoodSyncService;
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void syncRestStopsDaily() {
@@ -27,6 +29,7 @@ public class RestStopScheduler {
         refreshRestStopDetails();
         refreshHighwayServiceAreaInfos();
         refreshRestOils();
+        refreshRestFoods();
     }
 
     @Scheduled(cron = "0 0 */3 * * *", zone = "Asia/Seoul")
@@ -76,6 +79,15 @@ public class RestStopScheduler {
             log.info("Scheduled rest oil price sync completed. savedCount={}", savedCount);
         } catch (RuntimeException e) {
             log.error("Scheduled rest oil price sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void refreshRestFoods() {
+        try {
+            int savedCount = restFoodSyncService.refreshRestFoods();
+            log.info("Scheduled rest food sync completed. savedCount={}", savedCount);
+        } catch (RuntimeException e) {
+            log.error("Scheduled rest food sync failed. cause={}", e.getMessage(), e);
         }
     }
 }

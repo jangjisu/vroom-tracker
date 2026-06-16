@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.vroomtracker.service.HighwayServiceAreaInfoSyncService;
+import com.vroomtracker.service.RestFoodSyncService;
 import com.vroomtracker.service.RestOilPriceSyncService;
 import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
@@ -37,6 +38,9 @@ class RestStopSchedulerTest {
     @Mock
     private RestOilPriceSyncService restOilPriceSyncService;
 
+    @Mock
+    private RestFoodSyncService restFoodSyncService;
+
     @InjectMocks
     private RestStopScheduler restStopScheduler;
 
@@ -47,6 +51,7 @@ class RestStopSchedulerTest {
         when(restStopDetailSyncService.refreshRestStopDetails()).thenReturn(215);
         when(highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos()).thenReturn(581);
         when(restOilSyncService.refreshRestOils()).thenReturn(429);
+        when(restFoodSyncService.refreshRestFoods()).thenReturn(7214);
 
         restStopScheduler.syncRestStopsDaily();
 
@@ -54,6 +59,7 @@ class RestStopSchedulerTest {
         verify(restStopDetailSyncService).refreshRestStopDetails();
         verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         verify(restOilSyncService).refreshRestOils();
+        verify(restFoodSyncService).refreshRestFoods();
     }
 
     @Test
@@ -119,6 +125,20 @@ class RestStopSchedulerTest {
         assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
 
         assertThat(output).contains("Scheduled rest oil sync failed.").contains("rest oil API failed");
+    }
+
+    @Test
+    @DisplayName("음식 메뉴 동기화 실패를 로그로 기록하고 전파하지 않는다")
+    void syncRestStopsDaily_doesNotPropagateRestFoodFailure(CapturedOutput output) {
+        when(restStopSyncService.refreshRestStops()).thenReturn(203);
+        when(restStopDetailSyncService.refreshRestStopDetails()).thenReturn(215);
+        when(highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos()).thenReturn(581);
+        when(restOilSyncService.refreshRestOils()).thenReturn(429);
+        when(restFoodSyncService.refreshRestFoods()).thenThrow(new IllegalStateException("rest food API failed"));
+
+        assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
+
+        assertThat(output).contains("Scheduled rest food sync failed.").contains("rest food API failed");
     }
 
     @Test

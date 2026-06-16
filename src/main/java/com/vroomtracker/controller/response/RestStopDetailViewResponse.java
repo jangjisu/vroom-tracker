@@ -1,6 +1,7 @@
 package com.vroomtracker.controller.response;
 
 import com.vroomtracker.domain.HighwayServiceAreaInfoEntity;
+import com.vroomtracker.domain.RestFoodEntity;
 import com.vroomtracker.domain.RestOilEntity;
 import com.vroomtracker.domain.RestOilPriceEntity;
 import com.vroomtracker.domain.RestStopDetailEntity;
@@ -24,14 +25,16 @@ public record RestStopDetailViewResponse(
         Integer compactCarParkingCount,
         Integer fullSizeCarParkingCount,
         Integer disabledParkingCount,
-        OilInfoResponse oilInfo) {
+        OilInfoResponse oilInfo,
+        FoodMenuResponse foodMenu) {
 
     public static RestStopDetailViewResponse of(
             RestStopEntity restStop,
             Optional<RestStopDetailEntity> detail,
             List<HighwayServiceAreaInfoEntity> infos,
             List<RestOilEntity> oilStationConveniences,
-            Optional<RestOilPriceEntity> oilPrice) {
+            Optional<RestOilPriceEntity> oilPrice,
+            List<RestFoodEntity> foods) {
         String detailAddress = textOf(detail, RestStopDetailEntity::getSvarAddr);
         String fallbackAddress = minText(infos, HighwayServiceAreaInfoEntity::getServiceAreaAddress);
 
@@ -49,7 +52,8 @@ public record RestStopDetailViewResponse(
                 sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getCompactCarParkingCount),
                 sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getFullSizeCarParkingCount),
                 sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getDisabledParkingCount),
-                OilInfoResponse.from(oilPrice, oilStationConveniences));
+                OilInfoResponse.from(oilPrice, oilStationConveniences),
+                FoodMenuResponse.from(foods));
     }
 
     private static <T> String minText(List<T> items, Function<T, String> getter) {

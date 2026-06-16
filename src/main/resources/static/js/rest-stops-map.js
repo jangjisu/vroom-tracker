@@ -2,13 +2,16 @@ import { setText, showApiUnavailableAlert } from './utils.js';
 import {
     CONVENIENCE_FALLBACK,
     formatAvailability,
+    formatFoodCost,
     formatFreightOperation,
     formatOilPrice,
     formatOperationTime,
     formatParkingCount,
     formatRefreshedAt,
     formatText,
+    hasFoodMenu,
     isMissingValue,
+    orderFoodMenus,
     parseConvenience
 } from './rest-stop-detail-formatters.js';
 import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
@@ -32,6 +35,8 @@ let currentDetail;
 let detailRequest;
 let detailPanelEventController;
 let mapInitializationId = 0;
+let foodExpanded = false;
+let currentFoodMenus = [];
 
 export async function initRestStopMap() {
     const mapElement = document.getElementById('restStopMap');
@@ -257,6 +262,9 @@ function bindDetailPanelEvents() {
     document.getElementById('restStopOilRefreshButton')?.addEventListener('click', refreshOilInfo, {
         signal: detailPanelEventController.signal
     });
+    document.getElementById('restStopFoodToggle')?.addEventListener('click', toggleFoodMenu, {
+        signal: detailPanelEventController.signal
+    });
     document.addEventListener('keydown', (event) => {
         const panel = document.getElementById('restStopDetailPanel');
         if (event.key === 'Escape' && panel && !panel.classList.contains('d-none')) {
@@ -368,6 +376,7 @@ function renderDetail(detail) {
         formatParkingCount
     );
     renderOilInfo(detail.oilInfo);
+    renderFoodMenu(detail.foodMenu);
 }
 
 function setDetailName(value, fallbackValue) {
@@ -412,6 +421,85 @@ function renderConvenience(value) {
     list.classList.toggle('d-none', conveniences.length === 0);
     fallback.classList.toggle('d-none', conveniences.length > 0);
     fallback.textContent = conveniences.length === 0 ? CONVENIENCE_FALLBACK : '';
+}
+
+function renderFoodMenu(foodMenu) {
+    const section = document.getElementById('restStopFoodSection');
+    if (!section) {
+        return;
+    }
+
+    const visible = hasFoodMenu(foodMenu);
+    section.classList.toggle('d-none', !visible);
+    if (!visible) {
+        currentFoodMenus = [];
+        return;
+    }
+
+    currentFoodMenus = foodMenu.menus;
+    foodExpanded = false;
+    renderFoodList();
+}
+
+function renderFoodList() {
+    const list = document.getElementById('restStopFoodList');
+    if (!list) {
+        return;
+    }
+
+    const representatives = currentFoodMenus.filter((menu) => menu?.representative);
+    const hasRepresentatives = representatives.length > 0;
+    const menus = foodExpanded || !hasRepresentatives ? orderFoodMenus(currentFoodMenus) : representatives;
+
+    list.replaceChildren();
+    menus.forEach((menu) => list.appendChild(createFoodMenuItem(menu)));
+    renderFoodToggle(hasRepresentatives && currentFoodMenus.length > representatives.length);
+}
+
+function renderFoodToggle(canExpand) {
+    const toggle = document.getElementById('restStopFoodToggle');
+    if (!toggle) {
+        return;
+    }
+
+    toggle.classList.toggle('d-none', !canExpand);
+    toggle.setAttribute('aria-expanded', foodExpanded ? 'true' : 'false');
+    toggle.textContent = foodExpanded ? '대표 메뉴만 보기' : '전체 메뉴 보기';
+}
+
+function createFoodMenuItem(menu) {
+    const item = document.createElement('li');
+    item.className = 'rest-stop-food-item';
+
+    const name = document.createElement('p');
+    name.className = 'rest-stop-food-name';
+    name.textContent = formatText(menu?.foodName, '이름 정보 없음');
+    if (menu?.representative) {
+        const badge = document.createElement('span');
+        badge.className = 'rest-stop-food-badge';
+        badge.textContent = '대표';
+        name.appendChild(badge);
+    }
+    item.appendChild(name);
+
+    const cost = document.createElement('p');
+    cost.className = 'rest-stop-food-cost';
+    cost.textContent = formatFoodCost(menu?.foodCost);
+    item.appendChild(cost);
+
+    if (!isMissingValue(menu?.description)) {
+        const description = document.createElement('p');
+        description.className = 'rest-stop-food-description';
+        description.textContent = menu.description;
+        item.appendChild(description);
+    }
+
+    return item;
+}
+
+function toggleFoodMenu() {
+    foodExpanded = !foodExpanded;
+    renderFoodList();
 }
 
 async function refreshOilInfo() {
