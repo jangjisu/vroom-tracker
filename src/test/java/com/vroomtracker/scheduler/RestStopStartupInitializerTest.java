@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.vroomtracker.service.RestFoodSyncService;
 import com.vroomtracker.service.RestOilPriceSyncService;
 import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
@@ -35,6 +36,9 @@ class RestStopStartupInitializerTest {
     private RestOilPriceSyncService restOilPriceSyncService;
 
     @Mock
+    private RestFoodSyncService restFoodSyncService;
+
+    @Mock
     private ApplicationArguments applicationArguments;
 
     @InjectMocks
@@ -47,6 +51,7 @@ class RestStopStartupInitializerTest {
         when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(215);
         when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(429);
         when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(226);
+        when(restFoodSyncService.initializeRestFoodsIfEmpty()).thenReturn(7214);
 
         restStopStartupInitializer.run(applicationArguments);
 
@@ -54,6 +59,7 @@ class RestStopStartupInitializerTest {
         verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
         verify(restOilSyncService).initializeRestOilsIfEmpty();
         verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
+        verify(restFoodSyncService).initializeRestFoodsIfEmpty();
     }
 
     @Test
@@ -127,6 +133,7 @@ class RestStopStartupInitializerTest {
         when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(0);
         when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(0);
         when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(0);
+        when(restFoodSyncService.initializeRestFoodsIfEmpty()).thenReturn(0);
 
         restStopStartupInitializer.run(applicationArguments);
 
@@ -134,6 +141,23 @@ class RestStopStartupInitializerTest {
                 .contains("Initial rest stop sync skipped because rest_stop table already has data.")
                 .contains("Initial rest stop detail sync skipped because rest_stop_detail table already has data.")
                 .contains("Initial rest oil sync skipped because rest_oil table already has data.")
-                .contains("Initial rest oil price sync skipped because rest_oil_price table already has data.");
+                .contains("Initial rest oil price sync skipped because rest_oil_price table already has data.")
+                .contains("Initial rest food sync skipped because rest_food table already has data.");
+    }
+
+    @Test
+    @DisplayName("음식 메뉴 초기 동기화 실패가 앱 시작으로 전파되지 않는다")
+    void run_doesNotPropagateRestFoodSyncFailure(CapturedOutput output) {
+        when(restStopSyncService.initializeRestStopsIfEmpty()).thenReturn(203);
+        when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(215);
+        when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(429);
+        when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(226);
+        when(restFoodSyncService.initializeRestFoodsIfEmpty())
+                .thenThrow(new IllegalStateException("rest food API failed"));
+
+        assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
+                .doesNotThrowAnyException();
+
+        assertThat(output).contains("Initial rest food sync failed.").contains("rest food API failed");
     }
 }
