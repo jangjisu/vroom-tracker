@@ -1,6 +1,7 @@
 package com.vroomtracker.client;
 
 import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
+import com.vroomtracker.client.response.RestBestfoodResponse;
 import com.vroomtracker.client.response.RestOilPriceResponse;
 import com.vroomtracker.client.response.RestOilResponse;
 import com.vroomtracker.client.response.RestStopDetailResponse;
@@ -20,6 +21,7 @@ public interface ExApiFeignClient {
     String HIGHWAY_SERVICE_AREA_INFO_PATH = "/openapi/restinfo/hiwaySvarInfoList";
     String REST_OIL_LIST_PATH = "/openapi/restinfo/restOilList";
     String CUR_STATE_STATION_PATH = "/openapi/business/curStateStation";
+    String REST_BESTFOOD_LIST_PATH = "/openapi/restinfo/restBestfoodList";
 
     String KEY_PARAMETER = "key";
     String TYPE_PARAMETER = "type";
@@ -64,4 +66,11 @@ public interface ExApiFeignClient {
             @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
             @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo,
             @RequestParam(value = SERVICE_AREA_CODE2_PARAMETER, required = false) String serviceAreaCode2);
+
+    @GetMapping(REST_BESTFOOD_LIST_PATH)
+    RestBestfoodResponse getRestBestfoodList(
+            @RequestParam(KEY_PARAMETER) String key,
+            @RequestParam(TYPE_PARAMETER) String type,
+            @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
+            @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo);
 }

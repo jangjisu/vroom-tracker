@@ -7,6 +7,7 @@ import static com.vroomtracker.client.ExApiFeignClient.KEY_PARAMETER;
 import static com.vroomtracker.client.ExApiFeignClient.LOCATION_INFO_REST_PATH;
 import static com.vroomtracker.client.ExApiFeignClient.NUM_OF_ROWS_PARAMETER;
 import static com.vroomtracker.client.ExApiFeignClient.PAGE_NO_PARAMETER;
+import static com.vroomtracker.client.ExApiFeignClient.REST_BESTFOOD_LIST_PATH;
 import static com.vroomtracker.client.ExApiFeignClient.REST_OIL_LIST_PATH;
 import static com.vroomtracker.client.ExApiFeignClient.REST_STOP_NUM_OF_ROWS;
 import static com.vroomtracker.client.ExApiFeignClient.SERVICE_AREA_CODE2_PARAMETER;
@@ -14,6 +15,7 @@ import static com.vroomtracker.client.ExApiFeignClient.TYPE_PARAMETER;
 
 import com.vroomtracker.client.response.ExApiResponse;
 import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
+import com.vroomtracker.client.response.RestBestfoodResponse;
 import com.vroomtracker.client.response.RestOilPriceResponse;
 import com.vroomtracker.client.response.RestOilResponse;
 import com.vroomtracker.client.response.RestStopDetailResponse;
@@ -113,6 +115,21 @@ public class ExApiClient {
                 requestUrl,
                 () -> exApiFeignClient.getCurStateStation(
                         apiKey, ExApiResponseFormat.JSON.value(), REST_STOP_NUM_OF_ROWS, pageNumber, serviceAreaCode2));
+    }
+
+    public RestBestfoodResponse getRestBestfoodList(int pageNo) {
+        String pageNumber = String.valueOf(pageNo);
+        String requestUrl = requestUrl(REST_BESTFOOD_LIST_PATH)
+                .queryParam(NUM_OF_ROWS_PARAMETER, REST_STOP_NUM_OF_ROWS)
+                .queryParam(PAGE_NO_PARAMETER, pageNumber)
+                .build()
+                .encode()
+                .toUriString();
+
+        return fetch(
+                requestUrl,
+                () -> exApiFeignClient.getRestBestfoodList(
+                        apiKey, ExApiResponseFormat.JSON.value(), REST_STOP_NUM_OF_ROWS, pageNumber));
     }
 
     private UriComponentsBuilder requestUrl(String path) {
