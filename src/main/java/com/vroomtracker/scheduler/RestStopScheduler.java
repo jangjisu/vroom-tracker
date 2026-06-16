@@ -1,6 +1,7 @@
 package com.vroomtracker.scheduler;
 
 import com.vroomtracker.service.HighwayServiceAreaInfoSyncService;
+import com.vroomtracker.service.RestOilPriceSyncService;
 import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
 import com.vroomtracker.service.RestStopSyncService;
@@ -18,6 +19,7 @@ public class RestStopScheduler {
     private final RestStopDetailSyncService restStopDetailSyncService;
     private final HighwayServiceAreaInfoSyncService highwayServiceAreaInfoSyncService;
     private final RestOilSyncService restOilSyncService;
+    private final RestOilPriceSyncService restOilPriceSyncService;
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void syncRestStopsDaily() {
@@ -25,6 +27,11 @@ public class RestStopScheduler {
         refreshRestStopDetails();
         refreshHighwayServiceAreaInfos();
         refreshRestOils();
+    }
+
+    @Scheduled(cron = "0 0 */3 * * *", zone = "Asia/Seoul")
+    public void syncRestOilPricesEveryThreeHours() {
+        refreshRestOilPrices();
     }
 
     private void refreshRestStops() {
@@ -60,6 +67,15 @@ public class RestStopScheduler {
             log.info("Scheduled rest oil sync completed. savedCount={}", savedCount);
         } catch (RuntimeException e) {
             log.error("Scheduled rest oil sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void refreshRestOilPrices() {
+        try {
+            int savedCount = restOilPriceSyncService.refreshRestOilPrices();
+            log.info("Scheduled rest oil price sync completed. savedCount={}", savedCount);
+        } catch (RuntimeException e) {
+            log.error("Scheduled rest oil price sync failed. cause={}", e.getMessage(), e);
         }
     }
 }

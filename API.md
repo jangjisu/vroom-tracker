@@ -204,6 +204,135 @@ GET https://data.ex.co.kr/openapi/restinfo/restOilList
 
 ---
 
+### curStateStation — 주유소 가격 현황
+
+전국 고속도로 주유소의 현재 가격과 정유사, LPG 여부, 전화번호, 주소를 반환한다.
+
+#### 엔드포인트
+
+```text
+GET https://data.ex.co.kr/openapi/business/curStateStation
+```
+
+#### 요청 파라미터
+
+| 파라미터 | 조건 | 설명 |
+|---|---|---|
+| `key` | 필수 | 인증키 |
+| `type` | 필수 | 현재 앱에서는 `json`만 사용 |
+| `numOfRows` | 선택 | 페이지당 결과 수 |
+| `pageNo` | 선택 | 페이지 번호 |
+| `oilCompany` | 선택 | 정유사 |
+| `routeCode` | 선택 | 노선코드 |
+| `serviceAreaCode` | 선택 | 영업부대시설코드 |
+| `routeName` | 선택 | 노선명 |
+| `serviceAreaCode2` | 선택 | 휴게소/주유소코드 |
+| `serviceAreaName` | 선택 | 휴게소/주유소명 |
+| `direction` | 선택 | 방향 |
+
+현재 `ExApiClient`는 전체 목록 조회를 위해 `key`, `type`, `numOfRows=99`, `pageNo=1..3`만 전달한다.
+단건 실시간 가격 갱신에서는 `pageNo=1`과 `serviceAreaCode2`를 함께 전달한다.
+
+#### 2026-06-16 실측 결과
+
+- HTTP 상태: `200 OK`
+- Content-Type: `application/json; charset=utf-8`
+- 성공 코드: `"SUCCESS"`
+- `count`: 숫자 `226`
+- `pageSize`: 숫자 `3`
+- `pageNo`, `numOfRows`: 최상위는 숫자, list 내부의 동일 필드는 `null`
+- `diselPrice`는 API 원문 오탈자 그대로 응답되며 코드에서는 `dieselPrice`로 매핑한다.
+- 가격은 `"1,999원"` 같은 문자열이며 판매하지 않는 항목은 `"X"`로 내려온다.
+- `serviceAreaCode2`는 주유소 코드이며 `restOilList.stdRestCd`와 연결된다.
+
+```json
+{
+  "count": 226,
+  "list": [
+    {
+      "direction": "부산",
+      "pageNo": null,
+      "numOfRows": null,
+      "routeName": "경부선",
+      "serviceAreaCode": "B00001",
+      "serviceAreaName": "서울만남(부산)주유소",
+      "telNo": "02-573-7430",
+      "routeCode": "0010",
+      "oilCompany": "AD",
+      "lpgYn": "Y",
+      "gasolinePrice": "1,999원",
+      "diselPrice": "1,997원",
+      "lpgPrice": "1,157원",
+      "serviceAreaCode2": "000002",
+      "svarAddr": "서울시 서초구 원지동10-16"
+    }
+  ],
+  "pageNo": 1,
+  "numOfRows": 99,
+  "pageSize": 3,
+  "message": "인증키가 유효합니다.",
+  "code": "SUCCESS"
+}
+```
+
+#### 코드 기준 처리
+
+- 성공 여부는 `RestOilPriceResponse.isSuccess()`에서 판단한다.
+- 원본 행은 `RestOilPriceItem`에 보존하고, 저장 시 문자열 값을 임의 변환하지 않는다.
+- `RestOilPriceSyncService`는 페이지 1~3만 호출해 전체 교체 저장한다.
+- `RestOilPriceRefreshService`는 `serviceAreaCode2`로 단건 조회한 첫 번째 list 항목만 저장한다.
+- 페이지 중 하나라도 실패하면 DB 교체 트랜잭션을 실행하지 않아 기존 데이터를 보존한다.
+- 빈 응답, 실패 코드와 Feign 예외는 `ExApiClient` 공통 `fetch()`에서 처리한다.
+
+---
+
+## 내부 API
+
+### POST /api/rest-stops/{serviceAreaCode}/oil-price/refresh
+
+특정 휴게소의 주유소 가격을 한국도로공사 `curStateStation` API에서 단건 조회해
+`rest_oil_price`에 반영하고, 갱신된 `oilInfo`를 반환한다.
+동일 주유소 가격이 최근 10분 이내 갱신된 경우에는 외부 API를 호출하지 않고 DB 값을 반환한다.
+
+#### 요청
+
+| 위치 | 이름 | 설명 |
+|---|---|---|
+| Path | `serviceAreaCode` | 휴게소 위치 API의 영업부대시설코드 |
+
+#### 응답
+
+성공 시:
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": {
+    "oilCompany": "AD",
+    "gasolinePrice": "1,999원",
+    "dieselPrice": "1,997원",
+    "lpgPrice": "1,157원",
+    "telNo": "02-573-7430",
+    "lastRefreshedAt": "2026-06-16T07:30:00",
+    "oilStationConveniences": [
+      {
+        "startTime": "00:00",
+        "endTime": "24:00",
+        "name": "쉼터",
+        "description": "고객쉼터"
+      }
+    ]
+  }
+}
+```
+
+갱신 대상 휴게소, 주유소 매핑 또는 upstream 단건 결과가 없으면 `NOT_FOUND`를 반환한다.
+최근 10분 이내 저장값이 있으면 `SUCCESS`를 반환하며, 응답 형태는 upstream 호출 성공 시와 같다.
+`lastRefreshedAt`은 DB에 저장된 주유소 가격의 마지막 갱신 시각이며, 값이 없으면 `null`이다.
+
+---
+
 ## 다음 API를 추가할 때 기록할 것
 
 새 공공 API를 연결할 때는 추정값이 아니라 실제 호출 결과 기준으로 아래 항목을 남긴다.

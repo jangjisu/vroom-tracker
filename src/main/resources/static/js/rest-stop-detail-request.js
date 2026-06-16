@@ -61,11 +61,48 @@ export function createRestStopDetailRequest({ fetchImpl = fetch, onState = () =>
         }
     }
 
+    async function refreshOilPrice(serviceAreaCode) {
+        const normalizedServiceAreaCode = typeof serviceAreaCode === 'string'
+            ? serviceAreaCode.trim()
+            : '';
+
+        if (normalizedServiceAreaCode === '') {
+            return { status: 'error' };
+        }
+
+        try {
+            const response = await fetchImpl(
+                `${REST_STOPS_ENDPOINT}/${encodeURIComponent(normalizedServiceAreaCode)}/oil-price/refresh`,
+                { method: 'POST' }
+            );
+            const body = await response.json();
+
+            if (response.status === 404 && body?.code === 'NOT_FOUND') {
+                return { status: 'not-found' };
+            }
+
+            if (body?.code === 'EXTERNAL_API_UNAVAILABLE') {
+                return { status: 'external-unavailable' };
+            }
+
+            const hasValidData = body?.data !== null
+                && typeof body?.data === 'object'
+                && !Array.isArray(body.data);
+            if (response.ok && body?.code === 'SUCCESS' && hasValidData) {
+                return { status: 'success', data: body.data };
+            }
+
+            return { status: 'error' };
+        } catch {
+            return { status: 'error' };
+        }
+    }
+
     function invalidate() {
         currentRequestId += 1;
         activeRequestController?.abort();
         activeRequestController = undefined;
     }
 
-    return { invalidate, load };
+    return { invalidate, load, refreshOilPrice };
 }

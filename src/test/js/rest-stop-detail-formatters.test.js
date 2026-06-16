@@ -5,7 +5,10 @@ import {
     CONVENIENCE_FALLBACK,
     formatAvailability,
     formatFreightOperation,
+    formatOilPrice,
+    formatOperationTime,
     formatParkingCount,
+    formatRefreshedAt,
     formatText,
     isMissingValue,
     parseConvenience
@@ -64,4 +67,22 @@ test('formatParkingCount appends the unit and keeps zero as a valid count', () =
     assert.equal(formatParkingCount({}), '정보 없음');
     assert.equal(formatParkingCount(-1), '정보 없음');
     assert.equal(formatParkingCount(1.5), '정보 없음');
+});
+
+test('formatOilPrice keeps present price text and falls back for missing values', () => {
+    assert.equal(formatOilPrice('1,699원'), '1,699원');
+    assert.equal(formatOilPrice(null), '정보 없음');
+    assert.equal(formatOilPrice('   '), '정보 없음');
+});
+
+test('formatOperationTime joins start and end times when both are present', () => {
+    assert.equal(formatOperationTime('00:00', '24:00'), '운영시간 00:00 ~ 24:00');
+    assert.equal(formatOperationTime('08:00', ''), '운영시간 정보 없음');
+    assert.equal(formatOperationTime(null, '20:00'), '운영시간 정보 없음');
+});
+
+test('formatRefreshedAt formats ISO local date time for display', () => {
+    assert.equal(formatRefreshedAt('2026-06-16T07:30:00'), '최근 갱신: 2026.06.16 07:30');
+    assert.equal(formatRefreshedAt(null), '최근 갱신: 갱신 정보 없음');
+    assert.equal(formatRefreshedAt('invalid'), '최근 갱신: 갱신 정보 없음');
 });

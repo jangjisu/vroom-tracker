@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.vroomtracker.service.HighwayServiceAreaInfoSyncService;
+import com.vroomtracker.service.RestOilPriceSyncService;
 import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
 import com.vroomtracker.service.RestStopSyncService;
@@ -32,6 +33,9 @@ class RestStopSchedulerTest {
 
     @Mock
     private RestOilSyncService restOilSyncService;
+
+    @Mock
+    private RestOilPriceSyncService restOilPriceSyncService;
 
     @InjectMocks
     private RestStopScheduler restStopScheduler;
@@ -115,5 +119,26 @@ class RestStopSchedulerTest {
         assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
 
         assertThat(output).contains("Scheduled rest oil sync failed.").contains("rest oil API failed");
+    }
+
+    @Test
+    @DisplayName("3시간마다 주유소 가격 동기화를 service에 위임한다")
+    void syncRestOilPricesEveryThreeHours_delegatesToService() {
+        when(restOilPriceSyncService.refreshRestOilPrices()).thenReturn(226);
+
+        restStopScheduler.syncRestOilPricesEveryThreeHours();
+
+        verify(restOilPriceSyncService).refreshRestOilPrices();
+    }
+
+    @Test
+    @DisplayName("주유소 가격 동기화 실패를 로그로 기록하고 전파하지 않는다")
+    void syncRestOilPricesEveryThreeHours_doesNotPropagateFailure(CapturedOutput output) {
+        when(restOilPriceSyncService.refreshRestOilPrices())
+                .thenThrow(new IllegalStateException("oil price API failed"));
+
+        assertThatCode(restStopScheduler::syncRestOilPricesEveryThreeHours).doesNotThrowAnyException();
+
+        assertThat(output).contains("Scheduled rest oil price sync failed.").contains("oil price API failed");
     }
 }

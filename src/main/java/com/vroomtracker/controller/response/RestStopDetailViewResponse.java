@@ -2,6 +2,7 @@ package com.vroomtracker.controller.response;
 
 import com.vroomtracker.domain.HighwayServiceAreaInfoEntity;
 import com.vroomtracker.domain.RestOilEntity;
+import com.vroomtracker.domain.RestOilPriceEntity;
 import com.vroomtracker.domain.RestStopDetailEntity;
 import com.vroomtracker.domain.RestStopEntity;
 import java.util.List;
@@ -23,13 +24,14 @@ public record RestStopDetailViewResponse(
         Integer compactCarParkingCount,
         Integer fullSizeCarParkingCount,
         Integer disabledParkingCount,
-        List<OilStationConvenienceResponse> oilStationConveniences) {
+        OilInfoResponse oilInfo) {
 
     public static RestStopDetailViewResponse of(
             RestStopEntity restStop,
             Optional<RestStopDetailEntity> detail,
             List<HighwayServiceAreaInfoEntity> infos,
-            List<RestOilEntity> oilStationConveniences) {
+            List<RestOilEntity> oilStationConveniences,
+            Optional<RestOilPriceEntity> oilPrice) {
         String detailAddress = textOf(detail, RestStopDetailEntity::getSvarAddr);
         String fallbackAddress = minText(infos, HighwayServiceAreaInfoEntity::getServiceAreaAddress);
 
@@ -47,9 +49,7 @@ public record RestStopDetailViewResponse(
                 sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getCompactCarParkingCount),
                 sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getFullSizeCarParkingCount),
                 sumIntegerValues(infos, HighwayServiceAreaInfoEntity::getDisabledParkingCount),
-                oilStationConveniences.stream()
-                        .map(OilStationConvenienceResponse::from)
-                        .toList());
+                OilInfoResponse.from(oilPrice, oilStationConveniences));
     }
 
     private static <T> String minText(List<T> items, Function<T, String> getter) {
