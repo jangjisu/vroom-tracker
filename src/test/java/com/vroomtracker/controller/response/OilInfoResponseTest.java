@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.vroomtracker.domain.RestOilEntity;
 import com.vroomtracker.domain.RestOilPriceEntity;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -16,7 +17,8 @@ class OilInfoResponseTest {
     @Test
     @DisplayName("주유 가격과 주유소 편의시설을 응답으로 변환한다")
     void from_mapsOilPriceAndConveniences() {
-        RestOilPriceEntity oilPrice = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
+        LocalDateTime refreshedAt = LocalDateTime.of(2026, 6, 16, 7, 30);
+        RestOilPriceEntity oilPrice = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"), refreshedAt);
         RestOilEntity convenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
 
         OilInfoResponse response = OilInfoResponse.from(Optional.of(oilPrice), List.of(convenience));
@@ -26,6 +28,7 @@ class OilInfoResponseTest {
         assertThat(response.dieselPrice()).isEqualTo("1,997원");
         assertThat(response.lpgPrice()).isEqualTo("1,157원");
         assertThat(response.telNo()).isEqualTo("02-573-7430");
+        assertThat(response.lastRefreshedAt()).isEqualTo(refreshedAt);
         assertThat(response.oilStationConveniences())
                 .containsExactly(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"));
     }
@@ -42,6 +45,7 @@ class OilInfoResponseTest {
         assertThat(response.dieselPrice()).isNull();
         assertThat(response.lpgPrice()).isNull();
         assertThat(response.telNo()).isNull();
+        assertThat(response.lastRefreshedAt()).isNull();
         assertThat(response.oilStationConveniences())
                 .containsExactly(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"));
     }

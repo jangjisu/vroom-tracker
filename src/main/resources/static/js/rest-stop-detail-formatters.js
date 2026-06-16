@@ -48,3 +48,29 @@ export function formatParkingCount(value) {
     const normalizedValue = typeof value === 'string' ? value.trim() : value;
     return isNumber || isNumericString ? `${normalizedValue}대` : '정보 없음';
 }
+
+export function formatOilPrice(value) {
+    return formatText(value, '정보 없음');
+}
+
+export function formatOperationTime(startTime, endTime) {
+    if (isMissingValue(startTime) || isMissingValue(endTime)) {
+        return '운영시간 정보 없음';
+    }
+
+    return `운영시간 ${String(startTime).trim()} ~ ${String(endTime).trim()}`;
+}
+
+export function formatRefreshedAt(value) {
+    if (isMissingValue(value)) {
+        return '최근 갱신: 갱신 정보 없음';
+    }
+
+    const match = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!match) {
+        return '최근 갱신: 갱신 정보 없음';
+    }
+
+    const [, year, month, day, hour, minute] = match;
+    return `최근 갱신: ${year}.${month}.${day} ${hour}:${minute}`;
+}

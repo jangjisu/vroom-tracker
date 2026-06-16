@@ -314,6 +314,7 @@ GET https://data.ex.co.kr/openapi/business/curStateStation
     "dieselPrice": "1,997원",
     "lpgPrice": "1,157원",
     "telNo": "02-573-7430",
+    "lastRefreshedAt": "2026-06-16T07:30:00",
     "oilStationConveniences": [
       {
         "startTime": "00:00",
@@ -328,6 +329,7 @@ GET https://data.ex.co.kr/openapi/business/curStateStation
 
 갱신 대상 휴게소, 주유소 매핑 또는 upstream 단건 결과가 없으면 `NOT_FOUND`를 반환한다.
 최근 10분 이내 저장값이 있으면 `SUCCESS`를 반환하며, 응답 형태는 upstream 호출 성공 시와 같다.
+`lastRefreshedAt`은 DB에 저장된 주유소 가격의 마지막 갱신 시각이며, 값이 없으면 `null`이다.
 
 ---
 

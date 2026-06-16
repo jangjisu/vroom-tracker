@@ -3,7 +3,10 @@ import {
     CONVENIENCE_FALLBACK,
     formatAvailability,
     formatFreightOperation,
+    formatOilPrice,
+    formatOperationTime,
     formatParkingCount,
+    formatRefreshedAt,
     formatText,
     isMissingValue,
     parseConvenience
@@ -24,6 +27,8 @@ let map;
 let naverMaps;
 let selectedInfoWindow;
 let selectedRestStopName = '';
+let selectedServiceAreaCode = '';
+let currentDetail;
 let detailRequest;
 let detailPanelEventController;
 let mapInitializationId = 0;
@@ -249,6 +254,9 @@ function bindDetailPanelEvents() {
     closeButton.addEventListener('click', () => {
         closeDetailPanel({ restoreMapFocus: true });
     }, { signal: detailPanelEventController.signal });
+    document.getElementById('restStopOilRefreshButton')?.addEventListener('click', refreshOilInfo, {
+        signal: detailPanelEventController.signal
+    });
     document.addEventListener('keydown', (event) => {
         const panel = document.getElementById('restStopDetailPanel');
         if (event.key === 'Escape' && panel && !panel.classList.contains('d-none')) {
@@ -264,6 +272,8 @@ function openDetailPanel(restStop) {
     }
 
     selectedRestStopName = restStop.unitName;
+    selectedServiceAreaCode = restStop.serviceAreaCode;
+    currentDetail = undefined;
     panel.classList.remove('d-none');
     detailRequest.load(restStop.serviceAreaCode);
 
@@ -331,6 +341,7 @@ function detailStatusMessage(status) {
 }
 
 function renderDetail(detail) {
+    currentDetail = detail;
     setDetailName(detail.restStopName, selectedRestStopName);
     setDetailValue('restStopDetailRoute', detail.routeName, '노선 정보 없음');
     setDetailValue('restStopDetailDirection', detail.direction, '방향 정보 없음');
@@ -356,6 +367,7 @@ function renderDetail(detail) {
         '정보 없음',
         formatParkingCount
     );
+    renderOilInfo(detail.oilInfo);
 }
 
 function setDetailName(value, fallbackValue) {
@@ -400,6 +412,120 @@ function renderConvenience(value) {
     list.classList.toggle('d-none', conveniences.length === 0);
     fallback.classList.toggle('d-none', conveniences.length > 0);
     fallback.textContent = conveniences.length === 0 ? CONVENIENCE_FALLBACK : '';
+}
+
+async function refreshOilInfo() {
+    const button = document.getElementById('restStopOilRefreshButton');
+    const status = document.getElementById('restStopOilRefreshStatus');
+    if (!detailRequest || !button || !status) {
+        return;
+    }
+
+    button.disabled = true;
+    status.textContent = '실시간 요금을 확인하는 중입니다.';
+
+    const result = await detailRequest.refreshOilPrice(selectedServiceAreaCode);
+
+    button.disabled = false;
+    if (result.status === 'success') {
+        currentDetail = {
+            ...currentDetail,
+            oilInfo: result.data
+        };
+        renderOilInfo(result.data);
+        return;
+    }
+
+    if (result.status === 'external-unavailable') {
+        showApiUnavailableAlert();
+    }
+
+    status.textContent = oilRefreshStatusMessage(result.status);
+    status.classList.add('rest-stop-detail-missing');
+}
+
+function oilRefreshStatusMessage(status) {
+    if (status === 'not-found') {
+        return '갱신할 주유소 정보가 없습니다.';
+    }
+
+    return '요금 정보를 갱신하지 못했습니다.';
+}
+
+function renderOilInfo(oilInfo = {}) {
+    setDetailValue('restStopOilGasolinePrice', oilInfo?.gasolinePrice, '정보 없음', formatOilPrice);
+    setDetailValue('restStopOilDieselPrice', oilInfo?.dieselPrice, '정보 없음', formatOilPrice);
+    setDetailValue('restStopOilLpgPrice', oilInfo?.lpgPrice, '정보 없음', formatOilPrice);
+    setDetailValue('restStopOilCompany', oilInfo?.oilCompany, '정보 없음');
+    setDetailValue('restStopOilTelNo', oilInfo?.telNo, '정보 없음');
+    renderOilRefreshStatus(oilInfo?.lastRefreshedAt);
+    renderOilConveniences(oilInfo?.oilStationConveniences);
+}
+
+function renderOilRefreshStatus(lastRefreshedAt) {
+    const status = document.getElementById('restStopOilRefreshStatus');
+    if (!status) {
+        return;
+    }
+
+    status.textContent = formatRefreshedAt(lastRefreshedAt);
+    status.classList.toggle('rest-stop-detail-missing', isMissingValue(lastRefreshedAt));
+}
+
+function renderOilConveniences(conveniences) {
+    const tags = document.getElementById('restStopOilConvenienceTags');
+    const fallback = document.getElementById('restStopOilConvenienceFallback');
+    const details = document.getElementById('restStopOilConvenienceDetails');
+    if (!tags || !fallback || !details) {
+        return;
+    }
+
+    tags.replaceChildren();
+    details.replaceChildren();
+
+    const oilConveniences = Array.isArray(conveniences) ? conveniences : [];
+    oilConveniences.forEach((convenience) => {
+        tags.appendChild(createOilConvenienceTag(convenience));
+        details.appendChild(createOilConvenienceDetail(convenience));
+    });
+
+    const hasConveniences = oilConveniences.length > 0;
+    tags.classList.toggle('d-none', !hasConveniences);
+    details.classList.toggle('d-none', !hasConveniences);
+    fallback.classList.toggle('d-none', hasConveniences);
+    fallback.textContent = hasConveniences ? '' : '주유소 편의시설 정보 없음';
+}
+
+function createOilConvenienceTag(convenience) {
+    const item = document.createElement('li');
+    item.textContent = formatText(convenience?.name, '이름 정보 없음');
+    return item;
+}
+
+function createOilConvenienceDetail(convenience) {
+    const item = document.createElement('li');
+
+    const name = document.createElement('p');
+    name.className = 'rest-stop-oil-convenience-name';
+    name.textContent = formatText(convenience?.name, '이름 정보 없음');
+    item.appendChild(name);
+
+    const description = document.createElement('p');
+    description.className = 'rest-stop-oil-convenience-description';
+    description.textContent = formatText(convenience?.description, '상세 정보 없음');
+    description.classList.toggle('rest-stop-detail-missing', isMissingValue(convenience?.description));
+    item.appendChild(description);
+
+    const time = document.createElement('p');
+    time.className = 'rest-stop-oil-convenience-time';
+    time.textContent = formatOperationTime(convenience?.startTime, convenience?.endTime);
+    time.classList.toggle(
+        'rest-stop-detail-missing',
+        isMissingValue(convenience?.startTime) || isMissingValue(convenience?.endTime)
+    );
+    item.appendChild(time);
+
+    return item;
 }
 
 function showMapError(message, status = '불러오기 실패') {

@@ -13,6 +13,7 @@ import com.vroomtracker.controller.response.RestStopDetailViewResponse;
 import com.vroomtracker.domain.RestStopEntity;
 import com.vroomtracker.service.RestOilPriceRefreshService;
 import com.vroomtracker.service.RestStopQueryService;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,6 +86,7 @@ class RestStopControllerTest {
                         "1,997원",
                         "1,157원",
                         "02-573-7430",
+                        LocalDateTime.of(2026, 6, 16, 7, 30),
                         List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"))));
         when(restStopQueryService.findDetailByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
@@ -110,6 +112,7 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.oilInfo.dieselPrice").value("1,997원"))
                 .andExpect(jsonPath("$.data.oilInfo.lpgPrice").value("1,157원"))
                 .andExpect(jsonPath("$.data.oilInfo.telNo").value("02-573-7430"))
+                .andExpect(jsonPath("$.data.oilInfo.lastRefreshedAt").value("2026-06-16T07:30:00"))
                 .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].startTime")
                         .value("00:00"))
                 .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].endTime")
@@ -140,6 +143,7 @@ class RestStopControllerTest {
                 "1,777원",
                 "X",
                 "02-573-7430",
+                LocalDateTime.of(2026, 6, 16, 7, 40),
                 List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터")));
         when(restOilPriceRefreshService.refreshByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
@@ -152,6 +156,7 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.dieselPrice").value("1,777원"))
                 .andExpect(jsonPath("$.data.lpgPrice").value("X"))
                 .andExpect(jsonPath("$.data.telNo").value("02-573-7430"))
+                .andExpect(jsonPath("$.data.lastRefreshedAt").value("2026-06-16T07:40:00"))
                 .andExpect(jsonPath("$.data.oilStationConveniences[0].name").value("쉼터"));
     }
 

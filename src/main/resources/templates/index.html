@@ -78,6 +78,35 @@
                             <dd id="restStopDetailDisabledParking"></dd>
                         </dl>
                     </section>
+                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailOilHeading">
+                        <div class="rest-stop-detail-section-header">
+                            <h3 id="restStopDetailOilHeading" class="rest-stop-detail-section-title">주유 정보</h3>
+                            <button id="restStopOilRefreshButton" class="btn btn-sm btn-outline-primary" type="button">
+                                실시간 요금 갱신
+                            </button>
+                        </div>
+                        <p id="restStopOilRefreshStatus" class="rest-stop-detail-meta" aria-live="polite"></p>
+                        <h4 class="rest-stop-detail-subtitle">요금</h4>
+                        <dl class="rest-stop-detail-list">
+                            <dt>휘발유</dt>
+                            <dd id="restStopOilGasolinePrice"></dd>
+                            <dt>경유</dt>
+                            <dd id="restStopOilDieselPrice"></dd>
+                            <dt>LPG</dt>
+                            <dd id="restStopOilLpgPrice"></dd>
+                        </dl>
+                        <h4 class="rest-stop-detail-subtitle">기본 정보</h4>
+                        <dl class="rest-stop-detail-list">
+                            <dt>정유사</dt>
+                            <dd id="restStopOilCompany"></dd>
+                            <dt>전화번호</dt>
+                            <dd id="restStopOilTelNo"></dd>
+                        </dl>
+                        <h4 class="rest-stop-detail-subtitle">주유소 편의시설</h4>
+                        <ul id="restStopOilConvenienceTags" class="rest-stop-detail-tags"></ul>
+                        <p id="restStopOilConvenienceFallback" class="rest-stop-detail-missing d-none"></p>
+                        <ul id="restStopOilConvenienceDetails" class="rest-stop-oil-convenience-details"></ul>
+                    </section>
                 </div>
             </aside>
         </div>

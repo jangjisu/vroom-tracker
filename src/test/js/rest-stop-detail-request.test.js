@@ -259,3 +259,92 @@ test('serviceAreaCode is trimmed before building the request URL', async () => {
 
     assert.equal(requestedUrl, '/api/rest-stops/A00001');
 });
+
+test('refreshOilPrice posts to the refresh endpoint and returns oil info', async () => {
+    let requestedUrl;
+    let requestedOptions;
+    const request = createRestStopDetailRequest({
+        fetchImpl: async (url, options) => {
+            requestedUrl = url;
+            requestedOptions = options;
+            return response({
+                body: {
+                    code: 'SUCCESS',
+                    data: {
+                        gasolinePrice: '1,699원',
+                        dieselPrice: '1,529원'
+                    }
+                }
+            });
+        }
+    });
+
+    const result = await request.refreshOilPrice(' A00001 ');
+
+    assert.equal(requestedUrl, '/api/rest-stops/A00001/oil-price/refresh');
+    assert.equal(requestedOptions.method, 'POST');
+    assert.deepEqual(result, {
+        status: 'success',
+        data: {
+            gasolinePrice: '1,699원',
+            dieselPrice: '1,529원'
+        }
+    });
+});
+
+test('refreshOilPrice encodes serviceAreaCode before building the request URL', async () => {
+    let requestedUrl;
+    const request = createRestStopDetailRequest({
+        fetchImpl: async (url) => {
+            requestedUrl = url;
+            return response({ body: { code: 'SUCCESS', data: {} } });
+        }
+    });
+
+    await request.refreshOilPrice('A 0001');
+
+    assert.equal(requestedUrl, '/api/rest-stops/A%200001/oil-price/refresh');
+});
+
+test('refreshOilPrice returns not-found for 404 NOT_FOUND', async () => {
+    const request = createRestStopDetailRequest({
+        fetchImpl: async () => response({
+            ok: false,
+            status: 404,
+            body: { code: 'NOT_FOUND', data: null }
+        })
+    });
+
+    const result = await request.refreshOilPrice('UNKNOWN');
+
+    assert.deepEqual(result, { status: 'not-found' });
+});
+
+test('refreshOilPrice returns external-unavailable for EXTERNAL_API_UNAVAILABLE', async () => {
+    const request = createRestStopDetailRequest({
+        fetchImpl: async () => response({
+            ok: false,
+            status: 503,
+            body: { code: 'EXTERNAL_API_UNAVAILABLE', data: null }
+        })
+    });
+
+    const result = await request.refreshOilPrice('A00001');
+
+    assert.deepEqual(result, { status: 'external-unavailable' });
+});
+
+test('refreshOilPrice returns error for empty serviceAreaCode without fetching', async () => {
+    let fetchCount = 0;
+    const request = createRestStopDetailRequest({
+        fetchImpl: async () => {
+            fetchCount += 1;
+            return response();
+        }
+    });
+
+    const result = await request.refreshOilPrice('   ');
+
+    assert.equal(fetchCount, 0);
+    assert.deepEqual(result, { status: 'error' });
+});
