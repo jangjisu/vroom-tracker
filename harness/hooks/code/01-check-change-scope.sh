@@ -19,9 +19,7 @@ case "${SCOPE:-}" in
           /^rules\/backend\// { next }
           /^docs\// { next }
           /^harness\// { next }
-          /^(PRODUCT|DATA|ARCHITECTURE|QUALITY)\.md$/ { next }
-          /^TODO\.md$/ { next }
-          /^AGENTS\.md$/ { next }
+          /\.md$/ { next }
           NF { print }
         '
     )
