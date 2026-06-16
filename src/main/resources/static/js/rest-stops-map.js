@@ -453,6 +453,17 @@ function oilRefreshStatusMessage(status) {
 }
 
 function renderOilInfo(oilInfo = {}) {
+    const section = document.getElementById('restStopOilSection');
+    if (!section) {
+        return;
+    }
+
+    const shouldShowOilInfo = hasOilInfo(oilInfo);
+    section.classList.toggle('d-none', !shouldShowOilInfo);
+    if (!shouldShowOilInfo) {
+        return;
+    }
+
     setDetailValue('restStopOilGasolinePrice', oilInfo?.gasolinePrice, '정보 없음', formatOilPrice);
     setDetailValue('restStopOilDieselPrice', oilInfo?.dieselPrice, '정보 없음', formatOilPrice);
     setDetailValue('restStopOilLpgPrice', oilInfo?.lpgPrice, '정보 없음', formatOilPrice);
@@ -460,6 +471,24 @@ function renderOilInfo(oilInfo = {}) {
     setDetailValue('restStopOilTelNo', oilInfo?.telNo, '정보 없음');
     renderOilRefreshStatus(oilInfo?.lastRefreshedAt);
     renderOilConveniences(oilInfo?.oilStationConveniences);
+}
+
+function hasOilInfo(oilInfo) {
+    if (!oilInfo || typeof oilInfo !== 'object') {
+        return false;
+    }
+
+    return !isMissingValue(oilInfo.gasolinePrice)
+        || !isMissingValue(oilInfo.dieselPrice)
+        || !isMissingValue(oilInfo.lpgPrice)
+        || !isMissingValue(oilInfo.oilCompany)
+        || !isMissingValue(oilInfo.telNo)
+        || !isMissingValue(oilInfo.lastRefreshedAt)
+        || hasOilConveniences(oilInfo.oilStationConveniences);
+}
+
+function hasOilConveniences(conveniences) {
+    return Array.isArray(conveniences) && conveniences.length > 0;
 }
 
 function renderOilRefreshStatus(lastRefreshedAt) {
