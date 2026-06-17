@@ -49,6 +49,9 @@ let currentFoodMenus = [];
 let routeRequest;
 let routePolyline;
 let routeMarkers = [];
+let originMarker;
+let destinationMarker;
+let currentRouteRestStops = [];
 
 export async function initRestStopMap() {
     const mapElement = document.getElementById('restStopMap');
@@ -319,6 +322,7 @@ function openDetailPanel(restStop) {
     selectedRestStopName = restStop.unitName;
     selectedServiceAreaCode = restStop.serviceAreaCode;
     currentDetail = undefined;
+    document.getElementById('routeResultPanel')?.classList.add('d-none');
     panel.classList.remove('d-none');
     detailRequest.load(restStop.serviceAreaCode);
 
@@ -335,6 +339,10 @@ function closeDetailPanel({ restoreMapFocus = false } = {}) {
     if (panel) {
         panel.classList.add('d-none');
         panel.setAttribute('aria-busy', 'false');
+    }
+
+    if (currentRouteRestStops.length > 0) {
+        document.getElementById('routeResultPanel')?.classList.remove('d-none');
     }
 
     if (selectedInfoWindow) {
@@ -882,6 +890,8 @@ function renderRoute(data) {
         fitMapToPath(latLngs);
     }
 
+    renderEndpointMarkers(data?.destination);
+
     const restStops = Array.isArray(data?.restStops) ? data.restStops : [];
     restStops.forEach((restStop) => {
         const marker = new naverMaps.Marker({
@@ -896,9 +906,36 @@ function renderRoute(data) {
         routeMarkers.push(marker);
     });
 
+    currentRouteRestStops = restStops;
     renderRouteList(restStops);
     const destinationName = data?.destination?.name ?? '목적지';
     setRouteStatus(`${destinationName}까지 경로상 휴게소 ${restStops.length}곳`);
+}
+
+function renderEndpointMarkers(destination) {
+    if (currentLocation) {
+        originMarker = new naverMaps.Marker({
+            map,
+            position: new naverMaps.LatLng(currentLocation.latitude, currentLocation.longitude),
+            icon: {
+                content: '<div class="route-origin-marker"></div>',
+                anchor: new naverMaps.Point(9, 9)
+            },
+            zIndex: 1000
+        });
+    }
+
+    if (destination && Number.isFinite(destination.latitude) && Number.isFinite(destination.longitude)) {
+        destinationMarker = new naverMaps.Marker({
+            map,
+            position: new naverMaps.LatLng(destination.latitude, destination.longitude),
+            icon: {
+                content: '<div class="route-destination-marker">도착</div>',
+                anchor: new naverMaps.Point(18, 28)
+            },
+            zIndex: 1000
+        });
+    }
 }
 
 function fitMapToPath(latLngs) {
@@ -935,7 +972,20 @@ function createRouteResultItem(restStop) {
     meta.textContent = distance === '' ? routeName : `${routeName} · ${distance}`;
     item.appendChild(meta);
 
+    item.addEventListener('click', () => selectRouteRestStop(restStop));
+
     return item;
+}
+
+function selectRouteRestStop(restStop) {
+    if (Number.isFinite(restStop?.latitude) && Number.isFinite(restStop?.longitude)) {
+        map.panTo(new naverMaps.LatLng(restStop.latitude, restStop.longitude));
+    }
+
+    openDetailPanel({
+        serviceAreaCode: restStop?.serviceAreaCode,
+        unitName: restStop?.unitName
+    });
 }
 
 function clearRouteOverlays() {
@@ -944,8 +994,19 @@ function clearRouteOverlays() {
         routePolyline = undefined;
     }
 
+    if (originMarker) {
+        originMarker.setMap(null);
+        originMarker = undefined;
+    }
+
+    if (destinationMarker) {
+        destinationMarker.setMap(null);
+        destinationMarker = undefined;
+    }
+
     routeMarkers.forEach((marker) => marker.setMap(null));
     routeMarkers = [];
+    currentRouteRestStops = [];
 }
 
 function setRouteStatus(message) {
