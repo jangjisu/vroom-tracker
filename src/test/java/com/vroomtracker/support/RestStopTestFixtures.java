@@ -2,6 +2,10 @@ package com.vroomtracker.support;
 
 import com.vroomtracker.client.response.HighwayServiceAreaInfoItem;
 import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
+import com.vroomtracker.client.response.RestOilItem;
+import com.vroomtracker.client.response.RestOilPriceItem;
+import com.vroomtracker.client.response.RestOilPriceResponse;
+import com.vroomtracker.client.response.RestOilResponse;
 import com.vroomtracker.client.response.RestStopDetailItem;
 import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopItem;
@@ -95,6 +99,66 @@ public final class RestStopTestFixtures {
         ReflectionTestUtils.setField(response, "code", code);
         ReflectionTestUtils.setField(response, "message", "인증키가 유효합니다.");
         ReflectionTestUtils.setField(response, "count", String.valueOf(items.size()));
+        ReflectionTestUtils.setField(response, "list", items);
+        return response;
+    }
+
+    public static RestOilItem restOilItem(String standardRestCode, String standardRestName) {
+        RestOilItem item = instantiate(RestOilItem.class);
+        ReflectionTestUtils.setField(item, "standardRestCode", standardRestCode);
+        ReflectionTestUtils.setField(item, "standardRestName", standardRestName);
+        ReflectionTestUtils.setField(item, "startTime", "00:00");
+        ReflectionTestUtils.setField(item, "endTime", "24:00");
+        ReflectionTestUtils.setField(item, "originalModifierId", "SYSTEM");
+        ReflectionTestUtils.setField(item, "originalModifiedDateTime", "26/06/15");
+        ReflectionTestUtils.setField(item, "lastModifiedUser", "SYSTEM");
+        ReflectionTestUtils.setField(item, "lastModifiedDateTime", "2026-06-15");
+        ReflectionTestUtils.setField(item, "serviceAreaAddress", "서울시 서초구");
+        ReflectionTestUtils.setField(item, "routeCode", "0010");
+        ReflectionTestUtils.setField(item, "routeName", "경부선");
+        ReflectionTestUtils.setField(item, "convenienceCode", "07");
+        ReflectionTestUtils.setField(item, "convenienceName", "쉼터");
+        ReflectionTestUtils.setField(item, "convenienceDescription", "고객쉼터");
+        return item;
+    }
+
+    public static RestOilResponse restOilResponse(String code, List<RestOilItem> items) {
+        RestOilResponse response = instantiate(RestOilResponse.class);
+        ReflectionTestUtils.setField(response, "code", code);
+        ReflectionTestUtils.setField(response, "message", "인증키가 유효합니다.");
+        ReflectionTestUtils.setField(response, "count", items.size());
+        ReflectionTestUtils.setField(response, "list", items);
+        return response;
+    }
+
+    public static RestOilPriceItem restOilPriceItem(String serviceAreaCode2, String serviceAreaName) {
+        RestOilPriceItem item = instantiate(RestOilPriceItem.class);
+        ReflectionTestUtils.setField(item, "routeCode", "0010");
+        ReflectionTestUtils.setField(item, "serviceAreaCode", "B00001");
+        ReflectionTestUtils.setField(item, "routeName", "경부선");
+        ReflectionTestUtils.setField(item, "direction", "부산");
+        ReflectionTestUtils.setField(item, "oilCompany", "AD");
+        ReflectionTestUtils.setField(item, "lpgYn", "Y");
+        ReflectionTestUtils.setField(item, "serviceAreaName", serviceAreaName);
+        ReflectionTestUtils.setField(item, "telNo", "02-573-7430");
+        ReflectionTestUtils.setField(item, "gasolinePrice", "1,999원");
+        ReflectionTestUtils.setField(item, "dieselPrice", "1,997원");
+        ReflectionTestUtils.setField(item, "lpgPrice", "1,157원");
+        ReflectionTestUtils.setField(item, "numOfRows", null);
+        ReflectionTestUtils.setField(item, "pageNo", null);
+        ReflectionTestUtils.setField(item, "serviceAreaCode2", serviceAreaCode2);
+        ReflectionTestUtils.setField(item, "serviceAreaAddress", "서울시 서초구 원지동10-16");
+        return item;
+    }
+
+    public static RestOilPriceResponse restOilPriceResponse(String code, List<RestOilPriceItem> items) {
+        RestOilPriceResponse response = instantiate(RestOilPriceResponse.class);
+        ReflectionTestUtils.setField(response, "code", code);
+        ReflectionTestUtils.setField(response, "message", "인증키가 유효합니다.");
+        ReflectionTestUtils.setField(response, "count", items.size());
+        ReflectionTestUtils.setField(response, "pageNo", 1);
+        ReflectionTestUtils.setField(response, "numOfRows", 99);
+        ReflectionTestUtils.setField(response, "pageSize", 3);
         ReflectionTestUtils.setField(response, "list", items);
         return response;
     }

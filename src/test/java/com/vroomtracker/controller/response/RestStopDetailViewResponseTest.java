@@ -1,6 +1,8 @@
 package com.vroomtracker.controller.response;
 
 import static com.vroomtracker.support.RestStopTestFixtures.highwayServiceAreaInfoItem;
+import static com.vroomtracker.support.RestStopTestFixtures.restOilItem;
+import static com.vroomtracker.support.RestStopTestFixtures.restOilPriceItem;
 import static com.vroomtracker.support.RestStopTestFixtures.restStopDetailItem;
 import static com.vroomtracker.support.RestStopTestFixtures.restStopItem;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -8,6 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.vroomtracker.client.response.HighwayServiceAreaInfoItem;
 import com.vroomtracker.client.response.RestStopDetailItem;
 import com.vroomtracker.domain.HighwayServiceAreaInfoEntity;
+import com.vroomtracker.domain.RestOilEntity;
+import com.vroomtracker.domain.RestOilPriceEntity;
 import com.vroomtracker.domain.RestStopDetailEntity;
 import com.vroomtracker.domain.RestStopEntity;
 import java.util.List;
@@ -26,8 +30,8 @@ class RestStopDetailViewResponseTest {
         HighwayServiceAreaInfoEntity firstInfo = highwayServiceAreaInfo("10", "20", "1");
         HighwayServiceAreaInfoEntity secondInfo = highwayServiceAreaInfo("5", "7", "");
 
-        RestStopDetailViewResponse response =
-                RestStopDetailViewResponse.of(restStop, Optional.of(detail), List.of(firstInfo, secondInfo));
+        RestStopDetailViewResponse response = RestStopDetailViewResponse.of(
+                restStop, Optional.of(detail), List.of(firstInfo, secondInfo), List.of(), Optional.empty(), List.of());
 
         assertThat(response.serviceAreaCode()).isEqualTo("A00001");
         assertThat(response.restStopName()).isEqualTo("서울만남(부산)휴게소");
@@ -50,7 +54,8 @@ class RestStopDetailViewResponseTest {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
         HighwayServiceAreaInfoEntity info = highwayServiceAreaInfo("10", "20", "1");
 
-        RestStopDetailViewResponse response = RestStopDetailViewResponse.of(restStop, Optional.empty(), List.of(info));
+        RestStopDetailViewResponse response = RestStopDetailViewResponse.of(
+                restStop, Optional.empty(), List.of(info), List.of(), Optional.empty(), List.of());
 
         assertThat(response.address()).isEqualTo("대전광역시 유성구 방현동 86");
     }
@@ -60,7 +65,8 @@ class RestStopDetailViewResponseTest {
     void of_returnsNullFieldsWhenOptionalDataMissing() {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
 
-        RestStopDetailViewResponse response = RestStopDetailViewResponse.of(restStop, Optional.empty(), List.of());
+        RestStopDetailViewResponse response = RestStopDetailViewResponse.of(
+                restStop, Optional.empty(), List.of(), List.of(), Optional.empty(), List.of());
 
         assertThat(response.address()).isNull();
         assertThat(response.convenience()).isNull();
@@ -70,6 +76,35 @@ class RestStopDetailViewResponseTest {
         assertThat(response.compactCarParkingCount()).isNull();
         assertThat(response.fullSizeCarParkingCount()).isNull();
         assertThat(response.disabledParkingCount()).isNull();
+        assertThat(response.oilInfo().oilStationConveniences()).isEmpty();
+        assertThat(response.oilInfo().oilCompany()).isNull();
+    }
+
+    @Test
+    @DisplayName("주유 정보 안에 가격과 편의시설 여러 행을 변환한다")
+    void of_mapsOilInfo() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        var firstItem = restOilItem("000002", "서울만남(부산)주유소");
+        var secondItem = restOilItem("000002", "서울만남(부산)주유소");
+        ReflectionTestUtils.setField(secondItem, "startTime", "08:00");
+        ReflectionTestUtils.setField(secondItem, "endTime", "20:00");
+        ReflectionTestUtils.setField(secondItem, "convenienceName", "세차장");
+        ReflectionTestUtils.setField(secondItem, "convenienceDescription", null);
+        List<RestOilEntity> conveniences = List.of(RestOilEntity.from(firstItem), RestOilEntity.from(secondItem));
+        RestOilPriceEntity oilPrice = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
+
+        RestStopDetailViewResponse response = RestStopDetailViewResponse.of(
+                restStop, Optional.empty(), List.of(), conveniences, Optional.of(oilPrice), List.of());
+
+        assertThat(response.oilInfo().oilCompany()).isEqualTo("AD");
+        assertThat(response.oilInfo().gasolinePrice()).isEqualTo("1,999원");
+        assertThat(response.oilInfo().dieselPrice()).isEqualTo("1,997원");
+        assertThat(response.oilInfo().lpgPrice()).isEqualTo("1,157원");
+        assertThat(response.oilInfo().telNo()).isEqualTo("02-573-7430");
+        assertThat(response.oilInfo().oilStationConveniences())
+                .containsExactly(
+                        new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"),
+                        new OilStationConvenienceResponse("08:00", "20:00", "세차장", null));
     }
 
     private RestStopDetailEntity restStopDetail(

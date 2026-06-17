@@ -2,10 +2,16 @@ import { setText, showApiUnavailableAlert } from './utils.js';
 import {
     CONVENIENCE_FALLBACK,
     formatAvailability,
+    formatFoodCost,
     formatFreightOperation,
+    formatOilPrice,
+    formatOperationTime,
     formatParkingCount,
+    formatRefreshedAt,
     formatText,
+    hasFoodMenu,
     isMissingValue,
+    orderFoodMenus,
     parseConvenience
 } from './rest-stop-detail-formatters.js';
 import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
@@ -30,11 +36,15 @@ let map;
 let naverMaps;
 let selectedInfoWindow;
 let selectedRestStopName = '';
+let selectedServiceAreaCode = '';
+let currentDetail;
 let detailRequest;
 let detailPanelEventController;
 let mapInitializationId = 0;
 let currentLocation;
 let currentLocationMarker;
+let foodExpanded = false;
+let currentFoodMenus = [];
 
 export async function initRestStopMap() {
     const mapElement = document.getElementById('restStopMap');
@@ -241,10 +251,15 @@ function renderRestStops(restStops) {
     setText('restStopMapStatus', `${markerCount.toLocaleString()}개 표시`);
 }
 
-function createPopupContent(restStop) {
+export function createPopupContent(restStop) {
+    const routeName = formatText(restStop.routeName, '노선 정보 없음');
+
     return `
-        <div class="rest-stop-map-popup">
-            ${escapeHtml(restStop.unitName)}
+        <div class="rest-stop-map-popup-card">
+            <div class="rest-stop-map-popup-kicker">선택한 휴게소</div>
+            <strong class="rest-stop-map-popup-name">${escapeHtml(restStop.unitName)}</strong>
+            <div class="rest-stop-map-popup-route">${escapeHtml(routeName)}</div>
+            <div class="rest-stop-map-popup-hint">상세 정보는 오른쪽 패널에서 확인</div>
         </div>
     `;
 }
@@ -258,9 +273,32 @@ function bindDetailPanelEvents() {
     closeButton.addEventListener('click', () => {
         closeDetailPanel({ restoreMapFocus: true });
     }, { signal: detailPanelEventController.signal });
+    document.getElementById('restStopOilRefreshButton')?.addEventListener('click', refreshOilInfo, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('restStopFoodToggle')?.addEventListener('click', toggleFoodMenu, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('restStopFoodOpen')?.addEventListener('click', openFoodModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('restStopFoodModalClose')?.addEventListener('click', closeFoodModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('restStopFoodModal')?.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            closeFoodModal();
+        }
+    }, { signal: detailPanelEventController.signal });
     document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+        if (document.getElementById('restStopFoodModal')?.open) {
+            return;
+        }
         const panel = document.getElementById('restStopDetailPanel');
-        if (event.key === 'Escape' && panel && !panel.classList.contains('d-none')) {
+        if (panel && !panel.classList.contains('d-none')) {
             closeDetailPanel({ restoreMapFocus: true });
         }
     }, { signal: detailPanelEventController.signal });
@@ -273,6 +311,8 @@ function openDetailPanel(restStop) {
     }
 
     selectedRestStopName = restStop.unitName;
+    selectedServiceAreaCode = restStop.serviceAreaCode;
+    currentDetail = undefined;
     panel.classList.remove('d-none');
     detailRequest.load(restStop.serviceAreaCode);
 
@@ -283,6 +323,7 @@ function openDetailPanel(restStop) {
 
 function closeDetailPanel({ restoreMapFocus = false } = {}) {
     detailRequest?.invalidate();
+    closeFoodModal();
 
     const panel = document.getElementById('restStopDetailPanel');
     if (panel) {
@@ -340,6 +381,7 @@ function detailStatusMessage(status) {
 }
 
 function renderDetail(detail) {
+    currentDetail = detail;
     setDetailName(detail.restStopName, selectedRestStopName);
     setDetailValue('restStopDetailRoute', detail.routeName, '노선 정보 없음');
     setDetailValue('restStopDetailDirection', detail.direction, '방향 정보 없음');
@@ -365,6 +407,8 @@ function renderDetail(detail) {
         '정보 없음',
         formatParkingCount
     );
+    renderOilInfo(detail.oilInfo);
+    renderFoodMenu(detail.foodMenu);
 }
 
 function setDetailName(value, fallbackValue) {
@@ -486,6 +530,246 @@ function hideLocateError() {
     document.getElementById('restStopMapError')?.classList.add('d-none');
 }
 
+function renderFoodMenu(foodMenu) {
+    const openButton = document.getElementById('restStopFoodOpen');
+    if (!openButton) {
+        return;
+    }
+
+    const visible = hasFoodMenu(foodMenu);
+    openButton.classList.toggle('d-none', !visible);
+    if (!visible) {
+        currentFoodMenus = [];
+        closeFoodModal();
+        return;
+    }
+
+    currentFoodMenus = foodMenu.menus;
+    foodExpanded = false;
+}
+
+function openFoodModal() {
+    const modal = document.getElementById('restStopFoodModal');
+    if (!modal || currentFoodMenus.length === 0) {
+        return;
+    }
+
+    foodExpanded = false;
+    renderFoodList();
+    modal.showModal();
+}
+
+function closeFoodModal() {
+    const modal = document.getElementById('restStopFoodModal');
+    if (modal?.open) {
+        modal.close();
+    }
+}
+
+function renderFoodList() {
+    const list = document.getElementById('restStopFoodList');
+    if (!list) {
+        return;
+    }
+
+    const representatives = currentFoodMenus.filter((menu) => menu?.representative);
+    const hasRepresentatives = representatives.length > 0;
+    const menus = foodExpanded || !hasRepresentatives ? orderFoodMenus(currentFoodMenus) : representatives;
+
+    list.replaceChildren();
+    menus.forEach((menu) => list.appendChild(createFoodMenuItem(menu)));
+    renderFoodToggle(hasRepresentatives && currentFoodMenus.length > representatives.length);
+}
+
+function renderFoodToggle(canExpand) {
+    const toggle = document.getElementById('restStopFoodToggle');
+    if (!toggle) {
+        return;
+    }
+
+    toggle.classList.toggle('d-none', !canExpand);
+    toggle.setAttribute('aria-expanded', foodExpanded ? 'true' : 'false');
+    toggle.textContent = foodExpanded ? '대표 메뉴만 보기' : '전체 메뉴 보기';
+}
+
+function createFoodMenuItem(menu) {
+    const item = document.createElement('li');
+    item.className = 'rest-stop-food-item';
+
+    const name = document.createElement('p');
+    name.className = 'rest-stop-food-name';
+    name.textContent = formatText(menu?.foodName, '이름 정보 없음');
+    if (menu?.representative) {
+        const badge = document.createElement('span');
+        badge.className = 'rest-stop-food-badge';
+        badge.textContent = '대표';
+        name.appendChild(badge);
+    }
+    item.appendChild(name);
+
+    const cost = document.createElement('p');
+    cost.className = 'rest-stop-food-cost';
+    cost.textContent = formatFoodCost(menu?.foodCost);
+    item.appendChild(cost);
+
+    if (!isMissingValue(menu?.description)) {
+        const description = document.createElement('p');
+        description.className = 'rest-stop-food-description';
+        description.textContent = menu.description;
+        item.appendChild(description);
+    }
+
+    return item;
+}
+
+function toggleFoodMenu() {
+    foodExpanded = !foodExpanded;
+    renderFoodList();
+}
+
+async function refreshOilInfo() {
+    const button = document.getElementById('restStopOilRefreshButton');
+    const status = document.getElementById('restStopOilRefreshStatus');
+    if (!detailRequest || !button || !status) {
+        return;
+    }
+
+    button.disabled = true;
+    status.textContent = '실시간 요금을 확인하는 중입니다.';
+
+    const result = await detailRequest.refreshOilPrice(selectedServiceAreaCode);
+
+    button.disabled = false;
+    if (result.status === 'success') {
+        currentDetail = {
+            ...currentDetail,
+            oilInfo: result.data
+        };
+        renderOilInfo(result.data);
+        return;
+    }
+
+    if (result.status === 'external-unavailable') {
+        showApiUnavailableAlert();
+    }
+
+    status.textContent = oilRefreshStatusMessage(result.status);
+    status.classList.add('rest-stop-detail-missing');
+}
+
+function oilRefreshStatusMessage(status) {
+    if (status === 'not-found') {
+        return '갱신할 주유소 정보가 없습니다.';
+    }
+
+    return '요금 정보를 갱신하지 못했습니다.';
+}
+
+function renderOilInfo(oilInfo = {}) {
+    const section = document.getElementById('restStopOilSection');
+    if (!section) {
+        return;
+    }
+
+    const shouldShowOilInfo = hasOilInfo(oilInfo);
+    section.classList.toggle('d-none', !shouldShowOilInfo);
+    if (!shouldShowOilInfo) {
+        return;
+    }
+
+    setDetailValue('restStopOilGasolinePrice', oilInfo?.gasolinePrice, '정보 없음', formatOilPrice);
+    setDetailValue('restStopOilDieselPrice', oilInfo?.dieselPrice, '정보 없음', formatOilPrice);
+    setDetailValue('restStopOilLpgPrice', oilInfo?.lpgPrice, '정보 없음', formatOilPrice);
+    setDetailValue('restStopOilCompany', oilInfo?.oilCompany, '정보 없음');
+    setDetailValue('restStopOilTelNo', oilInfo?.telNo, '정보 없음');
+    renderOilRefreshStatus(oilInfo?.lastRefreshedAt);
+    renderOilConveniences(oilInfo?.oilStationConveniences);
+}
+
+function hasOilInfo(oilInfo) {
+    if (!oilInfo || typeof oilInfo !== 'object') {
+        return false;
+    }
+
+    return !isMissingValue(oilInfo.gasolinePrice)
+        || !isMissingValue(oilInfo.dieselPrice)
+        || !isMissingValue(oilInfo.lpgPrice)
+        || !isMissingValue(oilInfo.oilCompany)
+        || !isMissingValue(oilInfo.telNo)
+        || !isMissingValue(oilInfo.lastRefreshedAt)
+        || hasOilConveniences(oilInfo.oilStationConveniences);
+}
+
+function hasOilConveniences(conveniences) {
+    return Array.isArray(conveniences) && conveniences.length > 0;
+}
+
+function renderOilRefreshStatus(lastRefreshedAt) {
+    const status = document.getElementById('restStopOilRefreshStatus');
+    if (!status) {
+        return;
+    }
+
+    status.textContent = formatRefreshedAt(lastRefreshedAt);
+    status.classList.toggle('rest-stop-detail-missing', isMissingValue(lastRefreshedAt));
+}
+
+function renderOilConveniences(conveniences) {
+    const tags = document.getElementById('restStopOilConvenienceTags');
+    const fallback = document.getElementById('restStopOilConvenienceFallback');
+    const details = document.getElementById('restStopOilConvenienceDetails');
+    if (!tags || !fallback || !details) {
+        return;
+    }
+
+    tags.replaceChildren();
+    details.replaceChildren();
+
+    const oilConveniences = Array.isArray(conveniences) ? conveniences : [];
+    oilConveniences.forEach((convenience) => {
+        tags.appendChild(createOilConvenienceTag(convenience));
+        details.appendChild(createOilConvenienceDetail(convenience));
+    });
+
+    const hasConveniences = oilConveniences.length > 0;
+    tags.classList.toggle('d-none', !hasConveniences);
+    details.classList.toggle('d-none', !hasConveniences);
+    fallback.classList.toggle('d-none', hasConveniences);
+    fallback.textContent = hasConveniences ? '' : '주유소 편의시설 정보 없음';
+}
+
+function createOilConvenienceTag(convenience) {
+    const item = document.createElement('li');
+    item.textContent = formatText(convenience?.name, '이름 정보 없음');
+    return item;
+}
+
+function createOilConvenienceDetail(convenience) {
+    const item = document.createElement('li');
+
+    const name = document.createElement('p');
+    name.className = 'rest-stop-oil-convenience-name';
+    name.textContent = formatText(convenience?.name, '이름 정보 없음');
+    item.appendChild(name);
+
+    const description = document.createElement('p');
+    description.className = 'rest-stop-oil-convenience-description';
+    description.textContent = formatText(convenience?.description, '상세 정보 없음');
+    description.classList.toggle('rest-stop-detail-missing', isMissingValue(convenience?.description));
+    item.appendChild(description);
+
+    const time = document.createElement('p');
+    time.className = 'rest-stop-oil-convenience-time';
+    time.textContent = formatOperationTime(convenience?.startTime, convenience?.endTime);
+    time.classList.toggle(
+        'rest-stop-detail-missing',
+        isMissingValue(convenience?.startTime) || isMissingValue(convenience?.endTime)
+    );
+    item.appendChild(time);
+
+    return item;
+}
+
 function showMapError(message, status = '불러오기 실패') {
     const errorElement = document.getElementById('restStopMapError');
     if (!errorElement) {
@@ -498,7 +782,10 @@ function showMapError(message, status = '불러오기 실패') {
 }
 
 function escapeHtml(value) {
-    const element = document.createElement('span');
-    element.textContent = value ?? '';
-    return element.innerHTML;
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }

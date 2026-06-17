@@ -135,6 +135,292 @@ GET https://data.ex.co.kr/openapi/locationinfo/locationinfoRest
 
 ---
 
+### restOilList — 휴게소 편의시설 현황(주유소)
+
+전국 고속도로 주유소의 편의시설과 운영시간을 반환한다.
+
+#### 엔드포인트
+
+```text
+GET https://data.ex.co.kr/openapi/restinfo/restOilList
+```
+
+#### 요청 파라미터
+
+| 파라미터 | 조건 | 설명 |
+|---|---|---|
+| `key` | 필수 | 인증키 |
+| `type` | 필수 | 현재 앱에서는 `json`만 사용 |
+| `routeCd` | 선택 | 노선코드 |
+| `routeNm` | 선택 | 노선명 |
+| `stdRestCd` | 선택 | 휴게소/주유소코드 |
+| `stdRestNm` | 선택 | 휴게소/주유소명 |
+
+현재 `ExApiClient`는 전체 목록 조회를 위해 `key`, `type`만 전달한다.
+페이지네이션 파라미터는 없으며 전체 목록이 한 응답으로 반환된다.
+
+#### 2026-06-15 실측 결과
+
+- HTTP 상태: `200 OK`
+- Content-Type: `application/json; charset=utf-8`
+- 성공 코드: `"SUCCESS"`
+- `count`: 숫자 `429`
+- 동일한 `stdRestCd`에 서로 다른 `psCode` 행이 여러 개 존재한다.
+- `routeNm`과 `psDesc`는 `null`일 수 있다.
+- 제공 문서에는 `count`가 string으로 표기되어 있지만 실제 JSON은 숫자다.
+
+```json
+{
+  "list": [
+    {
+      "stdRestCd": "000002",
+      "stdRestNm": "서울만남(부산)주유소",
+      "stime": "00:00",
+      "etime": "24:00",
+      "redId": "MANJ03",
+      "redDtime": "16/03/10",
+      "lsttmAltrUser": "SYSTEM",
+      "lsttmAltrDttm": "2026-06-15",
+      "svarAddr": "서울시 서초구 원지동10-16",
+      "routeCd": "0010",
+      "routeNm": "경부선",
+      "psCode": "07",
+      "psName": "쉼터",
+      "psDesc": "고객쉼터-안마기,컴퓨터,팩스,혈압계,신장및체중계,핸드폰충전기,핸드폰소독기"
+    }
+  ],
+  "count": 429,
+  "message": "인증키가 유효합니다.",
+  "code": "SUCCESS"
+}
+```
+
+#### 코드 기준 처리
+
+- 성공 여부는 `RestOilResponse.isSuccess()`에서 판단한다.
+- `count`는 실측 JSON 타입에 맞춰 `int`로 역직렬화한다.
+- 원본 행은 `RestOilItem`에 그대로 보존하며 중복처럼 보이는 휴게소 코드를 합치지 않는다.
+- 빈 응답, 실패 코드와 Feign 예외는 `ExApiClient` 공통 `fetch()`에서 처리한다.
+
+---
+
+### curStateStation — 주유소 가격 현황
+
+전국 고속도로 주유소의 현재 가격과 정유사, LPG 여부, 전화번호, 주소를 반환한다.
+
+#### 엔드포인트
+
+```text
+GET https://data.ex.co.kr/openapi/business/curStateStation
+```
+
+#### 요청 파라미터
+
+| 파라미터 | 조건 | 설명 |
+|---|---|---|
+| `key` | 필수 | 인증키 |
+| `type` | 필수 | 현재 앱에서는 `json`만 사용 |
+| `numOfRows` | 선택 | 페이지당 결과 수 |
+| `pageNo` | 선택 | 페이지 번호 |
+| `oilCompany` | 선택 | 정유사 |
+| `routeCode` | 선택 | 노선코드 |
+| `serviceAreaCode` | 선택 | 영업부대시설코드 |
+| `routeName` | 선택 | 노선명 |
+| `serviceAreaCode2` | 선택 | 휴게소/주유소코드 |
+| `serviceAreaName` | 선택 | 휴게소/주유소명 |
+| `direction` | 선택 | 방향 |
+
+현재 `ExApiClient`는 전체 목록 조회를 위해 `key`, `type`, `numOfRows=99`, `pageNo=1..3`만 전달한다.
+단건 실시간 가격 갱신에서는 `pageNo=1`과 `serviceAreaCode2`를 함께 전달한다.
+
+#### 2026-06-16 실측 결과
+
+- HTTP 상태: `200 OK`
+- Content-Type: `application/json; charset=utf-8`
+- 성공 코드: `"SUCCESS"`
+- `count`: 숫자 `226`
+- `pageSize`: 숫자 `3`
+- `pageNo`, `numOfRows`: 최상위는 숫자, list 내부의 동일 필드는 `null`
+- `diselPrice`는 API 원문 오탈자 그대로 응답되며 코드에서는 `dieselPrice`로 매핑한다.
+- 가격은 `"1,999원"` 같은 문자열이며 판매하지 않는 항목은 `"X"`로 내려온다.
+- `serviceAreaCode2`는 주유소 코드이며 `restOilList.stdRestCd`와 연결된다.
+
+```json
+{
+  "count": 226,
+  "list": [
+    {
+      "direction": "부산",
+      "pageNo": null,
+      "numOfRows": null,
+      "routeName": "경부선",
+      "serviceAreaCode": "B00001",
+      "serviceAreaName": "서울만남(부산)주유소",
+      "telNo": "02-573-7430",
+      "routeCode": "0010",
+      "oilCompany": "AD",
+      "lpgYn": "Y",
+      "gasolinePrice": "1,999원",
+      "diselPrice": "1,997원",
+      "lpgPrice": "1,157원",
+      "serviceAreaCode2": "000002",
+      "svarAddr": "서울시 서초구 원지동10-16"
+    }
+  ],
+  "pageNo": 1,
+  "numOfRows": 99,
+  "pageSize": 3,
+  "message": "인증키가 유효합니다.",
+  "code": "SUCCESS"
+}
+```
+
+#### 코드 기준 처리
+
+- 성공 여부는 `RestOilPriceResponse.isSuccess()`에서 판단한다.
+- 원본 행은 `RestOilPriceItem`에 보존하고, 저장 시 문자열 값을 임의 변환하지 않는다.
+- `RestOilPriceSyncService`는 페이지 1~3만 호출해 전체 교체 저장한다.
+- `RestOilPriceRefreshService`는 `serviceAreaCode2`로 단건 조회한 첫 번째 list 항목만 저장한다.
+- 페이지 중 하나라도 실패하면 DB 교체 트랜잭션을 실행하지 않아 기존 데이터를 보존한다.
+- 빈 응답, 실패 코드와 Feign 예외는 `ExApiClient` 공통 `fetch()`에서 처리한다.
+
+---
+
+### restBestfoodList — 휴게소 음식 메뉴
+
+전국 고속도로 휴게소의 음식 메뉴명, 가격, 설명, 추천/베스트/프리미엄/계절 구분을 반환한다.
+
+#### 엔드포인트
+
+```text
+GET https://data.ex.co.kr/openapi/restinfo/restBestfoodList
+```
+
+#### 요청 파라미터
+
+| 파라미터 | 조건 | 설명 |
+|---|---|---|
+| `key` | 필수 | 인증키 |
+| `type` | 필수 | 현재 앱에서는 `json`만 사용 |
+| `numOfRows` | 선택 | 페이지당 결과 수 |
+| `pageNo` | 선택 | 출력 페이지 번호 |
+| `routeCd` | 선택 | 노선코드 |
+| `routeNm` | 선택 | 노선명 |
+| `stdRestCd` | 선택 | 휴게소/주유소코드 |
+| `stdRestNm` | 선택 | 휴게소/주유소명 |
+| `recommendyn` | 선택 | 추천메뉴 구분 |
+| `bestfoodyn` | 선택 | 베스트푸드 구분 |
+| `premiumyn` | 선택 | 프리미엄메뉴 구분 |
+
+`conveniServiceArea`/`curStateStation`과 동일하게 페이지네이션(`numOfRows`, `pageNo`)을 사용한다.
+
+#### 2026-06-16 실측 결과
+
+- HTTP 상태: `200 OK`
+- Content-Type: `application/json; charset=utf-8`
+- 성공 코드: `"SUCCESS"`
+- `count`: 숫자 `7214`
+- `pageSize`: 숫자 `73` (numOfRows=99 기준) — 전체 동기화 시 다중 페이지 순회 필요
+- `pageNo`, `numOfRows`: 최상위는 숫자, list 내부의 동일 필드는 `null`
+- 연결 키 `stdRestCd`는 휴게소 코드이며 `locationinfoRest.stdRestCd`와 직접 일치한다. (서울만남(부산)휴게소 = `000001`로 양쪽 동일) — 주유소(`restOilList`)와 달리 정규화 이름 매칭이 필요 없다.
+- `restCd`(`S000001`)는 음식 API 전용 휴게소 코드로 `stdRestCd`와 다르다. 연결에는 `stdRestCd`를 사용한다.
+- 대표메뉴 구분 플래그는 `recommendyn`(추천), `bestfoodyn`(베스트푸드), `premiumyn`(프리미엄) 세 가지로 분리되어 있다.
+- `foodCost`는 `"7000"` 같은 순수 숫자 문자열이며 통화기호·콤마가 없다. (유가의 `"1,999원"`과 다름)
+- `seasonMenu`는 `4`(사계절)/`S`(여름)/`W`(겨울) 구분이다.
+
+```json
+{
+  "count": 7214,
+  "list": [
+    {
+      "pageNo": null,
+      "numOfRows": null,
+      "stdRestCd": "000001",
+      "stdRestNm": "서울만남(부산)휴게소",
+      "restCd": "S000001",
+      "routeCd": "0010",
+      "routeNm": "경부선",
+      "svarAddr": "서울 서초구 원지동10-16",
+      "seq": "272",
+      "foodNm": "농심어묵우동",
+      "foodCost": "7000",
+      "etc": "부산어묵꼬치를 첨가하여 ... 우동.",
+      "foodMaterial": "냉동면 1ea\r\n육수 435ml\r\n...",
+      "recommendyn": "N",
+      "bestfoodyn": "N",
+      "premiumyn": "N",
+      "seasonMenu": "4",
+      "app": "Y",
+      "lsttmAltrUser": "SYSTEM",
+      "lsttmAltrDttm": "2026-06-16",
+      "lastId": "dmsrud527",
+      "lastDtime": "2025-08-28"
+    }
+  ],
+  "pageNo": 1,
+  "numOfRows": 99,
+  "pageSize": 73,
+  "message": "인증키가 유효합니다.",
+  "code": "SUCCESS"
+}
+```
+
+#### 코드 기준 처리 (연동 시)
+
+- 성공 여부는 신규 응답 VO의 `isSuccess()`에서 `"SUCCESS"`로 판단한다.
+- 원본 행은 그대로 보존하고 `foodCost` 등 문자열 값을 임의 변환하지 않는다.
+- 전체 동기화는 `pageSize`만큼 페이지를 순회하며, 페이지 중 하나라도 실패하면 DB 교체 트랜잭션을 실행하지 않아 기존 데이터를 보존한다. (`RestOilPriceSyncService` 패턴)
+- 빈 응답, 실패 코드와 Feign 예외는 `ExApiClient` 공통 `fetch()`에서 처리한다.
+
+---
+
+## 내부 API
+
+### POST /api/rest-stops/{serviceAreaCode}/oil-price/refresh
+
+특정 휴게소의 주유소 가격을 한국도로공사 `curStateStation` API에서 단건 조회해
+`rest_oil_price`에 반영하고, 갱신된 `oilInfo`를 반환한다.
+동일 주유소 가격이 최근 10분 이내 갱신된 경우에는 외부 API를 호출하지 않고 DB 값을 반환한다.
+
+#### 요청
+
+| 위치 | 이름 | 설명 |
+|---|---|---|
+| Path | `serviceAreaCode` | 휴게소 위치 API의 영업부대시설코드 |
+
+#### 응답
+
+성공 시:
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": {
+    "oilCompany": "AD",
+    "gasolinePrice": "1,999원",
+    "dieselPrice": "1,997원",
+    "lpgPrice": "1,157원",
+    "telNo": "02-573-7430",
+    "lastRefreshedAt": "2026-06-16T07:30:00",
+    "oilStationConveniences": [
+      {
+        "startTime": "00:00",
+        "endTime": "24:00",
+        "name": "쉼터",
+        "description": "고객쉼터"
+      }
+    ]
+  }
+}
+```
+
+갱신 대상 휴게소, 주유소 매핑 또는 upstream 단건 결과가 없으면 `NOT_FOUND`를 반환한다.
+최근 10분 이내 저장값이 있으면 `SUCCESS`를 반환하며, 응답 형태는 upstream 호출 성공 시와 같다.
+`lastRefreshedAt`은 DB에 저장된 주유소 가격의 마지막 갱신 시각이며, 값이 없으면 `null`이다.
+
+---
+
 ## 다음 API를 추가할 때 기록할 것
 
 새 공공 API를 연결할 때는 추정값이 아니라 실제 호출 결과 기준으로 아래 항목을 남긴다.
@@ -148,3 +434,49 @@ GET https://data.ex.co.kr/openapi/locationinfo/locationinfoRest
 - 실제 샘플 응답
 
 성공 코드와 응답 필드명은 API마다 다를 수 있으므로 기존 API 값을 그대로 재사용하지 않는다.
+
+---
+
+# 카카오 API 연동 (경로 탐색)
+
+한국도로공사 OpenAPI와 별개 제공자(Kakao). 경로 기반 휴게소 탐색용. 인증은 헤더 `Authorization: KakaoAK {REST_API_KEY}`. 키는 서버 환경변수로만 주입하고 소스/커밋에 넣지 않는다.
+
+요금: 카카오모빌리티 자동차 길찾기는 **일 10,000건 무료**(초과분만 과금). 로컬(주소/장소 검색)은 무료 쿼터.
+
+## 자동차 길찾기 — Directions (카카오모빌리티)
+
+### 엔드포인트
+```
+GET https://apis-navi.kakaomobility.com/v1/directions
+```
+
+### 요청 파라미터 (2026-06-17 실측)
+- `origin` (필수): `경도,위도` (예: `127.039,37.484`)
+- `destination` (필수): `경도,위도`
+- `priority` (선택): `RECOMMEND` | `TIME` | `DISTANCE`
+
+### 응답 (2026-06-17 실측)
+- 최상위: `trans_id`, `routes`
+- `routes[0].result_code` = `0` 이 성공(`result_msg`="길찾기 성공"). 실패 시 0 외 코드.
+- `routes[0].summary.distance`(m), `summary.duration`(초), `summary.origin/destination`
+- `routes[0].sections[].roads[].vertexes` = **[경도,위도,경도,위도,...] 평탄 배열**(경로 폴리라인). 서울→부산 실측 시 약 3,012개 좌표.
+
+### 실측 샘플 (서울→부산)
+```
+HTTP 200, result_code 0, distance 382296m, duration 16572s, sections 1, path points ~3012
+vertexes 예: [127.03902,37.48391, 127.03877,37.48387, ...]
+```
+
+## 주소/장소 검색 — Local (Kakao Developers)
+
+콘솔에서 카카오맵(OPEN_MAP_AND_LOCAL) 서비스 활성화 필요(무료). 미활성 시 403 `NotAuthorizedError`.
+
+### 엔드포인트 (2026-06-17 실측)
+```
+GET https://dapi.kakao.com/v2/local/search/keyword.json?query={장소}   # 장소명
+GET https://dapi.kakao.com/v2/local/search/address.json?query={주소}   # 주소
+```
+
+### 응답 (2026-06-17 실측)
+- `documents[]` 배열. 각 항목 `x`(경도, 문자열), `y`(위도, 문자열), `place_name`(키워드) / `address_name`·`road_address_name`(주소).
+- 실측: `해운대해수욕장`(keyword) → x=129.1598, y=35.1585 / `부산 해운대구 우동`(address) → x=129.1484, y=35.1727.

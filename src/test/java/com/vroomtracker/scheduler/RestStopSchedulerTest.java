@@ -6,6 +6,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.vroomtracker.service.HighwayServiceAreaInfoSyncService;
+import com.vroomtracker.service.RestFoodSyncService;
+import com.vroomtracker.service.RestOilPriceSyncService;
+import com.vroomtracker.service.RestOilSyncService;
 import com.vroomtracker.service.RestStopDetailSyncService;
 import com.vroomtracker.service.RestStopSyncService;
 import org.junit.jupiter.api.DisplayName;
@@ -29,21 +32,34 @@ class RestStopSchedulerTest {
     @Mock
     private HighwayServiceAreaInfoSyncService highwayServiceAreaInfoSyncService;
 
+    @Mock
+    private RestOilSyncService restOilSyncService;
+
+    @Mock
+    private RestOilPriceSyncService restOilPriceSyncService;
+
+    @Mock
+    private RestFoodSyncService restFoodSyncService;
+
     @InjectMocks
     private RestStopScheduler restStopScheduler;
 
     @Test
-    @DisplayName("매일 휴게소 위치와 상세, 고속도로 휴게소 정보 동기화를 service에 위임한다")
+    @DisplayName("매일 휴게소 위치와 상세, 고속도로 휴게소 정보, 주유소 편의시설 동기화를 service에 위임한다")
     void syncRestStopsDaily_delegatesToService() {
         when(restStopSyncService.refreshRestStops()).thenReturn(203);
         when(restStopDetailSyncService.refreshRestStopDetails()).thenReturn(215);
         when(highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos()).thenReturn(581);
+        when(restOilSyncService.refreshRestOils()).thenReturn(429);
+        when(restFoodSyncService.refreshRestFoods()).thenReturn(7214);
 
         restStopScheduler.syncRestStopsDaily();
 
         verify(restStopSyncService).refreshRestStops();
         verify(restStopDetailSyncService).refreshRestStopDetails();
         verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
+        verify(restOilSyncService).refreshRestOils();
+        verify(restFoodSyncService).refreshRestFoods();
     }
 
     @Test
@@ -57,6 +73,7 @@ class RestStopSchedulerTest {
         assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
 
         verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
+        verify(restOilSyncService).refreshRestOils();
         assertThat(output)
                 .contains("Scheduled rest stop detail sync failed.")
                 .contains("detail page 2 failed")
@@ -74,6 +91,7 @@ class RestStopSchedulerTest {
 
         verify(restStopDetailSyncService).refreshRestStopDetails();
         verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
+        verify(restOilSyncService).refreshRestOils();
         assertThat(output)
                 .contains("Scheduled rest stop sync failed.")
                 .contains("location API failed")
@@ -93,5 +111,54 @@ class RestStopSchedulerTest {
         assertThat(output)
                 .contains("Scheduled highway service area info sync failed.")
                 .contains("service area info API failed");
+        verify(restOilSyncService).refreshRestOils();
+    }
+
+    @Test
+    @DisplayName("주유소 편의시설 동기화 실패를 로그로 기록하고 전파하지 않는다")
+    void syncRestStopsDaily_doesNotPropagateRestOilFailure(CapturedOutput output) {
+        when(restStopSyncService.refreshRestStops()).thenReturn(203);
+        when(restStopDetailSyncService.refreshRestStopDetails()).thenReturn(215);
+        when(highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos()).thenReturn(581);
+        when(restOilSyncService.refreshRestOils()).thenThrow(new IllegalStateException("rest oil API failed"));
+
+        assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
+
+        assertThat(output).contains("Scheduled rest oil sync failed.").contains("rest oil API failed");
+    }
+
+    @Test
+    @DisplayName("음식 메뉴 동기화 실패를 로그로 기록하고 전파하지 않는다")
+    void syncRestStopsDaily_doesNotPropagateRestFoodFailure(CapturedOutput output) {
+        when(restStopSyncService.refreshRestStops()).thenReturn(203);
+        when(restStopDetailSyncService.refreshRestStopDetails()).thenReturn(215);
+        when(highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos()).thenReturn(581);
+        when(restOilSyncService.refreshRestOils()).thenReturn(429);
+        when(restFoodSyncService.refreshRestFoods()).thenThrow(new IllegalStateException("rest food API failed"));
+
+        assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
+
+        assertThat(output).contains("Scheduled rest food sync failed.").contains("rest food API failed");
+    }
+
+    @Test
+    @DisplayName("3시간마다 주유소 가격 동기화를 service에 위임한다")
+    void syncRestOilPricesEveryThreeHours_delegatesToService() {
+        when(restOilPriceSyncService.refreshRestOilPrices()).thenReturn(226);
+
+        restStopScheduler.syncRestOilPricesEveryThreeHours();
+
+        verify(restOilPriceSyncService).refreshRestOilPrices();
+    }
+
+    @Test
+    @DisplayName("주유소 가격 동기화 실패를 로그로 기록하고 전파하지 않는다")
+    void syncRestOilPricesEveryThreeHours_doesNotPropagateFailure(CapturedOutput output) {
+        when(restOilPriceSyncService.refreshRestOilPrices())
+                .thenThrow(new IllegalStateException("oil price API failed"));
+
+        assertThatCode(restStopScheduler::syncRestOilPricesEveryThreeHours).doesNotThrowAnyException();
+
+        assertThat(output).contains("Scheduled rest oil price sync failed.").contains("oil price API failed");
     }
 }

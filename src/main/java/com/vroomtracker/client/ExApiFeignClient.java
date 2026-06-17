@@ -1,6 +1,9 @@
 package com.vroomtracker.client;
 
 import com.vroomtracker.client.response.HighwayServiceAreaInfoResponse;
+import com.vroomtracker.client.response.RestBestfoodResponse;
+import com.vroomtracker.client.response.RestOilPriceResponse;
+import com.vroomtracker.client.response.RestOilResponse;
 import com.vroomtracker.client.response.RestStopDetailResponse;
 import com.vroomtracker.client.response.RestStopResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -16,11 +19,15 @@ public interface ExApiFeignClient {
     String LOCATION_INFO_REST_PATH = "/openapi/locationinfo/locationinfoRest";
     String CONVENIENCE_SERVICE_AREA_PATH = "/openapi/business/conveniServiceArea";
     String HIGHWAY_SERVICE_AREA_INFO_PATH = "/openapi/restinfo/hiwaySvarInfoList";
+    String REST_OIL_LIST_PATH = "/openapi/restinfo/restOilList";
+    String CUR_STATE_STATION_PATH = "/openapi/business/curStateStation";
+    String REST_BESTFOOD_LIST_PATH = "/openapi/restinfo/restBestfoodList";
 
     String KEY_PARAMETER = "key";
     String TYPE_PARAMETER = "type";
     String NUM_OF_ROWS_PARAMETER = "numOfRows";
     String PAGE_NO_PARAMETER = "pageNo";
+    String SERVICE_AREA_CODE2_PARAMETER = "serviceAreaCode2";
 
     String REST_STOP_NUM_OF_ROWS = "99";
 
@@ -41,4 +48,29 @@ public interface ExApiFeignClient {
     @GetMapping(HIGHWAY_SERVICE_AREA_INFO_PATH)
     HighwayServiceAreaInfoResponse getHighwayServiceAreaInfoList(
             @RequestParam(KEY_PARAMETER) String key, @RequestParam(TYPE_PARAMETER) String type);
+
+    @GetMapping(REST_OIL_LIST_PATH)
+    RestOilResponse getRestOilList(@RequestParam(KEY_PARAMETER) String key, @RequestParam(TYPE_PARAMETER) String type);
+
+    @GetMapping(CUR_STATE_STATION_PATH)
+    RestOilPriceResponse getCurStateStation(
+            @RequestParam(KEY_PARAMETER) String key,
+            @RequestParam(TYPE_PARAMETER) String type,
+            @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
+            @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo);
+
+    @GetMapping(CUR_STATE_STATION_PATH)
+    RestOilPriceResponse getCurStateStation(
+            @RequestParam(KEY_PARAMETER) String key,
+            @RequestParam(TYPE_PARAMETER) String type,
+            @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
+            @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo,
+            @RequestParam(value = SERVICE_AREA_CODE2_PARAMETER, required = false) String serviceAreaCode2);
+
+    @GetMapping(REST_BESTFOOD_LIST_PATH)
+    RestBestfoodResponse getRestBestfoodList(
+            @RequestParam(KEY_PARAMETER) String key,
+            @RequestParam(TYPE_PARAMETER) String type,
+            @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
+            @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo);
 }

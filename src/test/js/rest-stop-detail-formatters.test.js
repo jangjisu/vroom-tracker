@@ -4,10 +4,16 @@ import test from 'node:test';
 import {
     CONVENIENCE_FALLBACK,
     formatAvailability,
+    formatFoodCost,
     formatFreightOperation,
+    formatOilPrice,
+    formatOperationTime,
     formatParkingCount,
+    formatRefreshedAt,
     formatText,
+    hasFoodMenu,
     isMissingValue,
+    orderFoodMenus,
     parseConvenience
 } from '../../main/resources/static/js/rest-stop-detail-formatters.js';
 
@@ -64,4 +70,52 @@ test('formatParkingCount appends the unit and keeps zero as a valid count', () =
     assert.equal(formatParkingCount({}), '정보 없음');
     assert.equal(formatParkingCount(-1), '정보 없음');
     assert.equal(formatParkingCount(1.5), '정보 없음');
+});
+
+test('formatOilPrice keeps present price text and falls back for missing values', () => {
+    assert.equal(formatOilPrice('1,699원'), '1,699원');
+    assert.equal(formatOilPrice(null), '정보 없음');
+    assert.equal(formatOilPrice('   '), '정보 없음');
+});
+
+test('formatOperationTime joins start and end times when both are present', () => {
+    assert.equal(formatOperationTime('00:00', '24:00'), '운영시간 00:00 ~ 24:00');
+    assert.equal(formatOperationTime('08:00', ''), '운영시간 정보 없음');
+    assert.equal(formatOperationTime(null, '20:00'), '운영시간 정보 없음');
+});
+
+test('formatRefreshedAt formats ISO local date time for display', () => {
+    assert.equal(formatRefreshedAt('2026-06-16T07:30:00'), '최근 갱신: 2026.06.16 07:30');
+    assert.equal(formatRefreshedAt(null), '최근 갱신: 갱신 정보 없음');
+    assert.equal(formatRefreshedAt('invalid'), '최근 갱신: 갱신 정보 없음');
+});
+
+test('hasFoodMenu is true only when there is at least one menu', () => {
+    assert.equal(hasFoodMenu({ menus: [{ foodName: '우동' }] }), true);
+    assert.equal(hasFoodMenu({ menus: [] }), false);
+    assert.equal(hasFoodMenu(null), false);
+    assert.equal(hasFoodMenu({}), false);
+});
+
+test('orderFoodMenus places representative menus first while preserving order', () => {
+    const menus = [
+        { foodName: '국밥', representative: false },
+        { foodName: '우동', representative: true },
+        { foodName: '돈까스', representative: false },
+        { foodName: '비빔밥', representative: true }
+    ];
+
+    assert.deepEqual(
+        orderFoodMenus(menus).map((menu) => menu.foodName),
+        ['우동', '비빔밥', '국밥', '돈까스']
+    );
+    assert.deepEqual(orderFoodMenus(null), []);
+});
+
+test('formatFoodCost adds thousands separator and won unit for numeric prices', () => {
+    assert.equal(formatFoodCost('7000'), '7,000원');
+    assert.equal(formatFoodCost('500'), '500원');
+    assert.equal(formatFoodCost('시가'), '시가');
+    assert.equal(formatFoodCost(null), '가격 정보 없음');
+    assert.equal(formatFoodCost('   '), '가격 정보 없음');
 });
