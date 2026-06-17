@@ -26,22 +26,19 @@ public class RouteRestStopService {
     private final RestStopRepository restStopRepository;
 
     public RouteRestStopResponse findRouteRestStops(
-            double originLatitude, double originLongitude, String destinationQuery, int radiusMeters) {
-        KakaoLocalSearchResponse search = kakaoMapClient.searchKeyword(destinationQuery);
-        if (search.isEmpty()) {
-            throw new RouteRestStopNotFoundException("목적지 검색 결과가 없습니다: " + destinationQuery);
-        }
-
-        KakaoLocalSearchResponse.Document destination = search.first();
-        Double destinationLongitude = parseCoordinate(destination.x());
-        Double destinationLatitude = parseCoordinate(destination.y());
-        if (destinationLongitude == null || destinationLatitude == null) {
-            throw new RouteRestStopNotFoundException("목적지 좌표를 해석하지 못했습니다.");
-        }
+            double originLatitude,
+            double originLongitude,
+            String destinationQuery,
+            Double destinationLatitude,
+            Double destinationLongitude,
+            String destinationName,
+            int radiusMeters) {
+        Destination destination =
+                resolveDestination(destinationQuery, destinationLatitude, destinationLongitude, destinationName);
 
         KakaoDirectionsResponse directions = kakaoMapClient.getDirections(
                 coordinateParam(originLongitude, originLatitude),
-                coordinateParam(destinationLongitude, destinationLatitude));
+                coordinateParam(destination.longitude(), destination.latitude()));
         if (!directions.hasSuccessfulRoute()) {
             throw new RouteRestStopNotFoundException("경로를 찾지 못했습니다.");
         }
@@ -53,8 +50,29 @@ public class RouteRestStopService {
         }
 
         List<RouteRestStopItem> restStops = restStopsOnRoute(polyline, radiusMeters);
-        Destination destinationView = Destination.of(destination.label(), destinationLatitude, destinationLongitude);
-        return RouteRestStopResponse.of(destinationView, routeSummary(route, polyline), restStops);
+        return RouteRestStopResponse.of(destination, routeSummary(route, polyline), restStops);
+    }
+
+    private Destination resolveDestination(
+            String destinationQuery, Double destinationLatitude, Double destinationLongitude, String destinationName) {
+        if (destinationLatitude != null && destinationLongitude != null) {
+            String name = destinationName == null || destinationName.isBlank() ? "목적지" : destinationName;
+            return Destination.of(name, destinationLatitude, destinationLongitude);
+        }
+
+        KakaoLocalSearchResponse search = kakaoMapClient.searchKeyword(destinationQuery);
+        if (search.isEmpty()) {
+            throw new RouteRestStopNotFoundException("목적지 검색 결과가 없습니다: " + destinationQuery);
+        }
+
+        KakaoLocalSearchResponse.Document document = search.first();
+        Double longitude = parseCoordinate(document.x());
+        Double latitude = parseCoordinate(document.y());
+        if (longitude == null || latitude == null) {
+            throw new RouteRestStopNotFoundException("목적지 좌표를 해석하지 못했습니다.");
+        }
+
+        return Destination.of(document.label(), latitude, longitude);
     }
 
     private List<RouteRestStopItem> restStopsOnRoute(RoutePolyline polyline, int radiusMeters) {

@@ -16,6 +16,7 @@ import {
 } from './rest-stop-detail-formatters.js';
 import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
 import { createRouteRestStopRequest } from './route-rest-stop-request.js';
+import { createPlaceSearchRequest } from './place-search-request.js';
 
 const MAP_CONFIG_ENDPOINT = '/api/map-config';
 const REST_STOPS_ENDPOINT = '/api/rest-stops';
@@ -47,6 +48,7 @@ let currentLocationMarker;
 let foodExpanded = false;
 let currentFoodMenus = [];
 let routeRequest;
+let placeSearchRequest;
 let routePolyline;
 let routeMarkers = [];
 let originMarker;
@@ -65,6 +67,7 @@ export async function initRestStopMap() {
     detailPanelEventController = new globalThis.AbortController();
     detailRequest = createRestStopDetailRequest({ onState: renderDetailState });
     routeRequest = createRouteRestStopRequest({ onState: renderRouteState });
+    placeSearchRequest = createPlaceSearchRequest({ onState: renderPlaceSearchState });
     bindDetailPanelEvents();
 
     try {
@@ -307,6 +310,9 @@ function bindDetailPanelEvents() {
             return;
         }
         if (document.getElementById('routeResultModal')?.open) {
+            return;
+        }
+        if (document.getElementById('placeCandidateModal')?.open) {
             return;
         }
         const panel = document.getElementById('restStopDetailPanel');
@@ -806,6 +812,14 @@ function bindRouteSearch() {
             closeRouteResultModal();
         }
     }, { signal: detailPanelEventController.signal });
+    document.getElementById('placeCandidateModalClose')?.addEventListener('click', closePlaceCandidateModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('placeCandidateModal')?.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            closePlaceCandidateModal();
+        }
+    }, { signal: detailPanelEventController.signal });
 }
 
 function openRouteResultModal() {
@@ -834,6 +848,69 @@ function searchRoute() {
         return;
     }
 
+    if (placeSearchRequest) {
+        placeSearchRequest.load(query);
+    }
+}
+
+function renderPlaceSearchState(state) {
+    if (state.status === 'loading') {
+        setRouteStatus('목적지를 검색하는 중입니다...');
+        return;
+    }
+
+    if (state.status === 'success') {
+        if (state.candidates.length === 0) {
+            setRouteStatus('검색 결과가 없습니다. 다른 목적지를 입력해보세요.');
+            return;
+        }
+        renderCandidates(state.candidates);
+        openPlaceCandidateModal();
+        setRouteStatus(`후보 ${state.candidates.length}곳 중 목적지를 선택하세요.`);
+        return;
+    }
+
+    if (state.status === 'external-unavailable') {
+        showApiUnavailableAlert();
+        setRouteStatus('일시적으로 목적지를 검색하지 못했습니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
+
+    setRouteStatus('목적지 검색에 실패했습니다. 잠시 후 다시 시도해주세요.');
+}
+
+function renderCandidates(candidates) {
+    const list = document.getElementById('placeCandidateList');
+    if (!list) {
+        return;
+    }
+
+    list.replaceChildren();
+    candidates.forEach((candidate) => list.appendChild(createCandidateItem(candidate)));
+}
+
+function createCandidateItem(candidate) {
+    const item = document.createElement('li');
+    item.className = 'route-result-item';
+
+    const name = document.createElement('p');
+    name.className = 'route-result-name';
+    name.textContent = formatText(candidate?.name, '이름 정보 없음');
+    item.appendChild(name);
+
+    const meta = document.createElement('p');
+    meta.className = 'route-result-meta';
+    meta.textContent = formatText(candidate?.address, '주소 정보 없음');
+    item.appendChild(meta);
+
+    item.addEventListener('click', () => selectDestination(candidate));
+
+    return item;
+}
+
+function selectDestination(candidate) {
+    closePlaceCandidateModal();
+
     if (!routeRequest) {
         return;
     }
@@ -844,8 +921,29 @@ function searchRoute() {
             return;
         }
 
-        routeRequest.load(origin.latitude, origin.longitude, query);
+        routeRequest.load(
+            origin.latitude,
+            origin.longitude,
+            null,
+            candidate?.latitude,
+            candidate?.longitude,
+            candidate?.name
+        );
     });
+}
+
+function openPlaceCandidateModal() {
+    const modal = document.getElementById('placeCandidateModal');
+    if (modal && !modal.open) {
+        modal.showModal();
+    }
+}
+
+function closePlaceCandidateModal() {
+    const modal = document.getElementById('placeCandidateModal');
+    if (modal?.open) {
+        modal.close();
+    }
 }
 
 function resolveOrigin(callback) {
