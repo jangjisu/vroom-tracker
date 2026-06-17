@@ -33,6 +33,13 @@
                 </div>
             </div>
         </div>
+        <div class="route-search-bar mb-3">
+            <input id="routeSearchInput" type="text" class="form-control route-search-input"
+                   placeholder="목적지를 입력하세요 (예: 부산역)" aria-label="목적지 검색">
+            <button id="routeSearchButton" class="btn btn-primary route-search-button" type="button">
+                <i class="bi bi-signpost-split me-1"></i>경로 휴게소 찾기
+            </button>
+        </div>
         <div class="rest-stop-map-layout">
             <div id="restStopMap" class="rest-stop-map" tabindex="0" aria-label="휴게소 위치 지도"></div>
             <aside id="restStopDetailPanel" class="rest-stop-detail-panel d-none"
@@ -135,6 +142,10 @@
                     </div>
                 </dialog>
             </aside>
+        </div>
+        <div id="routeResultPanel" class="route-result-panel d-none">
+            <div id="routeSearchStatus" class="route-search-status" aria-live="polite"></div>
+            <ol id="routeResultList" class="route-result-list"></ol>
         </div>
         <div id="restStopMapError" class="alert alert-warning mt-3 mb-0 d-none" role="alert"></div>
     </section>
