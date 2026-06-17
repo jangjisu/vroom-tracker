@@ -35,6 +35,10 @@
                     <div>
                         <div class="rest-stop-detail-kicker">선택한 휴게소</div>
                         <h2 id="restStopDetailName" class="rest-stop-detail-name"></h2>
+                        <button id="restStopFoodOpen" class="btn btn-primary rest-stop-food-open d-none"
+                                type="button" aria-haspopup="dialog" aria-controls="restStopFoodModal">
+                            🍽 먹거리 보기
+                        </button>
                     </div>
                     <button id="restStopDetailClose" class="btn-close rest-stop-detail-close" type="button"
                             aria-label="상세 정보 닫기"></button>
@@ -108,18 +112,22 @@
                         <p id="restStopOilConvenienceFallback" class="rest-stop-detail-missing d-none"></p>
                         <ul id="restStopOilConvenienceDetails" class="rest-stop-oil-convenience-details"></ul>
                     </section>
-                    <section id="restStopFoodSection" class="rest-stop-detail-section"
-                             aria-labelledby="restStopDetailFoodHeading">
-                        <div class="rest-stop-detail-section-header">
-                            <h3 id="restStopDetailFoodHeading" class="rest-stop-detail-section-title">먹거리</h3>
-                            <button id="restStopFoodToggle" class="btn btn-sm btn-outline-primary d-none"
-                                    type="button" aria-expanded="false" aria-controls="restStopFoodList">
-                                전체 메뉴 보기
-                            </button>
-                        </div>
-                        <ul id="restStopFoodList" class="rest-stop-food-list"></ul>
-                    </section>
                 </div>
+                <dialog id="restStopFoodModal" class="rest-stop-food-modal"
+                        aria-labelledby="restStopFoodModalTitle">
+                    <div class="rest-stop-food-modal-header">
+                        <h3 id="restStopFoodModalTitle" class="rest-stop-food-modal-title">먹거리</h3>
+                        <button id="restStopFoodModalClose" class="btn-close" type="button"
+                                aria-label="먹거리 닫기"></button>
+                    </div>
+                    <div class="rest-stop-food-modal-body">
+                        <button id="restStopFoodToggle" class="btn btn-sm btn-outline-primary d-none"
+                                type="button" aria-expanded="false" aria-controls="restStopFoodList">
+                            전체 메뉴 보기
+                        </button>
+                        <ul id="restStopFoodList" class="rest-stop-food-list"></ul>
+                    </div>
+                </dialog>
             </aside>
         </div>
         <div id="restStopMapError" class="alert alert-warning mt-3 mb-0 d-none" role="alert"></div>
