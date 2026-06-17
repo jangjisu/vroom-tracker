@@ -148,3 +148,49 @@ GET https://data.ex.co.kr/openapi/locationinfo/locationinfoRest
 - 실제 샘플 응답
 
 성공 코드와 응답 필드명은 API마다 다를 수 있으므로 기존 API 값을 그대로 재사용하지 않는다.
+
+---
+
+# 카카오 API 연동 (경로 탐색)
+
+한국도로공사 OpenAPI와 별개 제공자(Kakao). 경로 기반 휴게소 탐색용. 인증은 헤더 `Authorization: KakaoAK {REST_API_KEY}`. 키는 서버 환경변수로만 주입하고 소스/커밋에 넣지 않는다.
+
+요금: 카카오모빌리티 자동차 길찾기는 **일 10,000건 무료**(초과분만 과금). 로컬(주소/장소 검색)은 무료 쿼터.
+
+## 자동차 길찾기 — Directions (카카오모빌리티)
+
+### 엔드포인트
+```
+GET https://apis-navi.kakaomobility.com/v1/directions
+```
+
+### 요청 파라미터 (2026-06-17 실측)
+- `origin` (필수): `경도,위도` (예: `127.039,37.484`)
+- `destination` (필수): `경도,위도`
+- `priority` (선택): `RECOMMEND` | `TIME` | `DISTANCE`
+
+### 응답 (2026-06-17 실측)
+- 최상위: `trans_id`, `routes`
+- `routes[0].result_code` = `0` 이 성공(`result_msg`="길찾기 성공"). 실패 시 0 외 코드.
+- `routes[0].summary.distance`(m), `summary.duration`(초), `summary.origin/destination`
+- `routes[0].sections[].roads[].vertexes` = **[경도,위도,경도,위도,...] 평탄 배열**(경로 폴리라인). 서울→부산 실측 시 약 3,012개 좌표.
+
+### 실측 샘플 (서울→부산)
+```
+HTTP 200, result_code 0, distance 382296m, duration 16572s, sections 1, path points ~3012
+vertexes 예: [127.03902,37.48391, 127.03877,37.48387, ...]
+```
+
+## 주소/장소 검색 — Local (Kakao Developers)
+
+콘솔에서 카카오맵(OPEN_MAP_AND_LOCAL) 서비스 활성화 필요(무료). 미활성 시 403 `NotAuthorizedError`.
+
+### 엔드포인트 (2026-06-17 실측)
+```
+GET https://dapi.kakao.com/v2/local/search/keyword.json?query={장소}   # 장소명
+GET https://dapi.kakao.com/v2/local/search/address.json?query={주소}   # 주소
+```
+
+### 응답 (2026-06-17 실측)
+- `documents[]` 배열. 각 항목 `x`(경도, 문자열), `y`(위도, 문자열), `place_name`(키워드) / `address_name`·`road_address_name`(주소).
+- 실측: `해운대해수욕장`(keyword) → x=129.1598, y=35.1585 / `부산 해운대구 우동`(address) → x=129.1484, y=35.1727.
