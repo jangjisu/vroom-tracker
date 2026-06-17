@@ -306,6 +306,9 @@ function bindDetailPanelEvents() {
         if (document.getElementById('restStopFoodModal')?.open) {
             return;
         }
+        if (document.getElementById('routeResultModal')?.open) {
+            return;
+        }
         const panel = document.getElementById('restStopDetailPanel');
         if (panel && !panel.classList.contains('d-none')) {
             closeDetailPanel({ restoreMapFocus: true });
@@ -322,7 +325,6 @@ function openDetailPanel(restStop) {
     selectedRestStopName = restStop.unitName;
     selectedServiceAreaCode = restStop.serviceAreaCode;
     currentDetail = undefined;
-    document.getElementById('routeResultPanel')?.classList.add('d-none');
     panel.classList.remove('d-none');
     detailRequest.load(restStop.serviceAreaCode);
 
@@ -339,10 +341,6 @@ function closeDetailPanel({ restoreMapFocus = false } = {}) {
     if (panel) {
         panel.classList.add('d-none');
         panel.setAttribute('aria-busy', 'false');
-    }
-
-    if (currentRouteRestStops.length > 0) {
-        document.getElementById('routeResultPanel')?.classList.remove('d-none');
     }
 
     if (selectedInfoWindow) {
@@ -797,6 +795,35 @@ function bindRouteSearch() {
             searchRoute();
         }
     }, { signal: detailPanelEventController.signal });
+    document.getElementById('routeResultOpen')?.addEventListener('click', openRouteResultModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('routeResultModalClose')?.addEventListener('click', closeRouteResultModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('routeResultModal')?.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            closeRouteResultModal();
+        }
+    }, { signal: detailPanelEventController.signal });
+}
+
+function openRouteResultModal() {
+    const modal = document.getElementById('routeResultModal');
+    if (modal && currentRouteRestStops.length > 0 && !modal.open) {
+        modal.showModal();
+    }
+}
+
+function closeRouteResultModal() {
+    const modal = document.getElementById('routeResultModal');
+    if (modal?.open) {
+        modal.close();
+    }
+}
+
+function toggleRouteResultButton(visible) {
+    document.getElementById('routeResultOpen')?.classList.toggle('d-none', !visible);
 }
 
 function searchRoute() {
@@ -858,6 +885,8 @@ function renderRouteState(state) {
 
     clearRouteOverlays();
     renderRouteList([]);
+    toggleRouteResultButton(false);
+    closeRouteResultModal();
     if (state.status === 'not-found') {
         setRouteStatus('목적지 또는 경로를 찾지 못했습니다.');
         return;
@@ -910,6 +939,13 @@ function renderRoute(data) {
     renderRouteList(restStops);
     const destinationName = data?.destination?.name ?? '목적지';
     setRouteStatus(`${destinationName}까지 경로상 휴게소 ${restStops.length}곳`);
+
+    const button = document.getElementById('routeResultOpen');
+    if (button) {
+        button.textContent = `경로 결과 ${restStops.length}곳`;
+    }
+    toggleRouteResultButton(restStops.length > 0);
+    openRouteResultModal();
 }
 
 function renderEndpointMarkers(destination) {
@@ -978,6 +1014,8 @@ function createRouteResultItem(restStop) {
 }
 
 function selectRouteRestStop(restStop) {
+    closeRouteResultModal();
+
     if (Number.isFinite(restStop?.latitude) && Number.isFinite(restStop?.longitude)) {
         map.panTo(new naverMaps.LatLng(restStop.latitude, restStop.longitude));
     }
@@ -1010,7 +1048,6 @@ function clearRouteOverlays() {
 }
 
 function setRouteStatus(message) {
-    document.getElementById('routeResultPanel')?.classList.remove('d-none');
     setText('routeSearchStatus', message);
 }
 
