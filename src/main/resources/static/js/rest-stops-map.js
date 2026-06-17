@@ -242,10 +242,15 @@ function renderRestStops(restStops) {
     setText('restStopMapStatus', `${markerCount.toLocaleString()}개 표시`);
 }
 
-function createPopupContent(restStop) {
+export function createPopupContent(restStop) {
+    const routeName = formatText(restStop.routeName, '노선 정보 없음');
+
     return `
-        <div class="rest-stop-map-popup">
-            ${escapeHtml(restStop.unitName)}
+        <div class="rest-stop-map-popup-card">
+            <div class="rest-stop-map-popup-kicker">선택한 휴게소</div>
+            <strong class="rest-stop-map-popup-name">${escapeHtml(restStop.unitName)}</strong>
+            <div class="rest-stop-map-popup-route">${escapeHtml(routeName)}</div>
+            <div class="rest-stop-map-popup-hint">상세 정보는 오른쪽 패널에서 확인</div>
         </div>
     `;
 }
@@ -693,7 +698,10 @@ function showMapError(message, status = '불러오기 실패') {
 }
 
 function escapeHtml(value) {
-    const element = document.createElement('span');
-    element.textContent = value ?? '';
-    return element.innerHTML;
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }

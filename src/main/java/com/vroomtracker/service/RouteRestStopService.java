@@ -1,0 +1,120 @@
+package com.vroomtracker.service;
+
+import com.vroomtracker.client.KakaoMapClient;
+import com.vroomtracker.client.response.KakaoDirectionsResponse;
+import com.vroomtracker.client.response.KakaoLocalSearchResponse;
+import com.vroomtracker.controller.response.RouteRestStopResponse;
+import com.vroomtracker.controller.response.RouteRestStopResponse.Destination;
+import com.vroomtracker.controller.response.RouteRestStopResponse.RouteRestStopItem;
+import com.vroomtracker.controller.response.RouteRestStopResponse.RouteSummary;
+import com.vroomtracker.domain.RestStopEntity;
+import com.vroomtracker.repository.RestStopRepository;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class RouteRestStopService {
+
+    private static final int MAX_POLYLINE_POINTS = 300;
+
+    private final KakaoMapClient kakaoMapClient;
+    private final RestStopRepository restStopRepository;
+
+    public RouteRestStopResponse findRouteRestStops(
+            double originLatitude, double originLongitude, String destinationQuery, int radiusMeters) {
+        KakaoLocalSearchResponse search = kakaoMapClient.searchKeyword(destinationQuery);
+        if (search.isEmpty()) {
+            throw new RouteRestStopNotFoundException("목적지 검색 결과가 없습니다: " + destinationQuery);
+        }
+
+        KakaoLocalSearchResponse.Document destination = search.first();
+        Double destinationLongitude = parseCoordinate(destination.x());
+        Double destinationLatitude = parseCoordinate(destination.y());
+        if (destinationLongitude == null || destinationLatitude == null) {
+            throw new RouteRestStopNotFoundException("목적지 좌표를 해석하지 못했습니다.");
+        }
+
+        KakaoDirectionsResponse directions = kakaoMapClient.getDirections(
+                coordinateParam(originLongitude, originLatitude),
+                coordinateParam(destinationLongitude, destinationLatitude));
+        if (!directions.hasSuccessfulRoute()) {
+            throw new RouteRestStopNotFoundException("경로를 찾지 못했습니다.");
+        }
+
+        KakaoDirectionsResponse.Route route = directions.firstRoute();
+        RoutePolyline polyline = RoutePolyline.fromRoute(route).downsample(MAX_POLYLINE_POINTS);
+        if (polyline.isEmpty()) {
+            throw new RouteRestStopNotFoundException("경로 좌표가 없습니다.");
+        }
+
+        List<RouteRestStopItem> restStops = restStopsOnRoute(polyline, radiusMeters);
+        Destination destinationView = Destination.of(destination.label(), destinationLatitude, destinationLongitude);
+        return RouteRestStopResponse.of(destinationView, routeSummary(route, polyline), restStops);
+    }
+
+    private List<RouteRestStopItem> restStopsOnRoute(RoutePolyline polyline, int radiusMeters) {
+        List<Map.Entry<Integer, RouteRestStopItem>> scored = new ArrayList<>();
+        for (RestStopEntity restStop : restStopRepository.findAll()) {
+            Double latitude = parseCoordinate(restStop.getYValue());
+            Double longitude = parseCoordinate(restStop.getXValue());
+            if (latitude == null || longitude == null) {
+                continue;
+            }
+
+            RoutePolyline.Nearest nearest = polyline.nearest(latitude, longitude);
+            if (nearest.distanceMeters() > radiusMeters) {
+                continue;
+            }
+
+            RouteRestStopItem item = RouteRestStopItem.of(
+                    restStop.getServiceAreaCode(),
+                    restStop.getUnitName(),
+                    restStop.getRouteName(),
+                    latitude,
+                    longitude,
+                    Math.round(nearest.distanceMeters()));
+            scored.add(Map.entry(nearest.index(), item));
+        }
+
+        scored.sort(Comparator.comparingInt(Map.Entry::getKey));
+        return scored.stream().map(Map.Entry::getValue).toList();
+    }
+
+    private RouteSummary routeSummary(KakaoDirectionsResponse.Route route, RoutePolyline polyline) {
+        long distance = summaryValue(route, true);
+        long duration = summaryValue(route, false);
+        List<List<Double>> path = polyline.coordinates().stream()
+                .map(coordinate -> List.of(coordinate.longitude(), coordinate.latitude()))
+                .toList();
+        return RouteSummary.of(distance, duration, path);
+    }
+
+    private long summaryValue(KakaoDirectionsResponse.Route route, boolean distance) {
+        KakaoDirectionsResponse.Summary summary = route.summary();
+        if (summary == null) {
+            return 0L;
+        }
+        Long value = distance ? summary.distance() : summary.duration();
+        return value == null ? 0L : value;
+    }
+
+    private String coordinateParam(double longitude, double latitude) {
+        return longitude + "," + latitude;
+    }
+
+    private Double parseCoordinate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+}
