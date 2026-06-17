@@ -26,6 +26,12 @@ const SEOUL_CENTER = {
 };
 const DEFAULT_ZOOM = 11;
 
+const GEOLOCATION_OPTIONS = {
+    enableHighAccuracy: false,
+    maximumAge: 300000,
+    timeout: 5000
+};
+
 let map;
 let naverMaps;
 let selectedInfoWindow;
@@ -35,6 +41,8 @@ let currentDetail;
 let detailRequest;
 let detailPanelEventController;
 let mapInitializationId = 0;
+let currentLocation;
+let currentLocationMarker;
 let foodExpanded = false;
 let currentFoodMenus = [];
 
@@ -80,6 +88,7 @@ export async function initRestStopMap() {
         }
 
         map = createMap(mapElement, naverMaps, initialCenter);
+        bindLocateControl();
 
         setText('restStopMapStatus', '휴게소 불러오는 중');
         const restStopResult = await fetchRestStops();
@@ -444,6 +453,81 @@ function renderConvenience(value) {
     list.classList.toggle('d-none', conveniences.length === 0);
     fallback.classList.toggle('d-none', conveniences.length > 0);
     fallback.textContent = conveniences.length === 0 ? CONVENIENCE_FALLBACK : '';
+}
+
+function bindLocateControl() {
+    if (!detailPanelEventController) {
+        return;
+    }
+
+    document.getElementById('restStopLocateButton')?.addEventListener('click', locateCurrentPosition, {
+        signal: detailPanelEventController.signal
+    });
+}
+
+function locateCurrentPosition() {
+    if (!map || !naverMaps) {
+        return;
+    }
+
+    if (!navigator.geolocation) {
+        showLocateError('이 브라우저는 위치 기능을 지원하지 않습니다.');
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            currentLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            const latLng = new naverMaps.LatLng(currentLocation.latitude, currentLocation.longitude);
+            map.setCenter(latLng);
+            showCurrentLocationMarker(latLng);
+            hideLocateError();
+        },
+        (error) => showLocateError(locateErrorMessage(error)),
+        GEOLOCATION_OPTIONS
+    );
+}
+
+function showCurrentLocationMarker(latLng) {
+    if (currentLocationMarker) {
+        currentLocationMarker.setPosition(latLng);
+        return;
+    }
+
+    currentLocationMarker = new naverMaps.Marker({
+        map,
+        position: latLng,
+        icon: {
+            content: '<div class="current-location-marker"></div>',
+            anchor: new naverMaps.Point(8, 8)
+        },
+        zIndex: 1000
+    });
+}
+
+function locateErrorMessage(error) {
+    if (error?.code === 1) {
+        return '위치 권한이 거부되어 현재 위치를 표시할 수 없습니다.';
+    }
+
+    return '현재 위치를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.';
+}
+
+function showLocateError(message) {
+    const errorElement = document.getElementById('restStopMapError');
+    if (!errorElement) {
+        return;
+    }
+
+    errorElement.textContent = message;
+    errorElement.classList.remove('d-none');
+}
+
+function hideLocateError() {
+    document.getElementById('restStopMapError')?.classList.add('d-none');
 }
 
 function renderFoodMenu(foodMenu) {
