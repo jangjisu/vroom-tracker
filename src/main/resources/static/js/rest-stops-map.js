@@ -265,9 +265,26 @@ function bindDetailPanelEvents() {
     document.getElementById('restStopFoodToggle')?.addEventListener('click', toggleFoodMenu, {
         signal: detailPanelEventController.signal
     });
+    document.getElementById('restStopFoodOpen')?.addEventListener('click', openFoodModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('restStopFoodModalClose')?.addEventListener('click', closeFoodModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('restStopFoodModal')?.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            closeFoodModal();
+        }
+    }, { signal: detailPanelEventController.signal });
     document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+        if (document.getElementById('restStopFoodModal')?.open) {
+            return;
+        }
         const panel = document.getElementById('restStopDetailPanel');
-        if (event.key === 'Escape' && panel && !panel.classList.contains('d-none')) {
+        if (panel && !panel.classList.contains('d-none')) {
             closeDetailPanel({ restoreMapFocus: true });
         }
     }, { signal: detailPanelEventController.signal });
@@ -292,6 +309,7 @@ function openDetailPanel(restStop) {
 
 function closeDetailPanel({ restoreMapFocus = false } = {}) {
     detailRequest?.invalidate();
+    closeFoodModal();
 
     const panel = document.getElementById('restStopDetailPanel');
     if (panel) {
@@ -424,21 +442,39 @@ function renderConvenience(value) {
 }
 
 function renderFoodMenu(foodMenu) {
-    const section = document.getElementById('restStopFoodSection');
-    if (!section) {
+    const openButton = document.getElementById('restStopFoodOpen');
+    if (!openButton) {
         return;
     }
 
     const visible = hasFoodMenu(foodMenu);
-    section.classList.toggle('d-none', !visible);
+    openButton.classList.toggle('d-none', !visible);
     if (!visible) {
         currentFoodMenus = [];
+        closeFoodModal();
         return;
     }
 
     currentFoodMenus = foodMenu.menus;
     foodExpanded = false;
+}
+
+function openFoodModal() {
+    const modal = document.getElementById('restStopFoodModal');
+    if (!modal || currentFoodMenus.length === 0) {
+        return;
+    }
+
+    foodExpanded = false;
     renderFoodList();
+    modal.showModal();
+}
+
+function closeFoodModal() {
+    const modal = document.getElementById('restStopFoodModal');
+    if (modal?.open) {
+        modal.close();
+    }
 }
 
 function renderFoodList() {

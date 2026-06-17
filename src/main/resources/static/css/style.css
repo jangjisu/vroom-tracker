@@ -305,6 +305,51 @@ body {
     font-size: 0.8rem;
 }
 
+.rest-stop-food-open {
+    margin-top: 0.6rem;
+    min-height: 2.5rem;
+    padding: 0.4rem 1rem;
+    font-weight: 700;
+}
+
+.rest-stop-food-modal {
+    width: min(92vw, 30rem);
+    max-height: min(80vh, 36rem);
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+}
+
+.rest-stop-food-modal::backdrop {
+    background-color: rgba(15, 23, 42, 0.5);
+}
+
+.rest-stop-food-modal[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.rest-stop-food-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.rest-stop-food-modal-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.rest-stop-food-modal-body {
+    padding: 1rem 1.25rem 1.25rem;
+    overflow-y: auto;
+}
+
 @media (max-width: 991.98px) {
     .rest-stop-map-layout:has(.rest-stop-detail-panel:not(.d-none)) {
         grid-template-columns: minmax(0, 1fr);
