@@ -1,7 +1,7 @@
-# API.md — 한국도로공사 OpenAPI 연동 노트
+# API.md — 외부 연동과 내부 API 계약
 
-> 베이스 URL: `https://data.ex.co.kr`
-> 현재 코드에 실제로 연결된 API만 기록한다.
+> 한국도로공사 베이스 URL: `https://data.ex.co.kr`
+> 현재 코드에 실제로 연결된 외부 API와 화면에서 사용하는 내부 API만 기록한다.
 
 ---
 
@@ -132,6 +132,25 @@ GET https://data.ex.co.kr/openapi/locationinfo/locationinfoRest
 - `ExApiClient` wrapper가 인증키, `json` 포맷, `numOfRows=99` 기본값을 적용한다.
 - `pageSize`는 실제 응답 기준 총 페이지 수로 보고 `getTotalPageCount()`에서 정수 변환한다.
 - `pageSize`가 숫자가 아니면 기본값 `1`을 반환한다.
+
+---
+
+### hiwaySvarInfoList — 휴게소 영업시설 정보
+
+휴게소 방향, 주소, 대표 전화번호와 차종별 주차 대수를 반환한다.
+
+#### 엔드포인트
+
+```text
+GET https://data.ex.co.kr/openapi/restinfo/hiwaySvarInfoList
+```
+
+현재 `ExApiClient`는 `key`와 `type=json`만 전달하며 전체 목록을 한 번에 조회한다. 응답은
+`HighwayServiceAreaInfoResponse`와 `HighwayServiceAreaInfoItem`으로 역직렬화한 뒤
+`highway_service_area_info` 테이블을 전체 교체한다.
+
+상세 조회에서는 `businessFacilityCode`와 휴게소 `serviceAreaCode`를 연결해 방향, 주소와
+소형·대형·장애인 주차 대수를 조합한다.
 
 ---
 
@@ -365,16 +384,48 @@ GET https://data.ex.co.kr/openapi/restinfo/restBestfoodList
 }
 ```
 
-#### 코드 기준 처리 (연동 시)
+#### 코드 기준 처리
 
-- 성공 여부는 신규 응답 VO의 `isSuccess()`에서 `"SUCCESS"`로 판단한다.
+- 성공 여부는 `RestBestfoodResponse.isSuccess()`에서 `"SUCCESS"`로 판단한다.
 - 원본 행은 그대로 보존하고 `foodCost` 등 문자열 값을 임의 변환하지 않는다.
-- 전체 동기화는 `pageSize`만큼 페이지를 순회하며, 페이지 중 하나라도 실패하면 DB 교체 트랜잭션을 실행하지 않아 기존 데이터를 보존한다. (`RestOilPriceSyncService` 패턴)
+- 전체 동기화는 `pageSize`만큼 페이지를 순회하며, 페이지 중 하나라도 실패하면 DB 교체 트랜잭션을 실행하지 않아 기존 데이터를 보존한다.
 - 빈 응답, 실패 코드와 Feign 예외는 `ExApiClient` 공통 `fetch()`에서 처리한다.
 
 ---
 
 ## 내부 API
+
+모든 JSON 응답은 `ApiResponse<T>` 형식을 사용한다.
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": {}
+}
+```
+
+### GET /api/map-config
+
+브라우저가 네이버 지도 스크립트를 불러올 때 사용할 `naverMapsNcpKeyId`를 반환한다.
+
+### GET /api/rest-stops
+
+DB에 저장된 전체 휴게소 위치 목록을 반환한다. 각 항목에는 휴게소명, 노선, 좌표,
+`stdRestCd`와 상세 조회에 사용하는 `serviceAreaCode`가 포함된다.
+
+### GET /api/rest-stops/{serviceAreaCode}
+
+휴게소 위치를 기준으로 상세, 영업시설, 주유소 편의시설, 주유 가격과 먹거리 데이터를 조합해 반환한다.
+
+주요 응답 영역은 다음과 같다.
+
+- 위치: 노선, 좌표, 주소와 방향
+- 시설: 편의시설, 경정비·화물휴게소 운영 여부와 차종별 주차 수
+- `oilInfo`: 정유사, 유종별 가격, 전화번호, 마지막 갱신 시각과 주유소 편의시설
+- `foodMenu.menus`: 메뉴명, 가격, 설명과 대표 메뉴 여부
+
+해당 `serviceAreaCode`가 없으면 HTTP 404와 `NOT_FOUND`를 반환한다.
 
 ### POST /api/rest-stops/{serviceAreaCode}/oil-price/refresh
 
@@ -419,6 +470,43 @@ GET https://data.ex.co.kr/openapi/restinfo/restBestfoodList
 최근 10분 이내 저장값이 있으면 `SUCCESS`를 반환하며, 응답 형태는 upstream 호출 성공 시와 같다.
 `lastRefreshedAt`은 DB에 저장된 주유소 가격의 마지막 갱신 시각이며, 값이 없으면 `null`이다.
 
+### GET /api/place-search
+
+카카오 키워드 검색 결과 중 좌표를 해석할 수 있는 후보를 반환한다. 화면은 첫 번째 결과를 자동 선택하지 않고
+후보의 이름과 주소를 보여준 뒤 사용자가 목적지를 선택하게 한다.
+
+| 위치 | 이름 | 조건 | 설명 |
+|---|---|---|---|
+| Query | `query` | 필수 | 검색할 장소명 또는 주소 문자열 |
+
+각 후보는 `name`, `address`, `latitude`, `longitude`를 포함한다. 검색 결과가 없으면 빈 배열을 반환한다.
+
+### GET /api/route-rest-stops
+
+출발 좌표와 목적지를 이용해 카카오 자동차 경로를 조회하고, 경로 반경 안에 있는 휴게소를 진행 순서대로 반환한다.
+
+| 위치 | 이름 | 조건 | 설명 |
+|---|---|---|---|
+| Query | `originLat` | 필수 | 출발 위도 |
+| Query | `originLng` | 필수 | 출발 경도 |
+| Query | `destinationQuery` | 선택 | 목적지 검색어 |
+| Query | `destinationLat` | 선택 | 사용자가 선택한 목적지 위도 |
+| Query | `destinationLng` | 선택 | 사용자가 선택한 목적지 경도 |
+| Query | `destinationName` | 선택 | 화면에 표시할 목적지명 |
+| Query | `radiusMeters` | 선택 | 경로 포함 반경, 기본값 `1000` |
+
+목적지 좌표가 있으면 검색 없이 해당 좌표를 사용한다. 좌표가 없으면 `destinationQuery`로 검색한 첫 결과를
+사용하는 하위 호환 경로가 남아 있다. 현재 화면은 `/api/place-search`에서 사용자가 고른 목적지 좌표를 전달한다.
+
+응답 `data`는 다음 영역으로 구성된다.
+
+- `destination`: 목적지 이름과 좌표
+- `route`: 전체 거리(m), 예상 시간(초)과 다운샘플링한 `[경도, 위도]` 경로 좌표
+- `restStops`: 휴게소 코드, 이름, 노선, 좌표와 경로로부터의 거리(m)
+
+목적지나 경로를 찾지 못하면 HTTP 404와 `NOT_FOUND`를 반환한다. 카카오 API 호출 자체가 실패하면
+`EXTERNAL_API_UNAVAILABLE`을 반환한다.
+
 ---
 
 ## 다음 API를 추가할 때 기록할 것
@@ -440,8 +528,6 @@ GET https://data.ex.co.kr/openapi/restinfo/restBestfoodList
 # 카카오 API 연동 (경로 탐색)
 
 한국도로공사 OpenAPI와 별개 제공자(Kakao). 경로 기반 휴게소 탐색용. 인증은 헤더 `Authorization: KakaoAK {REST_API_KEY}`. 키는 서버 환경변수로만 주입하고 소스/커밋에 넣지 않는다.
-
-요금: 카카오모빌리티 자동차 길찾기는 **일 10,000건 무료**(초과분만 과금). 로컬(주소/장소 검색)은 무료 쿼터.
 
 ## 자동차 길찾기 — Directions (카카오모빌리티)
 
@@ -467,16 +553,17 @@ HTTP 200, result_code 0, distance 382296m, duration 16572s, sections 1, path poi
 vertexes 예: [127.03902,37.48391, 127.03877,37.48387, ...]
 ```
 
-## 주소/장소 검색 — Local (Kakao Developers)
+## 장소 검색 — Local (Kakao Developers)
 
 콘솔에서 카카오맵(OPEN_MAP_AND_LOCAL) 서비스 활성화 필요(무료). 미활성 시 403 `NotAuthorizedError`.
 
 ### 엔드포인트 (2026-06-17 실측)
 ```
 GET https://dapi.kakao.com/v2/local/search/keyword.json?query={장소}   # 장소명
-GET https://dapi.kakao.com/v2/local/search/address.json?query={주소}   # 주소
 ```
+
+현재 코드는 키워드 검색 endpoint만 호출한다. 주소 검색 endpoint는 연결하지 않았다.
 
 ### 응답 (2026-06-17 실측)
 - `documents[]` 배열. 각 항목 `x`(경도, 문자열), `y`(위도, 문자열), `place_name`(키워드) / `address_name`·`road_address_name`(주소).
-- 실측: `해운대해수욕장`(keyword) → x=129.1598, y=35.1585 / `부산 해운대구 우동`(address) → x=129.1484, y=35.1727.
+- 실측: `해운대해수욕장`(keyword) → x=129.1598, y=35.1585.
