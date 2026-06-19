@@ -24,8 +24,11 @@
 
 | 기준 데이터 | 연결 데이터 | 연결 조건 | 검증 상태 |
 |---|---|---|---|
+| `rest_stop` | `rest_stop_detail` | `service_area_code = service_area_code` | 코드 적용, 실측 기록 필요 |
+| `rest_stop` | `highway_service_area_info` | `service_area_code = business_facility_code` | 코드 적용, 실측 기록 필요 |
 | `rest_stop` | `rest_oil` | `route_no = route_code` + 시설명에서 `휴게소`/`주유소`와 공백을 제거한 정규화 이름 일치 | 2026-06-15 실측 |
 | `rest_oil` | `rest_oil_price` | `standard_rest_code = service_area_code2` | 2026-06-16 실측 |
+| `rest_stop` | `rest_food` | `std_rest_cd = std_rest_cd` | 2026-06-16 실측 |
 
 `rest_stop.std_rest_cd`와 `rest_oil.standard_rest_code`는 같은 장소의 휴게소와 주유소에도
 서로 다른 시설 코드가 발급된다. 서울만남(부산)의 경우 각각 `000001`, `000002`이며,
@@ -52,15 +55,21 @@
 `rest_stop.std_rest_cd`와 직접 일치함을 확인했다. 서울만남(부산)휴게소가 양쪽 모두 `000001`이며,
 주유소(`rest_oil`)와 달리 정규화 이름 매칭 없이 `std_rest_cd`로 바로 조인한다.
 음식 API 전용 코드 `restCd`(`S000001`)는 연결에 사용하지 않는다.
-코드와 데이터가 기본 브랜치에 통합되면 위 연결 표에 정식 반영한다.
 
-현재 개발 중인 데이터 관계는 실제 데이터와 코드가 기본 브랜치에 통합된 뒤 이 표에 반영한다.
+`rest_stop_detail`과 `highway_service_area_info` 연결은 현재 상세 조회에 적용되어 있지만,
+대표 표본과 전체 일치율을 확인한 실측 기록은 아직 없다. 연결 조건을 변경하기 전에 실제 응답으로 검증한다.
+
+경로 탐색 결과는 별도 테이블에 저장하지 않는다. 저장된 `rest_stop` 좌표를 카카오 길찾기 경로와
+비교하고, 기본 반경 1km 안의 휴게소를 경로 순서대로 계산해 응답한다.
 
 ## 갱신 원칙
 
 - 정기 갱신 데이터는 API별 동기화 책임을 분리한다.
 - 외부 API 호출과 DB 쓰기 트랜잭션을 한 범위에 묶지 않는다.
 - 전체 교체, 부분 갱신과 실패 시 기존 데이터 보존 여부는 API별 스펙에서 결정한다.
+- 전체 교체 방식의 동기화는 모든 페이지 조회가 끝난 뒤 트랜잭션 안에서 기존 데이터를 교체한다.
+- 휴게소 위치·상세·영업시설·주유소 편의시설·먹거리는 매일, 주유 가격은 3시간마다 갱신한다.
+- 서버 시작 시 주요 테이블이 비어 있을 때만 초기 동기화를 실행한다.
 
 ## 미결정 사항
 
