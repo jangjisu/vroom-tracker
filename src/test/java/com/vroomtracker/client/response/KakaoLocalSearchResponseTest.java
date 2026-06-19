@@ -14,8 +14,7 @@ class KakaoLocalSearchResponseTest {
     void isEmpty() {
         assertThat(new KakaoLocalSearchResponse(null).isEmpty()).isTrue();
         assertThat(new KakaoLocalSearchResponse(List.of()).isEmpty()).isTrue();
-        assertThat(new KakaoLocalSearchResponse(List.of(new Document("1", "2", "p", null)))
-                        .isEmpty())
+        assertThat(new KakaoLocalSearchResponse(List.of(new Document("1", "2", "p", null))).isEmpty())
                 .isFalse();
     }
 

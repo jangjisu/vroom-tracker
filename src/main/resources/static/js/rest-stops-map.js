@@ -15,6 +15,8 @@ import {
     parseConvenience
 } from './rest-stop-detail-formatters.js';
 import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
+import { createRouteRestStopRequest } from './route-rest-stop-request.js';
+import { createPlaceSearchRequest } from './place-search-request.js';
 
 const MAP_CONFIG_ENDPOINT = '/api/map-config';
 const REST_STOPS_ENDPOINT = '/api/rest-stops';
@@ -45,6 +47,13 @@ let currentLocation;
 let currentLocationMarker;
 let foodExpanded = false;
 let currentFoodMenus = [];
+let routeRequest;
+let placeSearchRequest;
+let routePolyline;
+let routeMarkers = [];
+let originMarker;
+let destinationMarker;
+let currentRouteRestStops = [];
 
 export async function initRestStopMap() {
     const mapElement = document.getElementById('restStopMap');
@@ -57,6 +66,8 @@ export async function initRestStopMap() {
     detailPanelEventController?.abort();
     detailPanelEventController = new globalThis.AbortController();
     detailRequest = createRestStopDetailRequest({ onState: renderDetailState });
+    routeRequest = createRouteRestStopRequest({ onState: renderRouteState });
+    placeSearchRequest = createPlaceSearchRequest({ onState: renderPlaceSearchState });
     bindDetailPanelEvents();
 
     try {
@@ -89,6 +100,7 @@ export async function initRestStopMap() {
 
         map = createMap(mapElement, naverMaps, initialCenter);
         bindLocateControl();
+        bindRouteSearch();
 
         setText('restStopMapStatus', '휴게소 불러오는 중');
         const restStopResult = await fetchRestStops();
@@ -295,6 +307,12 @@ function bindDetailPanelEvents() {
             return;
         }
         if (document.getElementById('restStopFoodModal')?.open) {
+            return;
+        }
+        if (document.getElementById('routeResultModal')?.open) {
+            return;
+        }
+        if (document.getElementById('placeCandidateModal')?.open) {
             return;
         }
         const panel = document.getElementById('restStopDetailPanel');
@@ -768,6 +786,367 @@ function createOilConvenienceDetail(convenience) {
     item.appendChild(time);
 
     return item;
+}
+
+function bindRouteSearch() {
+    if (!detailPanelEventController) {
+        return;
+    }
+
+    document.getElementById('routeSearchButton')?.addEventListener('click', searchRoute, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('routeSearchInput')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            searchRoute();
+        }
+    }, { signal: detailPanelEventController.signal });
+    document.getElementById('routeResultOpen')?.addEventListener('click', openRouteResultModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('routeResultModalClose')?.addEventListener('click', closeRouteResultModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('routeResultModal')?.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            closeRouteResultModal();
+        }
+    }, { signal: detailPanelEventController.signal });
+    document.getElementById('placeCandidateModalClose')?.addEventListener('click', closePlaceCandidateModal, {
+        signal: detailPanelEventController.signal
+    });
+    document.getElementById('placeCandidateModal')?.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            closePlaceCandidateModal();
+        }
+    }, { signal: detailPanelEventController.signal });
+}
+
+function openRouteResultModal() {
+    const modal = document.getElementById('routeResultModal');
+    if (modal && currentRouteRestStops.length > 0 && !modal.open) {
+        modal.showModal();
+    }
+}
+
+function closeRouteResultModal() {
+    const modal = document.getElementById('routeResultModal');
+    if (modal?.open) {
+        modal.close();
+    }
+}
+
+function toggleRouteResultButton(visible) {
+    document.getElementById('routeResultOpen')?.classList.toggle('d-none', !visible);
+}
+
+function searchRoute() {
+    const input = document.getElementById('routeSearchInput');
+    const query = input ? input.value.trim() : '';
+    if (query === '') {
+        setRouteStatus('목적지를 입력해주세요.');
+        return;
+    }
+
+    if (placeSearchRequest) {
+        placeSearchRequest.load(query);
+    }
+}
+
+function renderPlaceSearchState(state) {
+    if (state.status === 'loading') {
+        setRouteStatus('목적지를 검색하는 중입니다...');
+        return;
+    }
+
+    if (state.status === 'success') {
+        if (state.candidates.length === 0) {
+            setRouteStatus('검색 결과가 없습니다. 다른 목적지를 입력해보세요.');
+            return;
+        }
+        renderCandidates(state.candidates);
+        openPlaceCandidateModal();
+        setRouteStatus(`후보 ${state.candidates.length}곳 중 목적지를 선택하세요.`);
+        return;
+    }
+
+    if (state.status === 'external-unavailable') {
+        showApiUnavailableAlert();
+        setRouteStatus('일시적으로 목적지를 검색하지 못했습니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
+
+    setRouteStatus('목적지 검색에 실패했습니다. 잠시 후 다시 시도해주세요.');
+}
+
+function renderCandidates(candidates) {
+    const list = document.getElementById('placeCandidateList');
+    if (!list) {
+        return;
+    }
+
+    list.replaceChildren();
+    candidates.forEach((candidate) => list.appendChild(createCandidateItem(candidate)));
+}
+
+function createCandidateItem(candidate) {
+    const item = document.createElement('li');
+    item.className = 'route-result-item';
+
+    const name = document.createElement('p');
+    name.className = 'route-result-name';
+    name.textContent = formatText(candidate?.name, '이름 정보 없음');
+    item.appendChild(name);
+
+    const meta = document.createElement('p');
+    meta.className = 'route-result-meta';
+    meta.textContent = formatText(candidate?.address, '주소 정보 없음');
+    item.appendChild(meta);
+
+    item.addEventListener('click', () => selectDestination(candidate));
+
+    return item;
+}
+
+function selectDestination(candidate) {
+    closePlaceCandidateModal();
+
+    if (!routeRequest) {
+        return;
+    }
+
+    resolveOrigin((origin) => {
+        if (!origin) {
+            setRouteStatus('현재 위치를 확인할 수 없어 경로를 찾지 못했습니다.');
+            return;
+        }
+
+        routeRequest.load(
+            origin.latitude,
+            origin.longitude,
+            null,
+            candidate?.latitude,
+            candidate?.longitude,
+            candidate?.name
+        );
+    });
+}
+
+function openPlaceCandidateModal() {
+    const modal = document.getElementById('placeCandidateModal');
+    if (modal && !modal.open) {
+        modal.showModal();
+    }
+}
+
+function closePlaceCandidateModal() {
+    const modal = document.getElementById('placeCandidateModal');
+    if (modal?.open) {
+        modal.close();
+    }
+}
+
+function resolveOrigin(callback) {
+    if (currentLocation) {
+        callback(currentLocation);
+        return;
+    }
+
+    if (!navigator.geolocation) {
+        callback(undefined);
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            currentLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            callback(currentLocation);
+        },
+        () => callback(undefined),
+        GEOLOCATION_OPTIONS
+    );
+}
+
+function renderRouteState(state) {
+    if (state.status === 'loading') {
+        setRouteStatus('경로를 찾는 중입니다...');
+        return;
+    }
+
+    if (state.status === 'success') {
+        renderRoute(state.data);
+        return;
+    }
+
+    clearRouteOverlays();
+    renderRouteList([]);
+    toggleRouteResultButton(false);
+    closeRouteResultModal();
+    if (state.status === 'not-found') {
+        setRouteStatus('목적지 또는 경로를 찾지 못했습니다.');
+        return;
+    }
+
+    if (state.status === 'external-unavailable') {
+        showApiUnavailableAlert();
+        setRouteStatus('일시적으로 경로를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        return;
+    }
+
+    setRouteStatus('경로를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.');
+}
+
+function renderRoute(data) {
+    clearRouteOverlays();
+
+    const path = Array.isArray(data?.route?.path) ? data.route.path : [];
+    const latLngs = path
+        .filter((point) => Array.isArray(point) && point.length === 2)
+        .map((point) => new naverMaps.LatLng(point[1], point[0]));
+    if (latLngs.length > 0) {
+        routePolyline = new naverMaps.Polyline({
+            map,
+            path: latLngs,
+            strokeColor: '#0d6efd',
+            strokeWeight: 5,
+            strokeOpacity: 0.85
+        });
+        fitMapToPath(latLngs);
+    }
+
+    renderEndpointMarkers(data?.destination);
+
+    const restStops = Array.isArray(data?.restStops) ? data.restStops : [];
+    restStops.forEach((restStop) => {
+        const marker = new naverMaps.Marker({
+            map,
+            position: new naverMaps.LatLng(restStop.latitude, restStop.longitude),
+            icon: {
+                content: '<div class="route-rest-stop-marker"></div>',
+                anchor: new naverMaps.Point(7, 7)
+            },
+            zIndex: 900
+        });
+        routeMarkers.push(marker);
+    });
+
+    currentRouteRestStops = restStops;
+    renderRouteList(restStops);
+    const destinationName = data?.destination?.name ?? '목적지';
+    setRouteStatus(`${destinationName}까지 경로상 휴게소 ${restStops.length}곳`);
+
+    const button = document.getElementById('routeResultOpen');
+    if (button) {
+        button.textContent = `경로 결과 ${restStops.length}곳`;
+    }
+    toggleRouteResultButton(restStops.length > 0);
+    openRouteResultModal();
+}
+
+function renderEndpointMarkers(destination) {
+    if (currentLocation) {
+        originMarker = new naverMaps.Marker({
+            map,
+            position: new naverMaps.LatLng(currentLocation.latitude, currentLocation.longitude),
+            icon: {
+                content: '<div class="route-origin-marker"></div>',
+                anchor: new naverMaps.Point(9, 9)
+            },
+            zIndex: 1000
+        });
+    }
+
+    if (destination && Number.isFinite(destination.latitude) && Number.isFinite(destination.longitude)) {
+        destinationMarker = new naverMaps.Marker({
+            map,
+            position: new naverMaps.LatLng(destination.latitude, destination.longitude),
+            icon: {
+                content: '<div class="route-destination-marker">도착</div>',
+                anchor: new naverMaps.Point(18, 28)
+            },
+            zIndex: 1000
+        });
+    }
+}
+
+function fitMapToPath(latLngs) {
+    const bounds = new naverMaps.LatLngBounds(latLngs[0], latLngs[0]);
+    latLngs.forEach((latLng) => bounds.extend(latLng));
+    map.fitBounds(bounds);
+}
+
+function renderRouteList(restStops) {
+    const list = document.getElementById('routeResultList');
+    if (!list) {
+        return;
+    }
+
+    list.replaceChildren();
+    restStops.forEach((restStop) => list.appendChild(createRouteResultItem(restStop)));
+}
+
+function createRouteResultItem(restStop) {
+    const item = document.createElement('li');
+    item.className = 'route-result-item';
+
+    const name = document.createElement('p');
+    name.className = 'route-result-name';
+    name.textContent = formatText(restStop?.unitName, '이름 정보 없음');
+    item.appendChild(name);
+
+    const meta = document.createElement('p');
+    meta.className = 'route-result-meta';
+    const routeName = formatText(restStop?.routeName, '노선 정보 없음');
+    const distance = Number.isFinite(restStop?.distanceFromRouteMeters)
+        ? `경로에서 ${restStop.distanceFromRouteMeters}m`
+        : '';
+    meta.textContent = distance === '' ? routeName : `${routeName} · ${distance}`;
+    item.appendChild(meta);
+
+    item.addEventListener('click', () => selectRouteRestStop(restStop));
+
+    return item;
+}
+
+function selectRouteRestStop(restStop) {
+    closeRouteResultModal();
+
+    if (Number.isFinite(restStop?.latitude) && Number.isFinite(restStop?.longitude)) {
+        map.panTo(new naverMaps.LatLng(restStop.latitude, restStop.longitude));
+    }
+
+    openDetailPanel({
+        serviceAreaCode: restStop?.serviceAreaCode,
+        unitName: restStop?.unitName
+    });
+}
+
+function clearRouteOverlays() {
+    if (routePolyline) {
+        routePolyline.setMap(null);
+        routePolyline = undefined;
+    }
+
+    if (originMarker) {
+        originMarker.setMap(null);
+        originMarker = undefined;
+    }
+
+    if (destinationMarker) {
+        destinationMarker.setMap(null);
+        destinationMarker = undefined;
+    }
+
+    routeMarkers.forEach((marker) => marker.setMap(null));
+    routeMarkers = [];
+    currentRouteRestStops = [];
+}
+
+function setRouteStatus(message) {
+    setText('routeSearchStatus', message);
 }
 
 function showMapError(message, status = '불러오기 실패') {

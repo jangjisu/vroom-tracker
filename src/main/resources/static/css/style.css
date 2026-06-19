@@ -150,6 +150,130 @@ body {
     box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.45);
 }
 
+.route-search-bar {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.route-search-input {
+    flex: 1 1 240px;
+    min-width: 0;
+}
+
+.route-search-button {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.route-result-open {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.route-result-modal {
+    width: min(92vw, 30rem);
+    max-height: min(80vh, 36rem);
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+}
+
+.route-result-modal::backdrop {
+    background-color: rgba(15, 23, 42, 0.5);
+}
+
+.route-result-modal[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.route-result-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.route-result-modal-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.route-result-modal .route-result-list {
+    padding: 1rem 1.25rem 1.25rem;
+    overflow-y: auto;
+}
+
+.route-search-status {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.route-result-list {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+}
+
+.route-result-item {
+    padding: 0.5rem 0.5rem;
+    border-bottom: 1px solid #eef1f6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+
+.route-result-item:hover {
+    background-color: #f3f7fd;
+}
+
+.route-origin-marker {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: #198754;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.45);
+}
+
+.route-destination-marker {
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    background-color: #dc3545;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.route-result-name {
+    margin: 0;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.route-result-meta {
+    margin: 0.2rem 0 0;
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.route-rest-stop-marker {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #e8590c;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px rgba(232, 89, 12, 0.4);
+}
+
 .rest-stop-detail-panel {
     position: relative;
     min-height: 0;

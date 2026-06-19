@@ -1,5 +1,6 @@
 package com.vroomtracker.controller;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -49,7 +50,7 @@ class RouteRestStopControllerTest {
                 new Destination("부산역", 35.0, 129.0),
                 new RouteSummary(100L, 200L, List.of(List.of(127.0, 37.0))),
                 List.of(new RouteRestStopItem("A", "A휴게소", "경부선", 37.0, 127.0, 12L)));
-        when(routeRestStopService.findRouteRestStops(eq(37.0), eq(127.0), eq("부산"), eq(1000)))
+        when(routeRestStopService.findRouteRestStops(eq(37.0), eq(127.0), eq("부산"), any(), any(), any(), eq(1000)))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/route-rest-stops")
@@ -68,7 +69,8 @@ class RouteRestStopControllerTest {
     @Test
     @DisplayName("목적지를 찾지 못하면 404 NOT_FOUND를 반환한다")
     void notFound_returns404() throws Exception {
-        when(routeRestStopService.findRouteRestStops(anyDouble(), anyDouble(), anyString(), anyInt()))
+        when(routeRestStopService.findRouteRestStops(
+                        anyDouble(), anyDouble(), anyString(), any(), any(), any(), anyInt()))
                 .thenThrow(new RouteRestStopNotFoundException("없음"));
 
         mockMvc.perform(get("/api/route-rest-stops")
@@ -82,7 +84,8 @@ class RouteRestStopControllerTest {
     @Test
     @DisplayName("카카오 호출 실패 시 EXTERNAL_API_UNAVAILABLE를 반환한다")
     void kakaoFailure_returnsExternalUnavailable() throws Exception {
-        when(routeRestStopService.findRouteRestStops(anyDouble(), anyDouble(), anyString(), anyInt()))
+        when(routeRestStopService.findRouteRestStops(
+                        anyDouble(), anyDouble(), anyString(), any(), any(), any(), anyInt()))
                 .thenThrow(new KakaoApiException("directions", "boom"));
 
         mockMvc.perform(get("/api/route-rest-stops")

@@ -23,10 +23,13 @@ public class RouteRestStopController {
     public ResponseEntity<ApiResponse<RouteRestStopResponse>> getRouteRestStops(
             @RequestParam double originLat,
             @RequestParam double originLng,
-            @RequestParam String destinationQuery,
+            @RequestParam(required = false) String destinationQuery,
+            @RequestParam(required = false) Double destinationLat,
+            @RequestParam(required = false) Double destinationLng,
+            @RequestParam(required = false) String destinationName,
             @RequestParam(required = false, defaultValue = "" + DEFAULT_RADIUS_METERS) int radiusMeters) {
-        RouteRestStopResponse response =
-                routeRestStopService.findRouteRestStops(originLat, originLng, destinationQuery, radiusMeters);
+        RouteRestStopResponse response = routeRestStopService.findRouteRestStops(
+                originLat, originLng, destinationQuery, destinationLat, destinationLng, destinationName, radiusMeters);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
