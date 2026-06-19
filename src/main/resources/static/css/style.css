@@ -50,8 +50,8 @@ body {
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     align-items: stretch;
-    min-height: 480px;
-    height: calc(100vh - 220px);
+    min-height: 360px;
+    height: calc(100vh - 310px);
 }
 
 .rest-stop-map-layout:has(.rest-stop-detail-panel:not(.d-none)) {
