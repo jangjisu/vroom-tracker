@@ -1383,11 +1383,7 @@ function createRouteResultItem(restStop) {
 
     const meta = document.createElement('p');
     meta.className = 'route-result-meta';
-    const routeName = formatText(restStop?.routeName, '노선 정보 없음');
-    const distance = Number.isFinite(restStop?.distanceFromRouteMeters)
-        ? `경로에서 ${restStop.distanceFromRouteMeters}m`
-        : '';
-    meta.textContent = distance === '' ? routeName : `${routeName} · ${distance}`;
+    meta.textContent = formatText(restStop?.routeName, '노선 정보 없음');
     item.appendChild(meta);
 
     item.addEventListener('click', () => selectRouteRestStop(restStop));
