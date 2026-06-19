@@ -55,6 +55,8 @@ let routeRequest;
 let placeSearchRequest;
 let routePolyline;
 let routeMarkers = [];
+let allRestStopMarkers = [];
+let markerMode = 'all';
 let originMarker;
 let destinationMarker;
 let currentRouteRestStops = [];
@@ -113,6 +115,7 @@ export async function initRestStopMap() {
         bindLocateControl();
         bindRouteSearch();
         bindRouteMapClick();
+        bindMarkerModeToggle();
 
         setText('restStopMapStatus', '휴게소 불러오는 중');
         const restStopResult = await fetchRestStops();
@@ -240,6 +243,7 @@ async function fetchRestStops() {
 
 function renderRestStops(restStops) {
     let markerCount = 0;
+    allRestStopMarkers = [];
 
     restStops.forEach((restStop) => {
         const latitude = Number.parseFloat(restStop.yValue);
@@ -272,10 +276,46 @@ function renderRestStops(restStops) {
             map.panTo(position);
         });
 
+        allRestStopMarkers.push(marker);
         markerCount += 1;
     });
 
     setText('restStopMapStatus', `${markerCount.toLocaleString()}개 표시`);
+    applyMarkerMode();
+}
+
+function applyMarkerMode() {
+    const target = markerMode === 'all' ? map : null;
+    allRestStopMarkers.forEach((marker) => marker.setMap(target));
+    updateMarkerModeButton();
+}
+
+function setMarkerMode(mode) {
+    markerMode = mode;
+    applyMarkerMode();
+}
+
+function toggleMarkerMode() {
+    setMarkerMode(markerMode === 'all' ? 'route' : 'all');
+}
+
+function updateMarkerModeButton() {
+    const button = document.getElementById('markerModeToggle');
+    if (!button) {
+        return;
+    }
+    button.textContent = markerMode === 'all' ? '전체 휴게소 보기' : '경로상 휴게소 보기';
+}
+
+function bindMarkerModeToggle() {
+    if (!detailPanelEventController) {
+        return;
+    }
+
+    document.getElementById('markerModeToggle')?.addEventListener('click', toggleMarkerMode, {
+        signal: detailPanelEventController.signal
+    });
+    updateMarkerModeButton();
 }
 
 export function createPopupContent(restStop) {
@@ -1327,6 +1367,7 @@ function renderRoute(data) {
     }
     toggleRouteResultButton(restStops.length > 0);
     openRouteResultModal();
+    setMarkerMode('route');
 }
 
 function renderEndpointMarkers(destination) {
