@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createPopupContent } from '../../main/resources/static/js/rest-stops-map.js';
+import {
+    createPopupContent,
+    routeMapSelectionMessage,
+    routePointLabel
+} from '../../main/resources/static/js/rest-stops-map.js';
 
 test('createPopupContent renders rest stop popup as a small summary card', () => {
     const content = createPopupContent({
@@ -25,4 +29,23 @@ test('createPopupContent escapes rest stop text before rendering HTML', () => {
     assert.match(content, /&lt;b&gt;경부선&lt;\/b&gt;/);
     assert.doesNotMatch(content, /<script>/);
     assert.doesNotMatch(content, /<b>경부선<\/b>/);
+});
+
+test('routePointLabel shows a selected point without repeating missing text', () => {
+    assert.equal(
+        routePointLabel({ name: '구로역', address: '서울 구로구 구로동' }, '미설정'),
+        '구로역 · 서울 구로구 구로동'
+    );
+    assert.equal(
+        routePointLabel({ name: '지도에서 선택한 위치', address: '' }, '미설정'),
+        '지도에서 선택한 위치'
+    );
+    assert.equal(routePointLabel(undefined, '출발지를 설정하세요'), '출발지를 설정하세요');
+});
+
+test('routeMapSelectionMessage distinguishes target and confirmation state', () => {
+    assert.equal(routeMapSelectionMessage('origin', false), '지도에서 출발 위치를 선택하세요.');
+    assert.equal(routeMapSelectionMessage('origin', true), '선택한 출발 위치를 확정해주세요.');
+    assert.equal(routeMapSelectionMessage('destination', false), '지도에서 도착 위치를 선택하세요.');
+    assert.equal(routeMapSelectionMessage('destination', true), '선택한 도착 위치를 확정해주세요.');
 });
