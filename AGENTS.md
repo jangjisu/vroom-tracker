@@ -63,6 +63,7 @@
 
 ```text
 PRODUCT.md       제품 범위와 사용자 가치
+USER_INSIGHTS.md 사용자 유형, 행동 가설과 다음 브레인스토밍 질문
 DATA.md          데이터 저장, 관계와 연결 키
 ARCHITECTURE.md  레이어 책임과 코드 구조
 QUALITY.md       테스트와 품질 기준
