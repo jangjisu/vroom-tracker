@@ -80,6 +80,13 @@ body {
     overflow: hidden;
 }
 
+.rest-stop-map-stage {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+}
+
 .rest-stop-map-popup-card {
     position: relative;
     min-width: 190px;
@@ -150,15 +157,52 @@ body {
     box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.45);
 }
 
-.route-search-bar {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+.route-point-search {
+    display: grid;
+    gap: 0.65rem;
+    padding: 0.8rem;
+    border: 1px solid #d7dde8;
+    border-radius: 10px;
+    background-color: #fff;
 }
 
-.route-search-input {
-    flex: 1 1 240px;
+.route-point-row {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto auto;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.route-origin-row {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+}
+
+.route-point-label {
+    color: #495057;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.route-point-value {
     min-width: 0;
+    padding: 0.45rem 0.7rem;
+    border-radius: 7px;
+    background-color: #f4f7fb;
+    color: #495057;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+.route-point-value.is-selected {
+    color: #172b4d;
+    font-weight: 700;
+}
+
+.route-point-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 .route-search-button {
@@ -169,6 +213,46 @@ body {
 .route-result-open {
     white-space: nowrap;
     font-weight: 600;
+}
+
+.route-map-selection-toolbar {
+    position: absolute;
+    z-index: 1200;
+    right: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid #cbd8ef;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 8px 24px rgba(23, 43, 77, 0.2);
+}
+
+.route-map-selection-message {
+    margin: 0;
+    color: #172b4d;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.route-map-selection-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.5rem;
+}
+
+.route-map-draft-marker {
+    width: 24px;
+    height: 24px;
+    border: 4px solid #fff;
+    border-radius: 50% 50% 50% 0;
+    background-color: #0d6efd;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.4);
+    transform: rotate(-45deg);
 }
 
 .route-result-modal {
@@ -209,6 +293,44 @@ body {
     overflow-y: auto;
 }
 
+.route-point-modal {
+    width: min(92vw, 28rem);
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+}
+
+.route-point-modal::backdrop {
+    background-color: rgba(15, 23, 42, 0.5);
+}
+
+.route-point-modal[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.route-point-modal-body {
+    padding: 1.25rem;
+}
+
+.route-point-modal-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+    color: #868e96;
+    font-size: 0.75rem;
+}
+
+.route-point-modal-divider::before,
+.route-point-modal-divider::after {
+    height: 1px;
+    background-color: #e2e8f0;
+    content: '';
+    flex: 1;
+}
+
 .route-search-status {
     color: #6c757d;
     font-size: 0.9rem;
@@ -231,6 +353,28 @@ body {
 
 .route-result-item:hover {
     background-color: #f3f7fd;
+}
+
+.route-candidate-item {
+    padding: 0;
+    cursor: default;
+}
+
+.route-candidate-button {
+    width: 100%;
+    padding: 0.65rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+}
+
+.route-candidate-button:hover,
+.route-candidate-button:focus-visible {
+    background-color: #f3f7fd;
+    outline: 2px solid #86b7fe;
+    outline-offset: 1px;
 }
 
 .route-origin-marker {
@@ -551,6 +695,32 @@ body {
 
     .rest-stop-map-layout {
         height: auto;
+    }
+
+    .rest-stop-map-stage {
+        height: 60vh;
+        min-height: 420px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .route-point-row,
+    .route-origin-row {
+        grid-template-columns: 42px minmax(0, 1fr);
+    }
+
+    .route-point-row .btn,
+    .route-origin-row .btn {
+        grid-column: 2;
+    }
+
+    .route-map-selection-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .route-map-selection-actions .btn {
+        flex: 1;
     }
 }
 

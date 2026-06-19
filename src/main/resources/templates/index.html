@@ -33,20 +33,53 @@
                 </div>
             </div>
         </div>
-        <div class="route-search-bar mb-2">
-            <input id="routeSearchInput" type="text" class="form-control route-search-input"
-                   placeholder="목적지를 입력하세요 (예: 부산역)" aria-label="목적지 검색">
-            <button id="routeSearchButton" class="btn btn-primary route-search-button" type="button">
-                <i class="bi bi-signpost-split me-1"></i>경로 휴게소 찾기
-            </button>
-            <button id="routeResultOpen" class="btn btn-outline-secondary route-result-open d-none"
-                    type="button" aria-haspopup="dialog" aria-controls="routeResultModal">
-                <i class="bi bi-list-ul me-1"></i>경로 결과
-            </button>
+        <div class="route-point-search mb-2">
+            <div class="route-point-row route-origin-row">
+                <span class="route-point-label">출발</span>
+                <output id="routeOriginValue" class="route-point-value">출발지를 설정하세요</output>
+                <button id="routeOriginChangeButton" class="btn btn-sm btn-outline-primary" type="button"
+                        aria-haspopup="dialog" aria-controls="routeOriginModal">
+                    설정
+                </button>
+            </div>
+            <div class="route-point-row">
+                <label class="route-point-label" for="routeDestinationInput">도착</label>
+                <input id="routeDestinationInput" type="text" class="form-control"
+                       placeholder="목적지를 입력하세요 (예: 부산역)" aria-label="도착지 검색">
+                <button id="routeDestinationSearchButton" class="btn btn-outline-primary" type="button">
+                    검색
+                </button>
+                <button id="routeDestinationMapButton" class="btn btn-outline-secondary" type="button">
+                    지도 선택
+                </button>
+            </div>
+            <div class="route-point-actions">
+                <button id="routeSearchButton" class="btn btn-primary route-search-button" type="button">
+                    <i class="bi bi-signpost-split me-1"></i>경로 휴게소 찾기
+                </button>
+                <button id="routeResultOpen" class="btn btn-outline-secondary route-result-open d-none"
+                        type="button" aria-haspopup="dialog" aria-controls="routeResultModal">
+                    <i class="bi bi-list-ul me-1"></i>경로 결과
+                </button>
+            </div>
         </div>
         <div id="routeSearchStatus" class="route-search-status mb-3" aria-live="polite"></div>
         <div class="rest-stop-map-layout">
-            <div id="restStopMap" class="rest-stop-map" tabindex="0" aria-label="휴게소 위치 지도"></div>
+            <div class="rest-stop-map-stage">
+                <div id="restStopMap" class="rest-stop-map" tabindex="0" aria-label="휴게소 위치 지도"></div>
+                <div id="routeMapSelectionToolbar" class="route-map-selection-toolbar d-none"
+                     role="group" aria-label="지도 위치 선택">
+                    <p id="routeMapSelectionMessage" class="route-map-selection-message" aria-live="polite"></p>
+                    <div class="route-map-selection-actions">
+                        <button id="routeMapSelectionConfirm" class="btn btn-primary" type="button" disabled>
+                            이 위치로 선택
+                        </button>
+                        <button id="routeMapSelectionCancel" class="btn btn-outline-secondary" type="button">
+                            취소
+                        </button>
+                    </div>
+                </div>
+            </div>
             <aside id="restStopDetailPanel" class="rest-stop-detail-panel d-none"
                    aria-labelledby="restStopDetailName" aria-busy="false">
                 <div class="rest-stop-detail-header">
@@ -156,11 +189,33 @@
             </div>
             <ol id="routeResultList" class="route-result-list"></ol>
         </dialog>
+        <dialog id="routeOriginModal" class="route-point-modal" aria-labelledby="routeOriginModalTitle">
+            <div class="route-result-modal-header">
+                <h3 id="routeOriginModalTitle" class="route-result-modal-title">출발지 설정</h3>
+                <button id="routeOriginModalClose" class="btn-close" type="button"
+                        aria-label="출발지 설정 닫기"></button>
+            </div>
+            <div class="route-point-modal-body">
+                <button id="routeOriginCurrentButton" class="btn btn-primary w-100" type="button">
+                    <i class="bi bi-crosshair me-1"></i>현재 위치 사용
+                </button>
+                <div class="route-point-modal-divider"><span>또는</span></div>
+                <label class="form-label" for="routeOriginSearchInput">장소 검색</label>
+                <div class="input-group">
+                    <input id="routeOriginSearchInput" class="form-control" type="text"
+                           placeholder="출발지를 입력하세요 (예: 구로역)">
+                    <button id="routeOriginSearchButton" class="btn btn-outline-primary" type="button">검색</button>
+                </div>
+                <button id="routeOriginMapButton" class="btn btn-outline-secondary w-100 mt-3" type="button">
+                    <i class="bi bi-geo-alt me-1"></i>지도에서 선택
+                </button>
+            </div>
+        </dialog>
         <dialog id="placeCandidateModal" class="route-result-modal" aria-labelledby="placeCandidateModalTitle">
             <div class="route-result-modal-header">
-                <h3 id="placeCandidateModalTitle" class="route-result-modal-title">목적지 선택</h3>
+                <h3 id="placeCandidateModalTitle" class="route-result-modal-title">위치 선택</h3>
                 <button id="placeCandidateModalClose" class="btn-close" type="button"
-                        aria-label="목적지 후보 닫기"></button>
+                        aria-label="위치 후보 닫기"></button>
             </div>
             <ol id="placeCandidateList" class="route-result-list"></ol>
         </dialog>
