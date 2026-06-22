@@ -41,7 +41,7 @@ export function createRouteRestStopRequest({ fetchImpl = fetch, onState = () => 
             const body = await response.json();
 
             if (response.status === 404 && body?.code === 'NOT_FOUND') {
-                emitIfCurrent(requestId, { status: 'not-found' });
+                emitIfCurrent(requestId, { status: 'not-found', message: body?.message });
                 return;
             }
 

@@ -46,6 +46,20 @@ test('404 NOT_FOUND는 not-found 상태를 낸다', async () => {
     assert.equal(states.at(-1).status, 'not-found');
 });
 
+test('not-found 응답의 안내 메시지를 그대로 전달한다', async () => {
+    const { states, onState } = collect();
+    await createRouteRestStopRequest({
+        fetchImpl: async () => jsonResponse(404, {
+            code: 'NOT_FOUND',
+            message: '출발지 주변에서 도로를 찾지 못했어요.'
+        }),
+        onState
+    }).load(37.0, 127.0, '없는곳');
+
+    assert.equal(states.at(-1).status, 'not-found');
+    assert.equal(states.at(-1).message, '출발지 주변에서 도로를 찾지 못했어요.');
+});
+
 test('EXTERNAL_API_UNAVAILABLE는 external-unavailable 상태를 낸다', async () => {
     const { states, onState } = collect();
     await createRouteRestStopRequest({

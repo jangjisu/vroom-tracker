@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleRouteRestStopNotFound(RouteRestStopNotFoundException e) {
         log.warn("Route rest stops not found: {}", e.getMessage());
         return ResponseEntity.status(ResponseCode.NOT_FOUND.getHttpStatus())
-                .body(ApiResponse.error(ResponseCode.NOT_FOUND));
+                .body(ApiResponse.error(ResponseCode.NOT_FOUND, e.getMessage()));
     }
 
     @ExceptionHandler(KakaoApiException.class)

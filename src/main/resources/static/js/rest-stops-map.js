@@ -1334,7 +1334,7 @@ function renderRouteState(state) {
     toggleRouteResultButton(false);
     closeRouteResultModal();
     if (state.status === 'not-found') {
-        setRouteStatus('목적지 또는 경로를 찾지 못했습니다.');
+        setRouteStatus(state.message || '목적지 또는 경로를 찾지 못했습니다.');
         return;
     }
 

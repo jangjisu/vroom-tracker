@@ -20,7 +20,7 @@ class ExApiFeignConfigurationTest {
     private FeignClientProperties feignClientProperties;
 
     @Test
-    @DisplayName("EX API Feign Client는 vroom-tracker User-Agent를 기본 헤더로 사용한다")
+    @DisplayName("EX API Feign Client는 rest-route User-Agent를 기본 헤더로 사용한다")
     void exApi_appliesUserAgentHeader() {
         assertThat(feignClientProperties.getConfig()).containsKey("ex-api");
 
@@ -29,7 +29,7 @@ class ExApiFeignConfigurationTest {
         Map<String, Collection<String>> headers = exApiConfiguration.getDefaultRequestHeaders();
 
         assertThat(headers)
-                .containsEntry("User-Agent", List.of("vroom-tracker"))
+                .containsEntry("User-Agent", List.of("rest-route"))
                 .containsEntry("Accept", List.of("application/json"));
     }
 }

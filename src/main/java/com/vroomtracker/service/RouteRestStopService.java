@@ -40,7 +40,9 @@ public class RouteRestStopService {
                 coordinateParam(originLongitude, originLatitude),
                 coordinateParam(destination.longitude(), destination.latitude()));
         if (!directions.hasSuccessfulRoute()) {
-            throw new RouteRestStopNotFoundException("경로를 찾지 못했습니다.");
+            KakaoDirectionsResponse.Route failedRoute = directions.firstRoute();
+            throw new RouteRestStopNotFoundException(
+                    routeFailureMessage(failedRoute == null ? null : failedRoute.resultCode()));
         }
 
         KakaoDirectionsResponse.Route route = directions.firstRoute();
@@ -51,6 +53,16 @@ public class RouteRestStopService {
 
         List<RouteRestStopItem> restStops = restStopsOnRoute(polyline, radiusMeters);
         return RouteRestStopResponse.of(destination, routeSummary(route, polyline), restStops);
+    }
+
+    private String routeFailureMessage(Integer resultCode) {
+        int code = resultCode == null ? -1 : resultCode;
+        return switch (code) {
+            case 101, 105 -> "출발지 주변에서 도로를 찾지 못했어요. 출발지를 도로에 가까운 위치로 바꿔주세요.";
+            case 102, 106 -> "도착지 주변에서 도로를 찾지 못했어요. 도착지를 도로에 가까운 위치로 바꿔주세요.";
+            case 104 -> "출발지와 도착지가 너무 가까워요. 좀 더 떨어진 위치를 선택해주세요.";
+            default -> "경로를 찾지 못했어요. 출발지와 도착지를 다시 확인해주세요.";
+        };
     }
 
     private Destination resolveDestination(

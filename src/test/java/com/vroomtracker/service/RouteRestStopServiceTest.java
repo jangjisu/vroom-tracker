@@ -108,6 +108,27 @@ class RouteRestStopServiceTest {
     }
 
     @Test
+    @DisplayName("result_code별로 출발/도착/근접/기타 안내 메시지를 구분한다")
+    void routeFailure_mapsMessageByResultCode() {
+        when(kakaoMapClient.searchKeyword(anyString())).thenReturn(searchResult("129.0", "35.0", "부산", null));
+
+        assertFailureMessage(105, "출발지 주변");
+        assertFailureMessage(101, "출발지 주변");
+        assertFailureMessage(106, "도착지 주변");
+        assertFailureMessage(102, "도착지 주변");
+        assertFailureMessage(104, "너무 가까워요");
+        assertFailureMessage(1, "다시 확인");
+    }
+
+    private void assertFailureMessage(int resultCode, String expectedFragment) {
+        when(kakaoMapClient.getDirections(anyString(), anyString()))
+                .thenReturn(directions(resultCode, null, VERTEXES));
+        assertThatThrownBy(() -> service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000))
+                .isInstanceOf(RouteRestStopNotFoundException.class)
+                .hasMessageContaining(expectedFragment);
+    }
+
+    @Test
     @DisplayName("경로 좌표가 없으면 NotFound")
     void emptyPolyline_throwsNotFound() {
         when(kakaoMapClient.searchKeyword(anyString())).thenReturn(searchResult("129.0", "35.0", "부산", null));
