@@ -1372,15 +1372,24 @@ function renderRoute(data) {
 
     const restStops = Array.isArray(data?.restStops) ? data.restStops : [];
     restStops.forEach((restStop) => {
+        const position = new naverMaps.LatLng(restStop.latitude, restStop.longitude);
         const marker = new naverMaps.Marker({
             map,
-            position: new naverMaps.LatLng(restStop.latitude, restStop.longitude),
+            position,
             icon: {
                 content: '<div class="route-rest-stop-marker"></div>',
                 anchor: new naverMaps.Point(7, 7)
             },
             zIndex: 900
         });
+
+        naverMaps.Event.addListener(marker, 'click', () => {
+            if (routePointSelection.getMapTarget()) {
+                return;
+            }
+            openRestStopPopupAt(restStop, position);
+        });
+
         routeMarkers.push(marker);
     });
 
@@ -1485,11 +1494,27 @@ function createRouteResultItem(restStop) {
     return item;
 }
 
+function openRestStopPopupAt(restStop, position) {
+    if (selectedInfoWindow) {
+        selectedInfoWindow.close();
+    }
+
+    const infoWindow = new naverMaps.InfoWindow({
+        content: createPopupContent(restStop)
+    });
+    infoWindow.open(map, position);
+    selectedInfoWindow = infoWindow;
+
+    openDetailPanel(restStop);
+    map.panTo(position);
+}
+
 function selectRouteRestStop(restStop) {
     closeRouteResultModal();
 
     if (Number.isFinite(restStop?.latitude) && Number.isFinite(restStop?.longitude)) {
-        map.panTo(new naverMaps.LatLng(restStop.latitude, restStop.longitude));
+        openRestStopPopupAt(restStop, new naverMaps.LatLng(restStop.latitude, restStop.longitude));
+        return;
     }
 
     openDetailPanel({
