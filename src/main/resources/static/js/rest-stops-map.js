@@ -979,13 +979,13 @@ function selectCurrentLocationAsOrigin() {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude
             };
-            const latLng = new naverMaps.LatLng(currentLocation.latitude, currentLocation.longitude);
-            showCurrentLocationMarker(latLng);
             hideLocateError();
-            routePointSelection.select(ROUTE_POINT_TARGET.ORIGIN, {
+            const selectedOrigin = routePointSelection.select(ROUTE_POINT_TARGET.ORIGIN, {
                 name: '현재 위치',
                 ...currentLocation
             });
+            renderEndpointMarker(ROUTE_POINT_TARGET.ORIGIN, selectedOrigin);
+            moveMapToPoint(selectedOrigin);
             renderSelectedOrigin();
             closeRouteOriginModal();
             setRouteStatus('현재 위치를 출발지로 설정했습니다.');
@@ -1164,8 +1164,11 @@ function createCandidateItem(candidate) {
 
 function selectPlaceCandidate(candidate) {
     const target = routePointSelection.getSearchTarget();
-    routePointSelection.select(target, candidate);
+    const selected = routePointSelection.select(target, candidate);
     closePlaceCandidateModal();
+
+    renderEndpointMarker(target, selected);
+    moveMapToPoint(selected);
 
     if (target === ROUTE_POINT_TARGET.ORIGIN) {
         renderSelectedOrigin();
@@ -1395,31 +1398,56 @@ function renderRoute(data) {
     setMarkerMode('route');
 }
 
-function renderEndpointMarkers(destination) {
-    const origin = routePointSelection.getOrigin();
-    if (origin) {
-        originMarker = new naverMaps.Marker({
-            map,
-            position: new naverMaps.LatLng(origin.latitude, origin.longitude),
-            icon: {
-                content: '<div class="route-origin-marker"></div>',
-                anchor: new naverMaps.Point(9, 9)
-            },
-            zIndex: 1000
-        });
+function renderEndpointMarker(target, point) {
+    if (!map || !naverMaps || !point) {
+        return;
+    }
+    if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) {
+        return;
     }
 
-    if (destination && Number.isFinite(destination.latitude) && Number.isFinite(destination.longitude)) {
-        destinationMarker = new naverMaps.Marker({
-            map,
-            position: new naverMaps.LatLng(destination.latitude, destination.longitude),
-            icon: {
-                content: '<div class="route-destination-marker">도착</div>',
-                anchor: new naverMaps.Point(18, 28)
-            },
-            zIndex: 1000
-        });
+    const position = new naverMaps.LatLng(point.latitude, point.longitude);
+    const isOrigin = target === ROUTE_POINT_TARGET.ORIGIN;
+    const className = isOrigin ? 'route-origin-marker' : 'route-destination-marker';
+    const label = isOrigin ? '출발' : '도착';
+
+    if (isOrigin && originMarker) {
+        originMarker.setMap(null);
     }
+    if (!isOrigin && destinationMarker) {
+        destinationMarker.setMap(null);
+    }
+
+    const marker = new naverMaps.Marker({
+        map,
+        position,
+        icon: {
+            content: `<div class="route-endpoint-marker ${className}">${label}</div>`,
+            anchor: new naverMaps.Point(18, 28)
+        },
+        zIndex: 1000
+    });
+
+    if (isOrigin) {
+        originMarker = marker;
+    } else {
+        destinationMarker = marker;
+    }
+}
+
+function moveMapToPoint(point) {
+    if (!map || !naverMaps || !point) {
+        return;
+    }
+    if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) {
+        return;
+    }
+    map.panTo(new naverMaps.LatLng(point.latitude, point.longitude));
+}
+
+function renderEndpointMarkers(destination) {
+    renderEndpointMarker(ROUTE_POINT_TARGET.ORIGIN, routePointSelection.getOrigin());
+    renderEndpointMarker(ROUTE_POINT_TARGET.DESTINATION, destination);
 }
 
 function fitMapToPath(latLngs) {
