@@ -1,5 +1,6 @@
 import { setText, showApiUnavailableAlert } from './utils.js';
 import {
+    availableDataTags,
     CONVENIENCE_FALLBACK,
     formatAvailability,
     formatFoodCost,
@@ -10,6 +11,7 @@ import {
     formatRefreshedAt,
     formatText,
     hasFoodMenu,
+    hasOilInfo,
     isMissingValue,
     orderFoodMenus,
     parseConvenience
@@ -318,7 +320,7 @@ function bindMarkerModeToggle() {
     updateMarkerModeButton();
 }
 
-export function createPopupContent(restStop) {
+export function createPopupContent(restStop, options = {}) {
     const routeName = formatText(restStop.routeName, '노선 정보 없음');
 
     return `
@@ -326,9 +328,35 @@ export function createPopupContent(restStop) {
             <div class="rest-stop-map-popup-kicker">선택한 휴게소</div>
             <strong class="rest-stop-map-popup-name">${escapeHtml(restStop.unitName)}</strong>
             <div class="rest-stop-map-popup-route">${escapeHtml(routeName)}</div>
-            <div class="rest-stop-map-popup-hint">상세 정보는 오른쪽 패널에서 확인</div>
+            ${popupDataSection(options)}
         </div>
     `;
+}
+
+function popupDataSection({ status = 'loading', tags } = {}) {
+    if (status === 'success') {
+        if (Array.isArray(tags) && tags.length > 0) {
+            const pills = tags
+                .map((tag) => `<span class="rest-stop-map-popup-tag">${escapeHtml(tag.label)}</span>`)
+                .join('');
+            return `<div class="rest-stop-map-popup-tags">${pills}</div>`;
+        }
+        return '<div class="rest-stop-map-popup-hint">등록된 정보 없음</div>';
+    }
+
+    if (status === 'loading') {
+        return '<div class="rest-stop-map-popup-hint">정보를 불러오는 중…</div>';
+    }
+
+    return '<div class="rest-stop-map-popup-hint">정보를 불러오지 못했어요</div>';
+}
+
+function updateSelectedPopup(restStop, options) {
+    if (!selectedInfoWindow) {
+        return;
+    }
+
+    selectedInfoWindow.setContent(createPopupContent(restStop, options));
 }
 
 export function routePointLabel(point, fallback) {
@@ -456,6 +484,10 @@ function renderDetailState(state) {
         status.classList.add('d-none');
         content.classList.remove('d-none');
         renderDetail(state.data);
+        updateSelectedPopup(
+            { unitName: state.data.restStopName || selectedRestStopName, routeName: state.data.routeName },
+            { status: 'success', tags: availableDataTags(state.data) }
+        );
         return;
     }
 
@@ -466,6 +498,17 @@ function renderDetailState(state) {
     content.classList.add('d-none');
     status.classList.remove('d-none');
     status.textContent = detailStatusMessage(state.status);
+    updateSelectedPopup({ unitName: selectedRestStopName }, popupOptionsForState(state.status));
+}
+
+function popupOptionsForState(status) {
+    if (status === 'loading') {
+        return { status: 'loading' };
+    }
+    if (status === 'not-found') {
+        return { status: 'success', tags: [] };
+    }
+    return { status: 'error' };
 }
 
 function detailStatusMessage(status) {
@@ -782,24 +825,6 @@ function renderOilInfo(oilInfo = {}) {
     setDetailValue('restStopOilTelNo', oilInfo?.telNo, '정보 없음');
     renderOilRefreshStatus(oilInfo?.lastRefreshedAt);
     renderOilConveniences(oilInfo?.oilStationConveniences);
-}
-
-function hasOilInfo(oilInfo) {
-    if (!oilInfo || typeof oilInfo !== 'object') {
-        return false;
-    }
-
-    return !isMissingValue(oilInfo.gasolinePrice)
-        || !isMissingValue(oilInfo.dieselPrice)
-        || !isMissingValue(oilInfo.lpgPrice)
-        || !isMissingValue(oilInfo.oilCompany)
-        || !isMissingValue(oilInfo.telNo)
-        || !isMissingValue(oilInfo.lastRefreshedAt)
-        || hasOilConveniences(oilInfo.oilStationConveniences);
-}
-
-function hasOilConveniences(conveniences) {
-    return Array.isArray(conveniences) && conveniences.length > 0;
 }
 
 function renderOilRefreshStatus(lastRefreshedAt) {
