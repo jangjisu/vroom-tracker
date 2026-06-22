@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+    availableDataTags,
     CONVENIENCE_FALLBACK,
     formatAvailability,
     formatFoodCost,
@@ -12,6 +13,8 @@ import {
     formatRefreshedAt,
     formatText,
     hasFoodMenu,
+    hasOilInfo,
+    hasParkingInfo,
     isMissingValue,
     orderFoodMenus,
     parseConvenience
@@ -118,4 +121,45 @@ test('formatFoodCost adds thousands separator and won unit for numeric prices', 
     assert.equal(formatFoodCost('시가'), '시가');
     assert.equal(formatFoodCost(null), '가격 정보 없음');
     assert.equal(formatFoodCost('   '), '가격 정보 없음');
+});
+
+test('hasOilInfo detects any meaningful oil field', () => {
+    assert.equal(hasOilInfo({ gasolinePrice: '1700' }), true);
+    assert.equal(hasOilInfo({ oilStationConveniences: [{ name: '세차장' }] }), true);
+    assert.equal(hasOilInfo({ gasolinePrice: null, dieselPrice: '', oilStationConveniences: [] }), false);
+    assert.equal(hasOilInfo(null), false);
+});
+
+test('hasParkingInfo detects any non-missing parking count', () => {
+    assert.equal(hasParkingInfo({ compactCarParkingCount: 10 }), true);
+    assert.equal(hasParkingInfo({ fullSizeCarParkingCount: '0' }), true);
+    assert.equal(hasParkingInfo({ disabledParkingCount: 3 }), true);
+    assert.equal(hasParkingInfo({ compactCarParkingCount: null, fullSizeCarParkingCount: '없음' }), false);
+    assert.equal(hasParkingInfo(null), false);
+});
+
+test('availableDataTags returns present categories in fixed order', () => {
+    const tags = availableDataTags({
+        foodMenu: { menus: [{ menuName: '한우국밥' }] },
+        compactCarParkingCount: 20,
+        oilInfo: { gasolinePrice: '1700' }
+    });
+    assert.deepEqual(tags.map((tag) => tag.key), ['food', 'parking', 'oil']);
+    assert.deepEqual(tags.map((tag) => tag.label), ['먹거리', '주차', '주유']);
+});
+
+test('availableDataTags omits categories without data', () => {
+    const tags = availableDataTags({
+        foodMenu: { menus: [] },
+        compactCarParkingCount: null,
+        fullSizeCarParkingCount: null,
+        disabledParkingCount: null,
+        oilInfo: { gasolinePrice: '1700' }
+    });
+    assert.deepEqual(tags.map((tag) => tag.key), ['oil']);
+});
+
+test('availableDataTags returns empty array for missing detail', () => {
+    assert.deepEqual(availableDataTags(null), []);
+    assert.deepEqual(availableDataTags({}), []);
 });

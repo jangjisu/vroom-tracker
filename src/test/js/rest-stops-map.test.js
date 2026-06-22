@@ -16,7 +16,29 @@ test('createPopupContent renders rest stop popup as a small summary card', () =>
     assert.match(content, /rest-stop-map-popup-card/);
     assert.match(content, /서울만남\(부산\)휴게소/);
     assert.match(content, /경부선/);
-    assert.match(content, /상세 정보는 오른쪽 패널에서 확인/);
+    assert.match(content, /정보를 불러오는 중/);
+});
+
+test('createPopupContent renders availability tags on success', () => {
+    const content = createPopupContent(
+        { unitName: '안성(부산)휴게소', routeName: '경부선' },
+        { status: 'success', tags: [{ key: 'food', label: '먹거리' }, { key: 'oil', label: '주유' }] }
+    );
+
+    assert.match(content, /rest-stop-map-popup-tag/);
+    assert.match(content, /먹거리/);
+    assert.match(content, /주유/);
+    assert.doesNotMatch(content, /오른쪽 패널/);
+});
+
+test('createPopupContent shows empty notice when no data tags exist', () => {
+    const content = createPopupContent(
+        { unitName: '안성(부산)휴게소', routeName: '경부선' },
+        { status: 'success', tags: [] }
+    );
+
+    assert.match(content, /등록된 정보 없음/);
+    assert.doesNotMatch(content, /rest-stop-map-popup-tag"/);
 });
 
 test('createPopupContent escapes rest stop text before rendering HTML', () => {

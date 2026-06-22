@@ -88,6 +88,61 @@ export function formatFoodCost(value) {
     return text;
 }
 
+export const DATA_TAG_DEFINITIONS = [
+    { key: 'food', label: '먹거리' },
+    { key: 'parking', label: '주차' },
+    { key: 'oil', label: '주유' }
+];
+
+export function hasOilConveniences(conveniences) {
+    return Array.isArray(conveniences) && conveniences.length > 0;
+}
+
+export function hasOilInfo(oilInfo) {
+    if (!oilInfo || typeof oilInfo !== 'object') {
+        return false;
+    }
+
+    return !isMissingValue(oilInfo.gasolinePrice)
+        || !isMissingValue(oilInfo.dieselPrice)
+        || !isMissingValue(oilInfo.lpgPrice)
+        || !isMissingValue(oilInfo.oilCompany)
+        || !isMissingValue(oilInfo.telNo)
+        || !isMissingValue(oilInfo.lastRefreshedAt)
+        || hasOilConveniences(oilInfo.oilStationConveniences);
+}
+
+function isParkingCount(value) {
+    if (typeof value === 'number') {
+        return Number.isInteger(value) && value >= 0;
+    }
+    return typeof value === 'string' && /^\d+$/.test(value.trim());
+}
+
+export function hasParkingInfo(detail) {
+    if (!detail || typeof detail !== 'object') {
+        return false;
+    }
+
+    return isParkingCount(detail.compactCarParkingCount)
+        || isParkingCount(detail.fullSizeCarParkingCount)
+        || isParkingCount(detail.disabledParkingCount);
+}
+
+export function availableDataTags(detail) {
+    if (!detail || typeof detail !== 'object') {
+        return [];
+    }
+
+    const present = {
+        food: hasFoodMenu(detail.foodMenu),
+        parking: hasParkingInfo(detail),
+        oil: hasOilInfo(detail.oilInfo)
+    };
+
+    return DATA_TAG_DEFINITIONS.filter((tag) => present[tag.key]);
+}
+
 export function formatRefreshedAt(value) {
     if (isMissingValue(value)) {
         return '최근 갱신: 갱신 정보 없음';
