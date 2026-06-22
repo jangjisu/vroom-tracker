@@ -94,32 +94,6 @@
                 </div>
                 <div id="restStopDetailStatus" class="rest-stop-detail-status" aria-live="polite"></div>
                 <div id="restStopDetailContent" class="rest-stop-detail-content d-none">
-                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailLocationHeading">
-                        <h3 id="restStopDetailLocationHeading" class="rest-stop-detail-section-title">위치 정보</h3>
-                        <dl class="rest-stop-detail-list">
-                            <dt>노선</dt>
-                            <dd id="restStopDetailRoute"></dd>
-                            <dt>방향</dt>
-                            <dd id="restStopDetailDirection"></dd>
-                            <dt>주소</dt>
-                            <dd id="restStopDetailAddress"></dd>
-                        </dl>
-                    </section>
-                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailConvenienceHeading">
-                        <h3 id="restStopDetailConvenienceHeading" class="rest-stop-detail-section-title">편의시설</h3>
-                        <ul id="restStopDetailConvenience" class="rest-stop-detail-tags"></ul>
-                        <p id="restStopDetailConvenienceFallback"
-                           class="rest-stop-detail-missing d-none"></p>
-                    </section>
-                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailOperationHeading">
-                        <h3 id="restStopDetailOperationHeading" class="rest-stop-detail-section-title">운영 상태</h3>
-                        <dl class="rest-stop-detail-list">
-                            <dt>경정비</dt>
-                            <dd id="restStopDetailMaintenance"></dd>
-                            <dt>화물휴게소</dt>
-                            <dd id="restStopDetailFreight"></dd>
-                        </dl>
-                    </section>
                     <section class="rest-stop-detail-section" aria-labelledby="restStopDetailParkingHeading">
                         <h3 id="restStopDetailParkingHeading" class="rest-stop-detail-section-title">주차 정보</h3>
                         <dl class="rest-stop-detail-list">
@@ -132,7 +106,7 @@
                         </dl>
                     </section>
                     <section id="restStopOilSection" class="rest-stop-detail-section"
-                             aria-labelledby="restStopDetailOilHeading">
+                             aria-labelledby="restStopDetailOilHeading"
                         <div class="rest-stop-detail-section-header">
                             <h3 id="restStopDetailOilHeading" class="rest-stop-detail-section-title">주유 정보</h3>
                             <button id="restStopOilRefreshButton" class="btn btn-sm btn-outline-primary" type="button">
@@ -160,6 +134,32 @@
                         <ul id="restStopOilConvenienceTags" class="rest-stop-detail-tags"></ul>
                         <p id="restStopOilConvenienceFallback" class="rest-stop-detail-missing d-none"></p>
                         <ul id="restStopOilConvenienceDetails" class="rest-stop-oil-convenience-details"></ul>
+                    </section>
+                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailLocationHeading">
+                        <h3 id="restStopDetailLocationHeading" class="rest-stop-detail-section-title">위치 정보</h3>
+                        <dl class="rest-stop-detail-list">
+                            <dt>노선</dt>
+                            <dd id="restStopDetailRoute"></dd>
+                            <dt>방향</dt>
+                            <dd id="restStopDetailDirection"></dd>
+                            <dt>주소</dt>
+                            <dd id="restStopDetailAddress"></dd>
+                        </dl>
+                    </section>
+                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailConvenienceHeading">
+                        <h3 id="restStopDetailConvenienceHeading" class="rest-stop-detail-section-title">편의시설</h3>
+                        <ul id="restStopDetailConvenience" class="rest-stop-detail-tags"></ul>
+                        <p id="restStopDetailConvenienceFallback"
+                           class="rest-stop-detail-missing d-none"></p>
+                    </section>
+                    <section class="rest-stop-detail-section" aria-labelledby="restStopDetailOperationHeading">
+                        <h3 id="restStopDetailOperationHeading" class="rest-stop-detail-section-title">운영 상태</h3>
+                        <dl class="rest-stop-detail-list">
+                            <dt>경정비</dt>
+                            <dd id="restStopDetailMaintenance"></dd>
+                            <dt>화물휴게소</dt>
+                            <dd id="restStopDetailFreight"></dd>
+                        </dl>
                     </section>
                 </div>
                 <dialog id="restStopFoodModal" class="rest-stop-food-modal"
