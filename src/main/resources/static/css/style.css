@@ -375,24 +375,22 @@ body {
     outline-offset: 1px;
 }
 
-.route-origin-marker {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background-color: #198754;
-    border: 3px solid #fff;
-    box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.45);
-}
-
-.route-destination-marker {
+.route-endpoint-marker {
     padding: 0.15rem 0.5rem;
     border-radius: 6px;
-    background-color: #dc3545;
     color: #fff;
     font-size: 0.75rem;
     font-weight: 700;
     white-space: nowrap;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.route-origin-marker {
+    background-color: #dc3545;
+}
+
+.route-destination-marker {
+    background-color: #0d6efd;
 }
 
 .route-result-name {
