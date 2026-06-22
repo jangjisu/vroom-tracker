@@ -28,9 +28,17 @@
                         type="button">
                     <i class="bi bi-geo-alt-fill me-1"></i>내 위치
                 </button>
-                <div class="rest-stop-map-summary">
-                    <span id="restStopMapStatus">불러오는 중</span>
-                </div>
+                <button id="routeSearchButton" class="btn btn-primary route-search-button" type="button">
+                    <i class="bi bi-signpost-split me-1"></i>경로 휴게소 찾기
+                </button>
+                <button id="routeResultOpen" class="btn btn-outline-secondary route-result-open d-none"
+                        type="button" aria-haspopup="dialog" aria-controls="routeResultModal">
+                    <i class="bi bi-list-ul me-1"></i>경로 결과
+                </button>
+                <button id="markerModeToggle" class="btn btn-outline-secondary" type="button"
+                        aria-pressed="false">
+                    전체 휴게소 보기
+                </button>
             </div>
         </div>
         <div class="route-point-search mb-2">
@@ -53,17 +61,7 @@
                     지도 선택
                 </button>
             </div>
-            <div class="route-point-actions">
-                <button id="routeSearchButton" class="btn btn-primary route-search-button" type="button">
-                    <i class="bi bi-signpost-split me-1"></i>경로 휴게소 찾기
-                </button>
-                <button id="routeResultOpen" class="btn btn-outline-secondary route-result-open d-none"
-                        type="button" aria-haspopup="dialog" aria-controls="routeResultModal">
-                    <i class="bi bi-list-ul me-1"></i>경로 결과
-                </button>
-            </div>
         </div>
-        <div id="routeSearchStatus" class="route-search-status mb-3" aria-live="polite"></div>
         <div class="rest-stop-map-layout">
             <div class="rest-stop-map-stage">
                 <div id="restStopMap" class="rest-stop-map" tabindex="0" aria-label="휴게소 위치 지도"></div>

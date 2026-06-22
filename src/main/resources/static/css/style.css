@@ -45,25 +45,13 @@ body {
     margin: 0 auto;
 }
 
-.rest-stop-map-summary {
-    min-width: 120px;
-    padding: 0.45rem 0.75rem;
-    border: 1px solid #d7dde8;
-    border-radius: 8px;
-    background-color: #fff;
-    color: #495057;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-align: center;
-}
-
 .rest-stop-map-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     align-items: stretch;
-    min-height: 520px;
-    height: calc(100vh - 190px);
+    min-height: 360px;
+    height: calc(100vh - 310px);
 }
 
 .rest-stop-map-layout:has(.rest-stop-detail-panel:not(.d-none)) {
@@ -199,12 +187,6 @@ body {
     font-weight: 700;
 }
 
-.route-point-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
-
 .route-search-button {
     white-space: nowrap;
     font-weight: 600;
@@ -331,16 +313,12 @@ body {
     flex: 1;
 }
 
-.route-search-status {
-    color: #6c757d;
-    font-size: 0.9rem;
-}
-
 .route-result-list {
     display: grid;
     gap: 0.5rem;
     margin: 0.5rem 0 0;
-    padding-left: 1.25rem;
+    list-style: none;
+    padding-left: 0;
 }
 
 .route-result-item {
