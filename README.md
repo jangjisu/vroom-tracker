@@ -1,4 +1,4 @@
-# vroom-tracker
+# RestRoute
 
 이동 경로에 있는 고속도로 휴게소를 찾고, 위치·시설·먹거리·주유 정보를 비교하는 Spring Boot 애플리케이션입니다.
 
@@ -63,7 +63,7 @@ ex.api.key=YOUR_EX_API_KEY
 ./gradlew bootRun
 ```
 
-브라우저에서 `http://localhost:8080`에 접속합니다. 로컬 데이터는 `./data/vroom-tracker` H2 파일에 유지됩니다.
+브라우저에서 `http://localhost:8080`에 접속합니다. 로컬 데이터는 `./data/rest-route` H2 파일에 유지됩니다.
 
 ## 주요 내부 API
 
