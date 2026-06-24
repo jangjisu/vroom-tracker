@@ -1,0 +1,17 @@
+# 빌드 산출물 / 로컬 상태
+build/
+.gradle/
+data/
+
+# 시크릿 / 로컬 설정
+.env
+src/main/resources/application-local.properties
+
+# VCS / IDE / OS
+.git/
+.idea/
+.DS_Store
+
+# 로그 / 하네스 실행 상태
+*.log
+harness/runs/
