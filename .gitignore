@@ -43,6 +43,7 @@ node_modules/
 application-local.properties
 application-secret.properties
 .compound-engineering/*.local.yaml
+.env
 
 ### H2 file DB (local data) ###
 data/
