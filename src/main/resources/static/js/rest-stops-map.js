@@ -3,6 +3,7 @@ import {
     availableDataTags,
     CONVENIENCE_FALLBACK,
     formatAvailability,
+    formatFoodBadges,
     formatFoodCost,
     formatFreightOperation,
     formatOilPrice,
@@ -11,6 +12,7 @@ import {
     formatRefreshedAt,
     formatText,
     hasFoodMenu,
+    hasFoodSections,
     hasOilInfo,
     isMissingValue,
     orderFoodMenus,
@@ -53,6 +55,7 @@ let currentLocation;
 let currentLocationMarker;
 let foodExpanded = false;
 let currentFoodMenus = [];
+let currentFoodSections = [];
 let routeRequest;
 let placeSearchRequest;
 let routePolyline;
@@ -681,11 +684,13 @@ function renderFoodMenu(foodMenu) {
     openButton.classList.toggle('d-none', !visible);
     if (!visible) {
         currentFoodMenus = [];
+        currentFoodSections = [];
         closeFoodModal();
         return;
     }
 
     currentFoodMenus = foodMenu.menus;
+    currentFoodSections = Array.isArray(foodMenu.sections) ? foodMenu.sections : [];
     foodExpanded = false;
 }
 
@@ -713,13 +718,21 @@ function renderFoodList() {
         return;
     }
 
+    const sections = currentFoodSections.filter((section) => Array.isArray(section?.menus) && section.menus.length > 0);
+    if (!foodExpanded && sections.length > 0) {
+        list.replaceChildren();
+        sections.forEach((section) => list.appendChild(createFoodSection(section)));
+        renderFoodToggle(currentFoodMenus.length > 0);
+        return;
+    }
+
     const representatives = currentFoodMenus.filter((menu) => menu?.representative);
     const hasRepresentatives = representatives.length > 0;
     const menus = foodExpanded || !hasRepresentatives ? orderFoodMenus(currentFoodMenus) : representatives;
 
     list.replaceChildren();
     menus.forEach((menu) => list.appendChild(createFoodMenuItem(menu)));
-    renderFoodToggle(hasRepresentatives && currentFoodMenus.length > representatives.length);
+    renderFoodToggle(hasFoodSections({ sections }) || (hasRepresentatives && currentFoodMenus.length > representatives.length));
 }
 
 function renderFoodToggle(canExpand) {
@@ -730,7 +743,24 @@ function renderFoodToggle(canExpand) {
 
     toggle.classList.toggle('d-none', !canExpand);
     toggle.setAttribute('aria-expanded', foodExpanded ? 'true' : 'false');
-    toggle.textContent = foodExpanded ? '대표 메뉴만 보기' : '전체 메뉴 보기';
+    toggle.textContent = foodExpanded ? '추천 메뉴 보기' : '전체 메뉴 보기';
+}
+
+function createFoodSection(section) {
+    const item = document.createElement('li');
+    item.className = 'rest-stop-food-section';
+
+    const title = document.createElement('h4');
+    title.className = 'rest-stop-food-section-title';
+    title.textContent = formatText(section?.title, '추천 메뉴');
+    item.appendChild(title);
+
+    const list = document.createElement('ul');
+    list.className = 'rest-stop-food-section-list';
+    section.menus.forEach((menu) => list.appendChild(createFoodMenuItem(menu)));
+    item.appendChild(list);
+
+    return item;
 }
 
 function createFoodMenuItem(menu) {
@@ -740,12 +770,7 @@ function createFoodMenuItem(menu) {
     const name = document.createElement('p');
     name.className = 'rest-stop-food-name';
     name.textContent = formatText(menu?.foodName, '이름 정보 없음');
-    if (menu?.representative) {
-        const badge = document.createElement('span');
-        badge.className = 'rest-stop-food-badge';
-        badge.textContent = '대표';
-        name.appendChild(badge);
-    }
+    formatFoodBadges(menu).forEach((badgeLabel) => name.appendChild(createFoodBadge(badgeLabel)));
     item.appendChild(name);
 
     const cost = document.createElement('p');
@@ -761,6 +786,13 @@ function createFoodMenuItem(menu) {
     }
 
     return item;
+}
+
+function createFoodBadge(label) {
+    const badge = document.createElement('span');
+    badge.className = 'rest-stop-food-badge';
+    badge.textContent = label;
+    return badge;
 }
 
 function toggleFoodMenu() {

@@ -65,6 +65,12 @@ export function hasFoodMenu(foodMenu) {
     return Boolean(foodMenu) && Array.isArray(foodMenu.menus) && foodMenu.menus.length > 0;
 }
 
+export function hasFoodSections(foodMenu) {
+    return Boolean(foodMenu)
+        && Array.isArray(foodMenu.sections)
+        && foodMenu.sections.some((section) => Array.isArray(section?.menus) && section.menus.length > 0);
+}
+
 export function orderFoodMenus(menus) {
     if (!Array.isArray(menus)) {
         return [];
@@ -73,6 +79,40 @@ export function orderFoodMenus(menus) {
     const representatives = menus.filter((menu) => menu?.representative);
     const others = menus.filter((menu) => !menu?.representative);
     return [...representatives, ...others];
+}
+
+export function formatSeasonLabel(value) {
+    const labels = {
+        4: '사계절',
+        S: '여름',
+        W: '겨울'
+    };
+    const key = String(formatText(value, '')).trim().toUpperCase();
+    return labels[key] ?? null;
+}
+
+export function formatFoodBadges(menu) {
+    if (!menu || typeof menu !== 'object') {
+        return [];
+    }
+
+    const badges = [];
+    if (menu.representative) {
+        badges.push('대표');
+    }
+    if (menu.bestFood) {
+        badges.push('베스트');
+    }
+    if (menu.premium) {
+        badges.push('프리미엄');
+    }
+
+    const season = formatSeasonLabel(menu.season);
+    if (season) {
+        badges.push(season);
+    }
+
+    return badges;
 }
 
 export function formatFoodCost(value) {

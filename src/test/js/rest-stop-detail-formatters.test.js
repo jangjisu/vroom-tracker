@@ -5,14 +5,17 @@ import {
     availableDataTags,
     CONVENIENCE_FALLBACK,
     formatAvailability,
+    formatFoodBadges,
     formatFoodCost,
     formatFreightOperation,
     formatOilPrice,
     formatOperationTime,
     formatParkingCount,
     formatRefreshedAt,
+    formatSeasonLabel,
     formatText,
     hasFoodMenu,
+    hasFoodSections,
     hasOilInfo,
     hasParkingInfo,
     isMissingValue,
@@ -121,6 +124,28 @@ test('formatFoodCost adds thousands separator and won unit for numeric prices', 
     assert.equal(formatFoodCost('시가'), '시가');
     assert.equal(formatFoodCost(null), '가격 정보 없음');
     assert.equal(formatFoodCost('   '), '가격 정보 없음');
+});
+
+test('formatSeasonLabel converts food season codes to labels', () => {
+    assert.equal(formatSeasonLabel('S'), '여름');
+    assert.equal(formatSeasonLabel('W'), '겨울');
+    assert.equal(formatSeasonLabel('4'), '사계절');
+    assert.equal(formatSeasonLabel(null), null);
+});
+
+test('formatFoodBadges returns useful menu badges in stable order', () => {
+    assert.deepEqual(
+        formatFoodBadges({ representative: true, bestFood: true, premium: true, season: 'S' }),
+        ['대표', '베스트', '프리미엄', '여름']
+    );
+    assert.deepEqual(formatFoodBadges(null), []);
+});
+
+test('hasFoodSections detects backend grouped recommendation sections', () => {
+    assert.equal(hasFoodSections({ sections: [{ key: 'recommended', menus: [{ foodName: '우동' }] }] }), true);
+    assert.equal(hasFoodSections({ sections: [{ key: 'recommended', menus: [] }] }), false);
+    assert.equal(hasFoodSections({ sections: [] }), false);
+    assert.equal(hasFoodSections(null), false);
 });
 
 test('hasOilInfo detects any meaningful oil field', () => {
