@@ -3,6 +3,7 @@ import {
     availableDataTags,
     CONVENIENCE_FALLBACK,
     formatAvailability,
+    formatFoodBadges,
     formatFoodCost,
     formatFreightOperation,
     formatOilPrice,
@@ -14,7 +15,8 @@ import {
     hasOilInfo,
     isMissingValue,
     orderFoodMenus,
-    parseConvenience
+    parseConvenience,
+    summarizeDetailHighlights
 } from './rest-stop-detail-formatters.js';
 import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
 import { createRouteRestStopRequest } from './route-rest-stop-request.js';
@@ -524,6 +526,7 @@ function detailStatusMessage(status) {
 function renderDetail(detail) {
     currentDetail = detail;
     setDetailName(detail.restStopName, selectedRestStopName);
+    renderDetailHighlights(detail);
     setDetailValue('restStopDetailRoute', detail.routeName, '노선 정보 없음');
     setDetailValue('restStopDetailDirection', detail.direction, '방향 정보 없음');
     setDetailValue('restStopDetailAddress', detail.address, '주소 정보 없음');
@@ -550,6 +553,33 @@ function renderDetail(detail) {
     );
     renderOilInfo(detail.oilInfo);
     renderFoodMenu(detail.foodMenu);
+}
+
+function renderDetailHighlights(detail) {
+    const list = document.getElementById('restStopDetailHighlights');
+    if (!list) {
+        return;
+    }
+
+    list.replaceChildren();
+    summarizeDetailHighlights(detail).forEach((highlight) => {
+        const item = document.createElement('li');
+        item.className = 'rest-stop-detail-summary-item';
+        item.dataset.summaryKey = highlight.key;
+
+        const label = document.createElement('span');
+        label.className = 'rest-stop-detail-summary-label';
+        label.textContent = highlight.label;
+        item.appendChild(label);
+
+        const value = document.createElement('span');
+        value.className = 'rest-stop-detail-summary-value';
+        value.textContent = highlight.value;
+        value.classList.toggle('rest-stop-detail-missing', highlight.missing);
+        item.appendChild(value);
+
+        list.appendChild(item);
+    });
 }
 
 function setDetailName(value, fallbackValue) {
@@ -740,12 +770,7 @@ function createFoodMenuItem(menu) {
     const name = document.createElement('p');
     name.className = 'rest-stop-food-name';
     name.textContent = formatText(menu?.foodName, '이름 정보 없음');
-    if (menu?.representative) {
-        const badge = document.createElement('span');
-        badge.className = 'rest-stop-food-badge';
-        badge.textContent = '대표';
-        name.appendChild(badge);
-    }
+    formatFoodBadges(menu).forEach((badgeLabel) => name.appendChild(createFoodBadge(badgeLabel)));
     item.appendChild(name);
 
     const cost = document.createElement('p');
@@ -761,6 +786,13 @@ function createFoodMenuItem(menu) {
     }
 
     return item;
+}
+
+function createFoodBadge(label) {
+    const badge = document.createElement('span');
+    badge.className = 'rest-stop-food-badge';
+    badge.textContent = label;
+    return badge;
 }
 
 function toggleFoodMenu() {

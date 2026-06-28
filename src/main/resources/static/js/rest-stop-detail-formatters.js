@@ -75,6 +75,40 @@ export function orderFoodMenus(menus) {
     return [...representatives, ...others];
 }
 
+export function formatSeasonLabel(value) {
+    const labels = {
+        4: '사계절',
+        S: '여름',
+        W: '겨울'
+    };
+    const key = String(formatText(value, '')).trim().toUpperCase();
+    return labels[key] ?? null;
+}
+
+export function formatFoodBadges(menu) {
+    if (!menu || typeof menu !== 'object') {
+        return [];
+    }
+
+    const badges = [];
+    if (menu.representative) {
+        badges.push('대표');
+    }
+    if (menu.bestFood) {
+        badges.push('베스트');
+    }
+    if (menu.premium) {
+        badges.push('프리미엄');
+    }
+
+    const season = formatSeasonLabel(menu.season);
+    if (season) {
+        badges.push(season);
+    }
+
+    return badges;
+}
+
 export function formatFoodCost(value) {
     if (isMissingValue(value)) {
         return '가격 정보 없음';
@@ -86,6 +120,81 @@ export function formatFoodCost(value) {
     }
 
     return text;
+}
+
+function parkingCountValue(value) {
+    if (!isParkingCount(value)) {
+        return null;
+    }
+    return Number(String(value).trim());
+}
+
+export function summarizeParking(detail) {
+    const counts = [
+        parkingCountValue(detail?.compactCarParkingCount),
+        parkingCountValue(detail?.fullSizeCarParkingCount),
+        parkingCountValue(detail?.disabledParkingCount)
+    ].filter((value) => value !== null);
+
+    if (counts.length === 0) {
+        return '주차 정보 없음';
+    }
+
+    return `총 ${counts.reduce((sum, value) => sum + value, 0).toLocaleString('ko-KR')}대`;
+}
+
+function summarizeConveniences(value) {
+    const conveniences = parseConvenience(value);
+    if (conveniences.length === 0) {
+        return CONVENIENCE_FALLBACK;
+    }
+
+    const visible = conveniences.slice(0, 3).join(', ');
+    const extraCount = conveniences.length - 3;
+    if (extraCount <= 0) {
+        return visible;
+    }
+
+    return `${visible} 외 ${extraCount}개`;
+}
+
+function summarizeOperation(detail) {
+    const hasMaintenance = !isMissingValue(detail?.maintenanceYn);
+    const hasFreight = !isMissingValue(detail?.truckSaYn);
+    if (!hasMaintenance && !hasFreight) {
+        return '운영 정보 없음';
+    }
+
+    return `경정비 ${formatAvailability(detail?.maintenanceYn)} · 화물휴게소 ${formatFreightOperation(detail?.truckSaYn)}`;
+}
+
+export function summarizeDetailHighlights(detail) {
+    return [
+        {
+            key: 'brand',
+            label: '입점 브랜드',
+            value: formatText(detail?.brand, '입점 브랜드 정보 없음'),
+            missing: isMissingValue(detail?.brand)
+        },
+        {
+            key: 'parking',
+            label: '주차',
+            value: summarizeParking(detail),
+            missing: !hasParkingInfo(detail)
+        },
+        {
+            key: 'convenience',
+            label: '주요 편의시설',
+            value: summarizeConveniences(detail?.convenience),
+            missing: parseConvenience(detail?.convenience).length === 0
+        },
+        {
+            key: 'operation',
+            label: '운영',
+            value: summarizeOperation(detail),
+            missing: isMissingValue(detail?.maintenanceYn) && isMissingValue(detail?.truckSaYn)
+        }
+    ];
 }
 
 export const DATA_TAG_DEFINITIONS = [

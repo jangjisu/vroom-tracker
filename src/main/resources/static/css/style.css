@@ -534,6 +534,38 @@ body {
     overflow-wrap: anywhere;
 }
 
+.rest-stop-detail-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rest-stop-detail-summary-item {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0.7rem;
+    border: 1px solid #d7e2f2;
+    border-radius: 8px;
+    background-color: #f8fbff;
+}
+
+.rest-stop-detail-summary-label {
+    color: #6c757d;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.rest-stop-detail-summary-value {
+    color: #1f2937;
+    font-size: 0.88rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
 .rest-stop-detail-missing {
     margin: 0;
     color: #868e96 !important;
@@ -605,6 +637,7 @@ body {
 .rest-stop-food-name {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.4rem;
     margin: 0;
     color: #212529;
@@ -619,6 +652,12 @@ body {
     color: #0d6efd;
     font-size: 0.7rem;
     font-weight: 600;
+}
+
+@media (max-width: 480px) {
+    .rest-stop-detail-summary {
+        grid-template-columns: 1fr;
+    }
 }
 
 .rest-stop-food-cost {
