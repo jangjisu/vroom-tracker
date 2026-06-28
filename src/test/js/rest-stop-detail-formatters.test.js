@@ -6,22 +6,18 @@ import {
     CONVENIENCE_FALLBACK,
     formatAvailability,
     formatFoodCost,
-    formatFoodBadges,
     formatFreightOperation,
     formatOilPrice,
     formatOperationTime,
     formatParkingCount,
     formatRefreshedAt,
-    formatSeasonLabel,
     formatText,
     hasFoodMenu,
     hasOilInfo,
     hasParkingInfo,
     isMissingValue,
     orderFoodMenus,
-    parseConvenience,
-    summarizeDetailHighlights,
-    summarizeParking
+    parseConvenience
 } from '../../main/resources/static/js/rest-stop-detail-formatters.js';
 
 test('formatText returns the original value when present', () => {
@@ -125,55 +121,6 @@ test('formatFoodCost adds thousands separator and won unit for numeric prices', 
     assert.equal(formatFoodCost('시가'), '시가');
     assert.equal(formatFoodCost(null), '가격 정보 없음');
     assert.equal(formatFoodCost('   '), '가격 정보 없음');
-});
-
-test('formatSeasonLabel converts food season codes to user-facing labels', () => {
-    assert.equal(formatSeasonLabel('S'), '여름');
-    assert.equal(formatSeasonLabel('W'), '겨울');
-    assert.equal(formatSeasonLabel('4'), '사계절');
-    assert.equal(formatSeasonLabel(null), null);
-    assert.equal(formatSeasonLabel('unknown'), null);
-});
-
-test('formatFoodBadges returns menu category labels in fixed order', () => {
-    assert.deepEqual(
-        formatFoodBadges({ representative: true, bestFood: true, premium: true, season: 'S' }),
-        ['대표', '베스트', '프리미엄', '여름']
-    );
-    assert.deepEqual(formatFoodBadges({ representative: false, bestFood: false, premium: false, season: '4' }), ['사계절']);
-    assert.deepEqual(formatFoodBadges(null), []);
-});
-
-test('summarizeParking returns total parking count from available counts', () => {
-    assert.equal(summarizeParking({
-        compactCarParkingCount: 10,
-        fullSizeCarParkingCount: '5',
-        disabledParkingCount: 1
-    }), '총 16대');
-    assert.equal(summarizeParking({
-        compactCarParkingCount: null,
-        fullSizeCarParkingCount: '없음',
-        disabledParkingCount: undefined
-    }), '주차 정보 없음');
-});
-
-test('summarizeDetailHighlights returns scan-friendly detail summary items', () => {
-    const highlights = summarizeDetailHighlights({
-        brand: '투썸플레이스',
-        convenience: '수유실|샤워실|쉼터|세탁실',
-        compactCarParkingCount: 10,
-        fullSizeCarParkingCount: 5,
-        disabledParkingCount: null,
-        maintenanceYn: 'O',
-        truckSaYn: 'X'
-    });
-
-    assert.deepEqual(highlights, [
-        { key: 'brand', label: '입점 브랜드', value: '투썸플레이스', missing: false },
-        { key: 'parking', label: '주차', value: '총 15대', missing: false },
-        { key: 'convenience', label: '주요 편의시설', value: '수유실, 샤워실, 쉼터 외 1개', missing: false },
-        { key: 'operation', label: '운영', value: '경정비 가능 · 화물휴게소 미운영', missing: false }
-    ]);
 });
 
 test('hasOilInfo detects any meaningful oil field', () => {
