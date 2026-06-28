@@ -75,6 +75,7 @@ class RestStopControllerTest {
                 "127.042514",
                 "37.459939",
                 "경기 성남시",
+                "투썸플레이스",
                 "수유실",
                 "O",
                 "X",
@@ -90,7 +91,8 @@ class RestStopControllerTest {
                         "02-573-7430",
                         LocalDateTime.of(2026, 6, 16, 7, 30),
                         List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"))),
-                new FoodMenuResponse(List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true))));
+                new FoodMenuResponse(
+                        List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true, true, true, "S"))));
         when(restStopQueryService.findDetailByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/api/rest-stops/A00001"))
@@ -103,6 +105,7 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.xValue").value("127.042514"))
                 .andExpect(jsonPath("$.data.yValue").value("37.459939"))
                 .andExpect(jsonPath("$.data.address").value("경기 성남시"))
+                .andExpect(jsonPath("$.data.brand").value("투썸플레이스"))
                 .andExpect(jsonPath("$.data.convenience").value("수유실"))
                 .andExpect(jsonPath("$.data.maintenanceYn").value("O"))
                 .andExpect(jsonPath("$.data.truckSaYn").value("X"))
@@ -125,7 +128,10 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].description")
                         .value("고객쉼터"))
                 .andExpect(jsonPath("$.data.foodMenu.menus[0].foodName").value("농심어묵우동"))
-                .andExpect(jsonPath("$.data.foodMenu.menus[0].representative").value(true));
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].representative").value(true))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].bestFood").value(true))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].premium").value(true))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].season").value("S"));
     }
 
     @Test

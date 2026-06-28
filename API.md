@@ -421,9 +421,13 @@ DB에 저장된 전체 휴게소 위치 목록을 반환한다. 각 항목에는
 주요 응답 영역은 다음과 같다.
 
 - 위치: 노선, 좌표, 주소와 방향
-- 시설: 편의시설, 경정비·화물휴게소 운영 여부와 차종별 주차 수
+- 시설: 입점 브랜드, 편의시설, 경정비·화물휴게소 운영 여부와 차종별 주차 수
 - `oilInfo`: 정유사, 유종별 가격, 전화번호, 마지막 갱신 시각과 주유소 편의시설
-- `foodMenu.menus`: 메뉴명, 가격, 설명과 대표 메뉴 여부
+- `foodMenu.menus`: 메뉴명, 가격, 설명, 추천 대표 메뉴 여부, 베스트/프리미엄/계절 구분
+
+`brand`는 한국도로공사 `conveniServiceArea.brand`를 저장한 값이다. 값이 없으면 `null`이다.
+`foodMenu.menus[].representative`, `bestFood`, `premium`은 각각 `recommendyn`, `bestfoodyn`,
+`premiumyn`이 `"Y"`일 때 `true`다. `season`은 `seasonMenu` 원본 코드(`4`, `S`, `W` 등)를 그대로 반환한다.
 
 해당 `serviceAreaCode`가 없으면 HTTP 404와 `NOT_FOUND`를 반환한다.
 
