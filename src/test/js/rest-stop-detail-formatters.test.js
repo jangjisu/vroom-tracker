@@ -12,7 +12,6 @@ import {
     formatOperationTime,
     formatParkingCount,
     formatRefreshedAt,
-    formatSeasonLabel,
     formatText,
     hasFoodMenu,
     hasFoodSections,
@@ -126,18 +125,12 @@ test('formatFoodCost adds thousands separator and won unit for numeric prices', 
     assert.equal(formatFoodCost('   '), '가격 정보 없음');
 });
 
-test('formatSeasonLabel converts food season codes to labels', () => {
-    assert.equal(formatSeasonLabel('S'), '여름');
-    assert.equal(formatSeasonLabel('W'), '겨울');
-    assert.equal(formatSeasonLabel('4'), '사계절');
-    assert.equal(formatSeasonLabel(null), null);
-});
-
-test('formatFoodBadges returns useful menu badges in stable order', () => {
+test('formatFoodBadges uses backend seasonLabel instead of frontend season code mapping', () => {
     assert.deepEqual(
-        formatFoodBadges({ representative: true, bestFood: true, premium: true, season: 'S' }),
+        formatFoodBadges({ representative: true, bestFood: true, premium: true, season: 'S', seasonLabel: '여름' }),
         ['대표', '베스트', '프리미엄', '여름']
     );
+    assert.deepEqual(formatFoodBadges({ season: 'S' }), []);
     assert.deepEqual(formatFoodBadges(null), []);
 });
 

@@ -93,12 +93,12 @@ class RestStopControllerTest {
                         LocalDateTime.of(2026, 6, 16, 7, 30),
                         List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"))),
                 new FoodMenuResponse(
-                        List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true, true, true, "S")),
+                        List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true, true, true, "S", "여름")),
                         List.of(new FoodMenuSectionResponse(
                                 "recommended",
                                 "추천 메뉴",
                                 List.of(new FoodMenuItemResponse(
-                                        "농심어묵우동", "7000", "시원한 우동", true, true, true, "S"))))));
+                                        "농심어묵우동", "7000", "시원한 우동", true, true, true, "S", "여름"))))));
         when(restStopQueryService.findDetailByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/api/rest-stops/A00001"))
@@ -138,6 +138,7 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.foodMenu.menus[0].bestFood").value(true))
                 .andExpect(jsonPath("$.data.foodMenu.menus[0].premium").value(true))
                 .andExpect(jsonPath("$.data.foodMenu.menus[0].season").value("S"))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].seasonLabel").value("여름"))
                 .andExpect(jsonPath("$.data.foodMenu.sections[0].key").value("recommended"))
                 .andExpect(jsonPath("$.data.foodMenu.sections[0].title").value("추천 메뉴"))
                 .andExpect(jsonPath("$.data.foodMenu.sections[0].menus[0].foodName")

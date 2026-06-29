@@ -428,7 +428,8 @@ DB에 저장된 전체 휴게소 위치 목록을 반환한다. 각 항목에는
 
 `brand`는 한국도로공사 `conveniServiceArea.brand`를 저장한 값이다. 값이 없으면 `null`이다.
 `foodMenu.menus[].representative`, `bestFood`, `premium`은 각각 `recommendyn`, `bestfoodyn`,
-`premiumyn`이 `"Y"`일 때 `true`다. `season`은 `seasonMenu` 원본 코드(`4`, `S`, `W` 등)를 그대로 반환한다.
+`premiumyn`이 `"Y"`일 때 `true`다. `season`은 `seasonMenu` 원본 코드(`4`, `S`, `W` 등)를 그대로 반환하고,
+`seasonLabel`은 화면 표시용 라벨(`사계절`, `여름`, `겨울`)이다.
 `foodMenu.sections`는 기존 메뉴 목록에서 파생한 화면용 그룹이며, `recommended`, `premium`, `seasonal`
 순서로 값이 있는 그룹만 반환한다. `recommended`는 대표 또는 베스트 메뉴, `premium`은 프리미엄 메뉴,
 `seasonal`은 여름(`S`) 또는 겨울(`W`) 계절 메뉴를 포함한다.

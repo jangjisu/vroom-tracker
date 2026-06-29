@@ -21,10 +21,18 @@ class FoodMenuResponseTest {
         FoodMenuResponse response = FoodMenuResponse.from(List.of(highlighted, normal));
 
         assertThat(response.menus())
-                .extracting("foodName", "foodCost", "description", "representative", "bestFood", "premium", "season")
+                .extracting(
+                        "foodName",
+                        "foodCost",
+                        "description",
+                        "representative",
+                        "bestFood",
+                        "premium",
+                        "season",
+                        "seasonLabel")
                 .containsExactly(
-                        tuple("농심어묵우동", "7000", "시원한 우동", true, true, true, "S"),
-                        tuple("한우국밥", "9000", "든든한 국밥", false, false, false, "4"));
+                        tuple("농심어묵우동", "7000", "시원한 우동", true, true, true, "S", "여름"),
+                        tuple("한우국밥", "9000", "든든한 국밥", false, false, false, "4", "사계절"));
     }
 
     @Test

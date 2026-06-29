@@ -81,16 +81,6 @@ export function orderFoodMenus(menus) {
     return [...representatives, ...others];
 }
 
-export function formatSeasonLabel(value) {
-    const labels = {
-        4: '사계절',
-        S: '여름',
-        W: '겨울'
-    };
-    const key = String(formatText(value, '')).trim().toUpperCase();
-    return labels[key] ?? null;
-}
-
 export function formatFoodBadges(menu) {
     if (!menu || typeof menu !== 'object') {
         return [];
@@ -107,9 +97,8 @@ export function formatFoodBadges(menu) {
         badges.push('프리미엄');
     }
 
-    const season = formatSeasonLabel(menu.season);
-    if (season) {
-        badges.push(season);
+    if (!isMissingValue(menu.seasonLabel)) {
+        badges.push(menu.seasonLabel);
     }
 
     return badges;
