@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.vroomtracker.controller.response.FoodMenuItemResponse;
 import com.vroomtracker.controller.response.FoodMenuResponse;
+import com.vroomtracker.controller.response.FoodMenuSectionResponse;
 import com.vroomtracker.controller.response.OilInfoResponse;
 import com.vroomtracker.controller.response.OilStationConvenienceResponse;
 import com.vroomtracker.controller.response.RestStopDetailViewResponse;
@@ -75,6 +76,7 @@ class RestStopControllerTest {
                 "127.042514",
                 "37.459939",
                 "경기 성남시",
+                "투썸플레이스",
                 "수유실",
                 "O",
                 "X",
@@ -90,7 +92,13 @@ class RestStopControllerTest {
                         "02-573-7430",
                         LocalDateTime.of(2026, 6, 16, 7, 30),
                         List.of(new OilStationConvenienceResponse("00:00", "24:00", "쉼터", "고객쉼터"))),
-                new FoodMenuResponse(List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true))));
+                new FoodMenuResponse(
+                        List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true, true, true, "S", "여름")),
+                        List.of(new FoodMenuSectionResponse(
+                                "recommended",
+                                "추천 메뉴",
+                                List.of(new FoodMenuItemResponse(
+                                        "농심어묵우동", "7000", "시원한 우동", true, true, true, "S", "여름"))))));
         when(restStopQueryService.findDetailByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/api/rest-stops/A00001"))
@@ -103,6 +111,7 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.xValue").value("127.042514"))
                 .andExpect(jsonPath("$.data.yValue").value("37.459939"))
                 .andExpect(jsonPath("$.data.address").value("경기 성남시"))
+                .andExpect(jsonPath("$.data.brand").value("투썸플레이스"))
                 .andExpect(jsonPath("$.data.convenience").value("수유실"))
                 .andExpect(jsonPath("$.data.maintenanceYn").value("O"))
                 .andExpect(jsonPath("$.data.truckSaYn").value("X"))
@@ -125,7 +134,15 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.data.oilInfo.oilStationConveniences[0].description")
                         .value("고객쉼터"))
                 .andExpect(jsonPath("$.data.foodMenu.menus[0].foodName").value("농심어묵우동"))
-                .andExpect(jsonPath("$.data.foodMenu.menus[0].representative").value(true));
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].representative").value(true))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].bestFood").value(true))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].premium").value(true))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].season").value("S"))
+                .andExpect(jsonPath("$.data.foodMenu.menus[0].seasonLabel").value("여름"))
+                .andExpect(jsonPath("$.data.foodMenu.sections[0].key").value("recommended"))
+                .andExpect(jsonPath("$.data.foodMenu.sections[0].title").value("추천 메뉴"))
+                .andExpect(jsonPath("$.data.foodMenu.sections[0].menus[0].foodName")
+                        .value("농심어묵우동"));
     }
 
     @Test

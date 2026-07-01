@@ -39,6 +39,7 @@ class RestStopDetailViewResponseTest {
         assertThat(response.xValue()).isEqualTo("127.042514");
         assertThat(response.yValue()).isEqualTo("37.459939");
         assertThat(response.address()).isEqualTo("경기 성남시");
+        assertThat(response.brand()).isEqualTo("투썸플레이스");
         assertThat(response.convenience()).isEqualTo("수유실|쉼터");
         assertThat(response.maintenanceYn()).isEqualTo("O");
         assertThat(response.truckSaYn()).isEqualTo("X");
@@ -69,6 +70,7 @@ class RestStopDetailViewResponseTest {
                 restStop, Optional.empty(), List.of(), List.of(), Optional.empty(), List.of());
 
         assertThat(response.address()).isNull();
+        assertThat(response.brand()).isNull();
         assertThat(response.convenience()).isNull();
         assertThat(response.maintenanceYn()).isNull();
         assertThat(response.truckSaYn()).isNull();
