@@ -8,9 +8,9 @@ plugins {
 	id 'org.sonarqube' version '7.3.0.8198'
 }
 
-group = 'com.vroomtracker'
+group = 'com.restroute'
 version = '0.0.1-SNAPSHOT'
-description = 'Real-time highway traffic monitor'
+description = 'Highway rest stop route planner'
 
 java {
 	toolchain {
@@ -92,8 +92,8 @@ spotless {
 
 sonar {
 	properties {
-		property 'sonar.projectKey', 'vroom-tracker'
-		property 'sonar.projectName', 'vroom-tracker'
+		property 'sonar.projectKey', 'rest-route'
+		property 'sonar.projectName', 'rest-route'
 		property 'sonar.sources', 'src/main/java'
 		property 'sonar.tests', 'src/test/java'
 	}

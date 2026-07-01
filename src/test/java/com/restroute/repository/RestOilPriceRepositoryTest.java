@@ -1,0 +1,37 @@
+package com.restroute.repository;
+
+import static com.restroute.support.RestStopTestFixtures.restOilPriceItem;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.restroute.client.response.RestOilPriceItem;
+import com.restroute.domain.RestOilPriceEntity;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
+
+@DataJpaTest
+@ActiveProfiles("test")
+class RestOilPriceRepositoryTest {
+
+    @Autowired
+    private RestOilPriceRepository restOilPriceRepository;
+
+    @Test
+    @DisplayName("주유소 코드 기준으로 가격 정보를 조회한다")
+    void findByServiceAreaCode2_returnsMatchingRow() {
+        RestOilPriceEntity matching = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
+        RestOilPriceItem differentItem = restOilPriceItem("000006", "기흥(부산)주유소");
+        ReflectionTestUtils.setField(differentItem, "gasolinePrice", "1,990원");
+        restOilPriceRepository.saveAll(List.of(matching, RestOilPriceEntity.from(differentItem)));
+
+        RestOilPriceEntity result =
+                restOilPriceRepository.findByServiceAreaCode2("000002").orElseThrow();
+
+        assertThat(result).isEqualTo(matching);
+        assertThat(result.getGasolinePrice()).isEqualTo("1,999원");
+    }
+}
