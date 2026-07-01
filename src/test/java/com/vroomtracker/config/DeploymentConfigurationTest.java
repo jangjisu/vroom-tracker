@@ -65,6 +65,7 @@ class DeploymentConfigurationTest {
     void dockerCompose_definesCaddyReverseProxy() throws Exception {
         String compose = Files.readString(Path.of("docker-compose.yml"));
         String caddyfile = Files.readString(Path.of("Caddyfile"));
+        String envExample = Files.readString(Path.of(".env.example"));
 
         assertThat(compose)
                 .contains("caddy:")
@@ -75,6 +76,8 @@ class DeploymentConfigurationTest {
                 .contains("./Caddyfile:/etc/caddy/Caddyfile")
                 .contains("caddy-data:/data")
                 .contains("caddy-config:/config");
-        assertThat(caddyfile).contains("www.rest-route.o-r.kr").contains("reverse_proxy app:8080");
+        assertThat(compose).contains("env_file:\n      - .env");
+        assertThat(caddyfile).contains("{$APP_DOMAIN}").contains("reverse_proxy app:8080");
+        assertThat(envExample).contains("APP_DOMAIN=www.rest-route.o-r.kr");
     }
 }
