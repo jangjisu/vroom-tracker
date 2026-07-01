@@ -44,4 +44,40 @@ class DeploymentConfigurationTest {
                 .contains("depends_on:")
                 .contains("condition: service_healthy");
     }
+
+    @Test
+    @DisplayName("prod 배포는 앱 로그를 서버 logs 디렉토리에 날짜별 파일로 저장한다")
+    void prodDeployment_writesDailyApplicationLogFiles() throws Exception {
+        String compose = Files.readString(Path.of("docker-compose.yml"));
+        String logback = Files.readString(Path.of("src/main/resources/logback-spring.xml"));
+        String gitignore = Files.readString(Path.of(".gitignore"));
+
+        assertThat(compose).contains("./logs:/app/logs");
+        assertThat(logback)
+                .contains("<springProfile name=\"prod\">")
+                .contains("<appender-ref ref=\"CONSOLE\" />")
+                .contains("<fileNamePattern>/app/logs/%d{yyyyMMdd}.log</fileNamePattern>");
+        assertThat(gitignore).contains("logs/");
+    }
+
+    @Test
+    @DisplayName("docker compose는 Caddy로 HTTPS 도메인 요청을 앱으로 프록시한다")
+    void dockerCompose_definesCaddyReverseProxy() throws Exception {
+        String compose = Files.readString(Path.of("docker-compose.yml"));
+        String caddyfile = Files.readString(Path.of("Caddyfile"));
+        String envExample = Files.readString(Path.of(".env.example"));
+
+        assertThat(compose)
+                .contains("caddy:")
+                .contains("image: caddy:2")
+                .contains("container_name: rest-route-caddy")
+                .contains("\"80:80\"")
+                .contains("\"443:443\"")
+                .contains("./Caddyfile:/etc/caddy/Caddyfile")
+                .contains("caddy-data:/data")
+                .contains("caddy-config:/config");
+        assertThat(compose).contains("env_file:\n      - .env");
+        assertThat(caddyfile).contains("{$APP_DOMAIN}").contains("reverse_proxy app:8080");
+        assertThat(envExample).contains("APP_DOMAIN=www.rest-route.o-r.kr");
+    }
 }

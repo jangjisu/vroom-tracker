@@ -48,6 +48,9 @@ application-secret.properties
 ### H2 file DB (local data) ###
 data/
 
+### Runtime logs ###
+logs/
+
 ### Personal task tracking (not for version control) ###
 TODO.md
 CLAUDE.md
