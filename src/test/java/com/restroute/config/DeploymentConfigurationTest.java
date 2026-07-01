@@ -80,4 +80,12 @@ class DeploymentConfigurationTest {
         assertThat(caddyfile).contains("{$APP_DOMAIN}").contains("reverse_proxy app:8080");
         assertThat(envExample).contains("APP_DOMAIN=www.rest-route.o-r.kr");
     }
+
+    @Test
+    @DisplayName("docker compose는 운영 컨테이너 타임존을 Asia/Seoul로 맞춘다")
+    void dockerCompose_setsSeoulTimezoneForProductionContainers() throws Exception {
+        String compose = Files.readString(Path.of("docker-compose.yml"));
+
+        assertThat(compose).contains("TZ: Asia/Seoul").contains("JAVA_TOOL_OPTIONS: \"-Duser.timezone=Asia/Seoul\"");
+    }
 }
