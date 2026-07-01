@@ -1,4 +1,18 @@
 services:
+  caddy:
+    image: caddy:2
+    container_name: rest-route-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
   app:
     build: .
     image: rest-route:latest
@@ -38,4 +52,6 @@ services:
       - mysql-data:/var/lib/mysql
 
 volumes:
+  caddy-data:
+  caddy-config:
   mysql-data:

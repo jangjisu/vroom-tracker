@@ -59,4 +59,22 @@ class DeploymentConfigurationTest {
                 .contains("<fileNamePattern>/app/logs/%d{yyyyMMdd}.log</fileNamePattern>");
         assertThat(gitignore).contains("logs/");
     }
+
+    @Test
+    @DisplayName("docker compose는 Caddy로 HTTPS 도메인 요청을 앱으로 프록시한다")
+    void dockerCompose_definesCaddyReverseProxy() throws Exception {
+        String compose = Files.readString(Path.of("docker-compose.yml"));
+        String caddyfile = Files.readString(Path.of("Caddyfile"));
+
+        assertThat(compose)
+                .contains("caddy:")
+                .contains("image: caddy:2")
+                .contains("container_name: rest-route-caddy")
+                .contains("\"80:80\"")
+                .contains("\"443:443\"")
+                .contains("./Caddyfile:/etc/caddy/Caddyfile")
+                .contains("caddy-data:/data")
+                .contains("caddy-config:/config");
+        assertThat(caddyfile).contains("www.rest-route.o-r.kr").contains("reverse_proxy app:8080");
+    }
 }
