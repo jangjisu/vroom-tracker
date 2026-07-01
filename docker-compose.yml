@@ -16,6 +16,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
 
   db:
     image: mysql:8.4

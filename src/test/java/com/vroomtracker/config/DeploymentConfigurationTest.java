@@ -44,4 +44,19 @@ class DeploymentConfigurationTest {
                 .contains("depends_on:")
                 .contains("condition: service_healthy");
     }
+
+    @Test
+    @DisplayName("prod 배포는 앱 로그를 서버 logs 디렉토리에 날짜별 파일로 저장한다")
+    void prodDeployment_writesDailyApplicationLogFiles() throws Exception {
+        String compose = Files.readString(Path.of("docker-compose.yml"));
+        String logback = Files.readString(Path.of("src/main/resources/logback-spring.xml"));
+        String gitignore = Files.readString(Path.of(".gitignore"));
+
+        assertThat(compose).contains("./logs:/app/logs");
+        assertThat(logback)
+                .contains("<springProfile name=\"prod\">")
+                .contains("<appender-ref ref=\"CONSOLE\" />")
+                .contains("<fileNamePattern>/app/logs/%d{yyyyMMdd}.log</fileNamePattern>");
+        assertThat(gitignore).contains("logs/");
+    }
 }
