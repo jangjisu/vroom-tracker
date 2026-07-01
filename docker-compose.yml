@@ -8,6 +8,8 @@ services:
       - "443:443"
     env_file:
       - .env
+    environment:
+      TZ: Asia/Seoul
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy-data:/data
@@ -26,6 +28,8 @@ services:
     env_file:
       - .env
     environment:
+      TZ: Asia/Seoul
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Seoul"
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE:-vroom}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-vroom}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
@@ -40,6 +44,7 @@ services:
     container_name: rest-route-db
     restart: unless-stopped
     environment:
+      TZ: Asia/Seoul
       MYSQL_DATABASE: ${MYSQL_DATABASE:-vroom}
       MYSQL_USER: ${MYSQL_USER:-vroom}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
