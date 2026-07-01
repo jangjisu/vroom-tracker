@@ -1,5 +1,5 @@
 {
-  "name": "vroom-tracker",
+  "name": "rest-route",
   "private": true,
   "type": "module",
   "scripts": {

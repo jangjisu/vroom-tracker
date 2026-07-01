@@ -1,6 +1,6 @@
-# vroom-tracker 작업 규칙
+# rest-route 작업 규칙
 
-이 파일은 Codex/agent가 `vroom-tracker`에서 작업할 때 먼저 읽는 진입점이다.
+이 파일은 Codex/agent가 `rest-route`에서 작업할 때 먼저 읽는 진입점이다.
 
 ## 기본 원칙
 
