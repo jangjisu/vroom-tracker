@@ -165,6 +165,71 @@ class RouteRestStopServiceTest {
     }
 
     @Test
+    @DisplayName("상하행 휴게소가 모두 경로 반경에 있으면 둘 다 반환하고 방향 후보 flag를 표시한다")
+    void sameRestStopPair_marksDirectionAlternatives() {
+        when(kakaoMapClient.searchKeyword("목포")).thenReturn(searchResult("126.4", "34.8", "목포역", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "126.4,34.8"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+
+        RestStopEntity mokpo = restStop("A", "화성(목포)휴게소", "서해안선", "127.0001", "37.0001");
+        RestStopEntity seoul = restStop("B", "화성(서울)휴게소", "서해안선", "127.0002", "37.0002");
+        RestStopEntity next = restStop("C", "서산(목포)휴게소", "서해안선", "127.5001", "37.5001");
+        when(restStopRepository.findAll()).thenReturn(List.of(seoul, mokpo, next));
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "목포", null, null, null, 1000);
+
+        assertThat(response.restStops())
+                .extracting(RouteRestStopResponse.RouteRestStopItem::unitName)
+                .containsExactly("화성(서울)휴게소", "화성(목포)휴게소", "서산(목포)휴게소");
+        assertThat(response.restStops())
+                .extracting(RouteRestStopResponse.RouteRestStopItem::hasDirectionAlternative)
+                .containsExactly(true, true, false);
+    }
+
+    @Test
+    @DisplayName("목적지 방향을 판단할 수 없어도 상하행 후보를 숨기지 않는다")
+    void sameRestStopPair_keepsBothAlternativesWhenDestinationDirectionUnknown() {
+        when(kakaoMapClient.searchKeyword("목적지")).thenReturn(searchResult("126.4", "34.8", null, null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "126.4,34.8"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+
+        RestStopEntity nearer = restStop("A", "화성(서울)휴게소", "서해안선", "127.0001", "37.0001");
+        RestStopEntity farther = restStop("B", "화성(목포)휴게소", "서해안선", "127.005", "37.005");
+        when(restStopRepository.findAll()).thenReturn(List.of(farther, nearer));
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "목적지", null, null, null, 1000);
+
+        assertThat(response.restStops())
+                .extracting(RouteRestStopResponse.RouteRestStopItem::unitName)
+                .containsExactly("화성(목포)휴게소", "화성(서울)휴게소");
+        assertThat(response.restStops())
+                .extracting(RouteRestStopResponse.RouteRestStopItem::hasDirectionAlternative)
+                .containsExactly(true, true);
+    }
+
+    @Test
+    @DisplayName("방향 라벨이 비어있거나 휴게소명이 없어도 경로 휴게소 조회를 유지한다")
+    void malformedDirectionLabels_areHandledAsIndependentCandidates() {
+        when(kakaoMapClient.searchKeyword("목적지")).thenReturn(searchResult("126.4", "34.8", "목적지", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "126.4,34.8"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+
+        RestStopEntity blankDirection = restStop("A", "화성()휴게소", "서해안선", "127.5001", "37.5001");
+        RestStopEntity unnamedNear = restStop("B", null, "서해안선", "127.0001", "37.0001");
+        RestStopEntity unnamedFar = restStop("B", null, "서해안선", "127.005", "37.005");
+        when(restStopRepository.findAll()).thenReturn(List.of(blankDirection, unnamedFar, unnamedNear));
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "목적지", null, null, null, 1000);
+
+        assertThat(response.restStops())
+                .extracting(RouteRestStopResponse.RouteRestStopItem::unitName)
+                .containsExactly(null, null, "화성()휴게소");
+        assertThat(response.restStops())
+                .extracting(RouteRestStopResponse.RouteRestStopItem::hasDirectionAlternative)
+                .containsExactly(false, false, false);
+    }
+
+    @Test
     @DisplayName("위도 또는 경도 좌표가 없으면 결과에서 제외한다")
     void invalidRestStopCoordinates_excluded() {
         when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산", null));

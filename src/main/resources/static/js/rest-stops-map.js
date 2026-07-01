@@ -1503,8 +1503,19 @@ function renderRouteList(restStops) {
         return;
     }
 
+    renderDirectionAlternativeNotice(restStops);
     list.replaceChildren();
     restStops.forEach((restStop) => list.appendChild(createRouteResultItem(restStop)));
+}
+
+function renderDirectionAlternativeNotice(restStops) {
+    const notice = document.getElementById('routeDirectionAlternativeNotice');
+    if (!notice) {
+        return;
+    }
+
+    const hasDirectionAlternative = restStops.some((restStop) => restStop?.hasDirectionAlternative === true);
+    notice.classList.toggle('d-none', !hasDirectionAlternative);
 }
 
 function createRouteResultItem(restStop) {
@@ -1515,6 +1526,13 @@ function createRouteResultItem(restStop) {
     name.className = 'route-result-name';
     name.textContent = formatText(restStop?.unitName, '이름 정보 없음');
     item.appendChild(name);
+
+    if (restStop?.hasDirectionAlternative === true) {
+        const badge = document.createElement('span');
+        badge.className = 'route-direction-alternative-badge';
+        badge.textContent = '상·하행 후보';
+        item.appendChild(badge);
+    }
 
     const meta = document.createElement('p');
     meta.className = 'route-result-meta';

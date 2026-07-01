@@ -29,7 +29,18 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
             String routeName,
             double latitude,
             double longitude,
+            boolean hasDirectionAlternative,
             long distanceFromRouteMeters) {
+
+        public RouteRestStopItem(
+                String serviceAreaCode,
+                String unitName,
+                String routeName,
+                double latitude,
+                double longitude,
+                long distanceFromRouteMeters) {
+            this(serviceAreaCode, unitName, routeName, latitude, longitude, false, distanceFromRouteMeters);
+        }
 
         public static RouteRestStopItem of(
                 String serviceAreaCode,
@@ -39,7 +50,18 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                 double longitude,
                 long distanceFromRouteMeters) {
             return new RouteRestStopItem(
-                    serviceAreaCode, unitName, routeName, latitude, longitude, distanceFromRouteMeters);
+                    serviceAreaCode, unitName, routeName, latitude, longitude, false, distanceFromRouteMeters);
+        }
+
+        public RouteRestStopItem withDirectionAlternative(boolean hasDirectionAlternative) {
+            return new RouteRestStopItem(
+                    serviceAreaCode,
+                    unitName,
+                    routeName,
+                    latitude,
+                    longitude,
+                    hasDirectionAlternative,
+                    distanceFromRouteMeters);
         }
     }
 }

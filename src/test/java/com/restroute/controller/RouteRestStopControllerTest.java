@@ -63,6 +63,8 @@ class RouteRestStopControllerTest {
                 .andExpect(jsonPath("$.data.route.distanceMeters").value(100))
                 .andExpect(jsonPath("$.data.restStops[0].serviceAreaCode").value("A"))
                 .andExpect(
+                        jsonPath("$.data.restStops[0].hasDirectionAlternative").value(false))
+                .andExpect(
                         jsonPath("$.data.restStops[0].distanceFromRouteMeters").value(12));
     }
 

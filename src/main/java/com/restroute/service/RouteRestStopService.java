@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -88,7 +90,7 @@ public class RouteRestStopService {
     }
 
     private List<RouteRestStopItem> restStopsOnRoute(RoutePolyline polyline, int radiusMeters) {
-        List<Map.Entry<Integer, RouteRestStopItem>> scored = new ArrayList<>();
+        List<RouteRestStopCandidate> candidates = new ArrayList<>();
         for (RestStopEntity restStop : restStopRepository.findAll()) {
             Double latitude = parseCoordinate(restStop.getYValue());
             Double longitude = parseCoordinate(restStop.getXValue());
@@ -108,11 +110,19 @@ public class RouteRestStopService {
                     latitude,
                     longitude,
                     Math.round(nearest.distanceMeters()));
-            scored.add(Map.entry(nearest.index(), item));
+            candidates.add(RouteRestStopCandidate.of(restStop, item, nearest.index()));
         }
 
-        scored.sort(Comparator.comparingInt(Map.Entry::getKey));
-        return scored.stream().map(Map.Entry::getValue).toList();
+        Map<String, Long> groupCounts = candidates.stream()
+                .filter(RouteRestStopCandidate::hasDirectionGroup)
+                .map(RouteRestStopCandidate::groupKey)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        return candidates.stream()
+                .sorted(Comparator.comparingInt(RouteRestStopCandidate::routeIndex))
+                .map(candidate -> candidate
+                        .item()
+                        .withDirectionAlternative(groupCounts.getOrDefault(candidate.groupKey(), 0L) > 1))
+                .toList();
     }
 
     private RouteSummary routeSummary(KakaoDirectionsResponse.Route route, RoutePolyline polyline) {

@@ -295,6 +295,17 @@ body {
     overflow-y: auto;
 }
 
+.route-direction-alternative-notice {
+    margin: 1rem 1.25rem 0;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #ffe8a1;
+    border-radius: 6px;
+    background-color: #fff9db;
+    color: #664d03;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
 .route-point-modal {
     width: min(92vw, 28rem);
     padding: 0;
@@ -403,6 +414,18 @@ body {
     margin: 0.2rem 0 0;
     color: #6c757d;
     font-size: 0.8rem;
+}
+
+.route-direction-alternative-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.3rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+    background-color: #fff3cd;
+    color: #7a5200;
+    font-size: 0.72rem;
+    font-weight: 700;
 }
 
 .route-rest-stop-marker {
