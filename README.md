@@ -65,6 +65,40 @@ ex.api.key=YOUR_EX_API_KEY
 
 브라우저에서 `http://localhost:8080`에 접속합니다. 로컬 데이터는 `./data/rest-route` H2 파일에 유지됩니다.
 
+## Docker 배포
+
+운영 배포는 Docker Compose로 Spring Boot 앱과 MySQL 컨테이너를 함께 실행합니다.
+로컬 개발은 기존 H2 설정을 그대로 사용하고, `prod` 프로필에서만 MySQL datasource를 사용합니다.
+
+### 1. 환경 변수 파일 생성
+
+서버에서 `.env.example`을 복사해 `.env`를 만들고 실제 값을 입력합니다.
+
+```bash
+cp .env.example .env
+```
+
+필수 값은 다음과 같습니다.
+
+```env
+EX_API_KEY=YOUR_EX_API_KEY
+NAVER_MAPS_NCP_KEY_ID=YOUR_NAVER_MAPS_NCP_KEY_ID
+KAKAO_REST_API_KEY=YOUR_KAKAO_REST_API_KEY
+MYSQL_DATABASE=vroom
+MYSQL_USER=vroom
+MYSQL_PASSWORD=STRONG_MYSQL_PASSWORD
+MYSQL_ROOT_PASSWORD=STRONG_ROOT_PASSWORD
+```
+
+### 2. 애플리케이션 실행
+
+```bash
+docker compose up -d --build
+```
+
+앱은 `http://<server-ip>:8080`에서 확인할 수 있습니다.
+MySQL 데이터는 Docker volume `mysql-data`에 유지됩니다.
+
 ## 주요 내부 API
 
 | Method | Endpoint | 설명 |
