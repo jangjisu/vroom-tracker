@@ -982,6 +982,7 @@ function bindRouteSearch() {
     document.getElementById('routeDestinationMapButton')?.addEventListener('click', (event) => {
         beginRouteMapSelection(ROUTE_POINT_TARGET.DESTINATION, event.currentTarget);
     }, { signal });
+    document.getElementById('routePointSummaryToggle')?.addEventListener('click', toggleRoutePointFields, { signal });
     document.getElementById('routeMapSelectionConfirm')?.addEventListener('click', confirmRouteMapSelection, { signal });
     document.getElementById('routeMapSelectionCancel')?.addEventListener('click', cancelRouteMapSelection, { signal });
     document.getElementById('routeResultOpen')?.addEventListener('click', openRouteResultModal, {
@@ -1003,6 +1004,7 @@ function bindRouteSearch() {
             closePlaceCandidateModal();
         }
     }, { signal });
+    updateRoutePointSummary();
 }
 
 function openRouteOriginModal() {
@@ -1088,11 +1090,13 @@ function searchPlace(target, query) {
 
 function clearEditedDestination() {
     if (!routePointSelection.getDestination()) {
+        updateRoutePointSummary();
         return;
     }
 
     routePointSelection.clear(ROUTE_POINT_TARGET.DESTINATION);
     setRouteStatus('변경한 도착지를 검색하고 후보를 선택해주세요.');
+    updateRoutePointSummary();
 }
 
 function requestSelectedRoute() {
@@ -1135,6 +1139,7 @@ function renderSelectedOrigin() {
     if (button) {
         button.textContent = origin ? '변경' : '설정';
     }
+    updateRoutePointSummary();
 }
 
 function renderSelectedDestination() {
@@ -1143,6 +1148,44 @@ function renderSelectedDestination() {
     if (input && destination) {
         input.value = routePointLabel(destination, '');
     }
+    updateRoutePointSummary();
+}
+
+function toggleRoutePointFields() {
+    const form = document.querySelector('.route-point-search');
+    setRoutePointFieldsExpanded(!form?.classList.contains('is-expanded'));
+}
+
+function setRoutePointFieldsExpanded(expanded) {
+    const form = document.querySelector('.route-point-search');
+    const toggle = document.getElementById('routePointSummaryToggle');
+    const action = document.getElementById('routePointSummaryAction');
+    form?.classList.toggle('is-expanded', expanded);
+    toggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if (action) {
+        action.textContent = expanded ? '접기' : '수정';
+    }
+}
+
+function updateRoutePointSummary() {
+    const origin = routePointSelection.getOrigin();
+    const destination = routePointSelection.getDestination();
+    const destinationQuery = document.getElementById('routeDestinationInput')?.value.trim() ?? '';
+
+    setText('routeOriginSummary', routePointSummaryLabel(origin, '출발지 설정'));
+    setText(
+        'routeDestinationSummary',
+        destination
+            ? routePointSummaryLabel(destination, '도착지 입력')
+            : formatText(destinationQuery, '도착지 입력')
+    );
+}
+
+function routePointSummaryLabel(point, fallback) {
+    if (!point) {
+        return fallback;
+    }
+    return formatText(point.name, fallback);
 }
 
 function routePointName(target) {
@@ -1228,6 +1271,7 @@ function selectPlaceCandidate(candidate) {
     }
     if (target === ROUTE_POINT_TARGET.DESTINATION) {
         renderSelectedDestination();
+        setRoutePointFieldsExpanded(false);
     }
     setRouteStatus(`${routePointName(target)}를 설정했습니다.`);
 }

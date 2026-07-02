@@ -188,6 +188,15 @@ body.rest-stop-detail-sheet-open {
     background-color: #fff;
 }
 
+.route-point-summary {
+    display: none;
+}
+
+.route-point-fields {
+    display: grid;
+    gap: 0.65rem;
+}
+
 .route-point-row {
     display: grid;
     grid-template-columns: 48px minmax(0, 1fr) auto auto;
@@ -824,6 +833,66 @@ body.rest-stop-detail-sheet-open {
 
     .route-result-open:not(.d-none) + #markerModeToggle {
         grid-column: auto;
+    }
+
+    .route-point-search {
+        padding: 0.65rem;
+    }
+
+    .route-point-summary {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 0.55rem;
+        align-items: center;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+    }
+
+    .route-point-summary-kicker {
+        color: #495057;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .route-point-summary-values {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 0.35rem;
+        color: #172b4d;
+        font-size: 0.86rem;
+        font-weight: 700;
+    }
+
+    .route-point-summary-value {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .route-point-summary-arrow {
+        flex: 0 0 auto;
+        color: #868e96;
+    }
+
+    .route-point-summary-action {
+        padding: 0.35rem 0.6rem;
+        border: 1px solid #0d6efd;
+        border-radius: 6px;
+        color: #0d6efd;
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .route-point-search:not(.is-expanded) .route-point-fields {
+        display: none;
     }
 
     .route-point-row,

@@ -42,24 +42,36 @@
             </div>
         </div>
         <div class="route-point-search mb-2">
-            <div class="route-point-row route-origin-row">
-                <span class="route-point-label">출발</span>
-                <output id="routeOriginValue" class="route-point-value">출발지를 설정하세요</output>
-                <button id="routeOriginChangeButton" class="btn btn-sm btn-outline-primary" type="button"
-                        aria-haspopup="dialog" aria-controls="routeOriginModal">
-                    설정
-                </button>
-            </div>
-            <div class="route-point-row">
-                <label class="route-point-label" for="routeDestinationInput">도착</label>
-                <input id="routeDestinationInput" type="text" class="form-control"
-                       placeholder="목적지를 입력하세요 (예: 부산역)" aria-label="도착지 검색">
-                <button id="routeDestinationSearchButton" class="btn btn-outline-primary" type="button">
-                    검색
-                </button>
-                <button id="routeDestinationMapButton" class="btn btn-outline-secondary" type="button">
-                    지도 선택
-                </button>
+            <button id="routePointSummaryToggle" class="route-point-summary" type="button"
+                    aria-expanded="false" aria-controls="routePointFields">
+                <span class="route-point-summary-kicker">경로</span>
+                <span class="route-point-summary-values">
+                    <span id="routeOriginSummary" class="route-point-summary-value">출발지 설정</span>
+                    <span class="route-point-summary-arrow" aria-hidden="true">→</span>
+                    <span id="routeDestinationSummary" class="route-point-summary-value">도착지 입력</span>
+                </span>
+                <span id="routePointSummaryAction" class="route-point-summary-action">수정</span>
+            </button>
+            <div id="routePointFields" class="route-point-fields">
+                <div class="route-point-row route-origin-row">
+                    <span class="route-point-label">출발</span>
+                    <output id="routeOriginValue" class="route-point-value">출발지를 설정하세요</output>
+                    <button id="routeOriginChangeButton" class="btn btn-sm btn-outline-primary" type="button"
+                            aria-haspopup="dialog" aria-controls="routeOriginModal">
+                        설정
+                    </button>
+                </div>
+                <div class="route-point-row">
+                    <label class="route-point-label" for="routeDestinationInput">도착</label>
+                    <input id="routeDestinationInput" type="text" class="form-control"
+                           placeholder="목적지를 입력하세요 (예: 부산역)" aria-label="도착지 검색">
+                    <button id="routeDestinationSearchButton" class="btn btn-outline-primary" type="button">
+                        검색
+                    </button>
+                    <button id="routeDestinationMapButton" class="btn btn-outline-secondary" type="button">
+                        지도 선택
+                    </button>
+                </div>
             </div>
         </div>
         <div class="rest-stop-map-layout">
