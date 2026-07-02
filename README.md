@@ -146,6 +146,32 @@ logs/yyyyMMdd.log
 - Caddy 인증서와 설정 캐시는 Docker volume `caddy-data`, `caddy-config`에 유지됩니다.
 - 애플리케이션 로그는 compose volume mount로 서버의 `./logs` 디렉터리에 남습니다.
 
+## CI/CD
+
+GitHub Actions로 테스트와 배포를 분리해서 운영합니다.
+
+| 워크플로우 | 트리거 | 동작 |
+|---|---|---|
+| `ci.yml` | main에 push 또는 PR | `./gradlew test` 실행, 실패 시 테스트 리포트를 아티팩트로 업로드 |
+| `deploy.yml` | main에 PR이 머지될 때 | SSH로 Lightsail 서버에 접속해 `git pull origin main` 후 `docker compose up -d --build app` 실행 |
+
+`deploy.yml`은 `app` 컨테이너만 재빌드·재시작하며, `db`와 `caddy` 컨테이너는 배포마다 재시작하지 않고 계속 유지됩니다.
+
+```yaml
+- name: Deploy to Lightsail
+  uses: appleboy/ssh-action@v1.2.5
+  with:
+    host: ${{ secrets.LIGHTSAIL_HOST }}
+    username: ${{ secrets.LIGHTSAIL_USER }}
+    key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+    script: |
+      cd ~/vroom-tracker
+      git pull origin main
+      docker compose up -d --build app
+```
+
+서버 접속 정보(`LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`)는 GitHub repo secrets로 관리하며, 배포 전용 SSH 키는 서버의 `~/.ssh/authorized_keys`에 공개키만 등록해 사용합니다.
+
 ## 주요 내부 API
 
 | Method | Endpoint | 설명 |
