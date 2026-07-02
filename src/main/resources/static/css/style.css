@@ -34,6 +34,10 @@ body {
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
+body.rest-stop-detail-sheet-open {
+    overflow: hidden;
+}
+
 /* ===== Navbar ===== */
 .navbar {
     border-bottom: 1px solid #2d2d2d;
@@ -724,13 +728,32 @@ body {
 }
 
 @media (max-width: 991.98px) {
+    body.rest-stop-detail-sheet-open::before {
+        position: fixed;
+        inset: 0;
+        z-index: 1190;
+        background-color: rgba(15, 23, 42, 0.42);
+        content: '';
+    }
+
     .rest-stop-map-layout:has(.rest-stop-detail-panel:not(.d-none)) {
         grid-template-columns: minmax(0, 1fr);
     }
 
     .rest-stop-detail-panel {
-        min-height: auto;
-        max-height: min(70vh, 620px);
+        position: fixed;
+        z-index: 1200;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        min-height: 0;
+        height: auto;
+        max-height: min(82vh, 680px);
+        border: 0;
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.28);
+        overscroll-behavior: contain;
     }
 
     .rest-stop-map-layout {
@@ -740,6 +763,23 @@ body {
     .rest-stop-map-stage {
         height: 60vh;
         min-height: 420px;
+    }
+
+    .rest-stop-detail-header {
+        border-radius: 16px 16px 0 0;
+        padding-top: 1rem;
+    }
+
+    .rest-stop-detail-header::before {
+        position: absolute;
+        top: 0.45rem;
+        left: 50%;
+        width: 44px;
+        height: 4px;
+        border-radius: 999px;
+        background-color: #d7dde8;
+        content: '';
+        transform: translateX(-50%);
     }
 }
 

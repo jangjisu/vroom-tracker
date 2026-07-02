@@ -35,6 +35,7 @@ const SEOUL_CENTER = {
     longitude: 126.978
 };
 const DEFAULT_ZOOM = 11;
+const MOBILE_DETAIL_SHEET_MEDIA = '(max-width: 991.98px)';
 
 const GEOLOCATION_OPTIONS = {
     enableHighAccuracy: false,
@@ -87,6 +88,7 @@ export async function initRestStopMap() {
     routeRequest = createRouteRestStopRequest({ onState: renderRouteState });
     placeSearchRequest = createPlaceSearchRequest({ onState: renderPlaceSearchState });
     bindDetailPanelEvents();
+    bindDetailSheetPresentation();
 
     try {
         const mapConfig = await fetchMapConfig();
@@ -433,6 +435,26 @@ function bindDetailPanelEvents() {
     }, { signal: detailPanelEventController.signal });
 }
 
+function bindDetailSheetPresentation() {
+    if (!detailPanelEventController) {
+        return;
+    }
+
+    window.addEventListener('resize', updateDetailSheetPresentation, {
+        signal: detailPanelEventController.signal
+    });
+}
+
+function isMobileDetailSheet() {
+    return window.matchMedia(MOBILE_DETAIL_SHEET_MEDIA).matches;
+}
+
+function updateDetailSheetPresentation() {
+    const panel = document.getElementById('restStopDetailPanel');
+    const isOpen = panel && !panel.classList.contains('d-none');
+    document.body.classList.toggle('rest-stop-detail-sheet-open', Boolean(isOpen && isMobileDetailSheet()));
+}
+
 function openDetailPanel(restStop) {
     const panel = document.getElementById('restStopDetailPanel');
     if (!panel || !detailRequest) {
@@ -443,11 +465,8 @@ function openDetailPanel(restStop) {
     selectedServiceAreaCode = restStop.serviceAreaCode;
     currentDetail = undefined;
     panel.classList.remove('d-none');
+    updateDetailSheetPresentation();
     detailRequest.load(restStop.serviceAreaCode);
-
-    if (window.matchMedia('(max-width: 991.98px)').matches) {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
 }
 
 function closeDetailPanel({ restoreMapFocus = false } = {}) {
@@ -459,6 +478,7 @@ function closeDetailPanel({ restoreMapFocus = false } = {}) {
         panel.classList.add('d-none');
         panel.setAttribute('aria-busy', 'false');
     }
+    updateDetailSheetPresentation();
 
     if (selectedInfoWindow) {
         selectedInfoWindow.close();
@@ -479,6 +499,7 @@ function renderDetailState(state) {
     }
 
     panel.classList.remove('d-none');
+    updateDetailSheetPresentation();
     setDetailName(selectedRestStopName);
     panel.setAttribute('aria-busy', state.status === 'loading' ? 'true' : 'false');
 
