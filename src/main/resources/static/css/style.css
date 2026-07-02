@@ -794,6 +794,17 @@ body.rest-stop-detail-sheet-open {
 }
 
 @media (max-width: 575.98px) {
+    .navbar {
+        min-height: 44px;
+        padding: 0.35rem 1rem !important;
+    }
+
+    .navbar-brand {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.2;
+    }
+
     .map-action-buttons {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -823,6 +834,22 @@ body.rest-stop-detail-sheet-open {
     .route-point-row .btn,
     .route-origin-row .btn {
         grid-column: 2;
+    }
+
+    .route-point-row:not(.route-origin-row) {
+        grid-template-columns: 42px repeat(2, minmax(0, 1fr));
+    }
+
+    .route-point-row:not(.route-origin-row) .route-point-label {
+        grid-row: 1 / 3;
+    }
+
+    .route-point-row:not(.route-origin-row) .form-control {
+        grid-column: 2 / -1;
+    }
+
+    .route-point-row:not(.route-origin-row) .btn {
+        grid-column: auto;
     }
 
     .route-map-selection-toolbar {
