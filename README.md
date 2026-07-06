@@ -67,8 +67,31 @@ ex.api.key=YOUR_EX_API_KEY
 
 ## Docker 배포
 
-운영 배포는 Docker Compose로 Spring Boot 앱과 MySQL 컨테이너를 함께 실행합니다.
+운영 배포는 AWS Lightsail 서버에서 Docker Compose로 실행합니다.
 로컬 개발은 기존 H2 설정을 그대로 사용하고, `prod` 프로필에서만 MySQL datasource를 사용합니다.
+
+현재 접속 도메인은 다음과 같습니다.
+
+- 서비스 URL: <https://www.rest-route.o-r.kr>
+
+운영 컨테이너 구성은 다음과 같습니다.
+
+| 서비스 | 컨테이너 | 역할 |
+|---|---|---|
+| `caddy` | `rest-route-caddy` | 80/443 포트 수신, HTTPS 인증서 자동 발급·갱신, `app:8080` reverse proxy |
+| `app` | `rest-route` | Spring Boot 애플리케이션, `prod` 프로필, MySQL datasource 사용 |
+| `db` | `rest-route-db` | MySQL 8.4 데이터베이스 |
+
+`Caddyfile`은 `.env`의 `APP_DOMAIN` 값을 사용합니다.
+
+```caddy
+{$APP_DOMAIN} {
+    reverse_proxy app:8080
+}
+```
+
+도메인 DNS는 `www.rest-route.o-r.kr`의 A 레코드를 Lightsail public IPv4로 연결합니다.
+Lightsail 방화벽에서는 HTTP 80, HTTPS 443 포트를 열어야 하며, Caddy가 Let's Encrypt 인증서를 자동으로 발급·갱신합니다.
 
 ### 1. 환경 변수 파일 생성
 
@@ -84,6 +107,7 @@ cp .env.example .env
 EX_API_KEY=YOUR_EX_API_KEY
 NAVER_MAPS_NCP_KEY_ID=YOUR_NAVER_MAPS_NCP_KEY_ID
 KAKAO_REST_API_KEY=YOUR_KAKAO_REST_API_KEY
+APP_DOMAIN=www.rest-route.o-r.kr
 MYSQL_DATABASE=vroom
 MYSQL_USER=vroom
 MYSQL_PASSWORD=STRONG_MYSQL_PASSWORD
@@ -92,12 +116,61 @@ MYSQL_ROOT_PASSWORD=STRONG_ROOT_PASSWORD
 
 ### 2. 애플리케이션 실행
 
+서버에서 이미지를 빌드하고 컨테이너를 백그라운드로 실행합니다.
+
 ```bash
 docker compose up -d --build
 ```
 
-앱은 `http://<server-ip>:8080`에서 확인할 수 있습니다.
-MySQL 데이터는 Docker volume `mysql-data`에 유지됩니다.
+배포 후 브라우저에서 <https://www.rest-route.o-r.kr>에 접속합니다.
+
+### 3. 로그 확인
+
+Docker 컨테이너 로그는 다음 명령으로 확인합니다.
+
+```bash
+docker compose logs -f app
+docker compose logs -f caddy
+docker compose logs -f db
+```
+
+애플리케이션 파일 로그는 서버의 `./logs` 디렉터리에 날짜별로 저장됩니다.
+
+```text
+logs/yyyyMMdd.log
+```
+
+### 4. 데이터와 인증서 보관
+
+- MySQL 데이터는 Docker volume `mysql-data`에 유지됩니다.
+- Caddy 인증서와 설정 캐시는 Docker volume `caddy-data`, `caddy-config`에 유지됩니다.
+- 애플리케이션 로그는 compose volume mount로 서버의 `./logs` 디렉터리에 남습니다.
+
+## CI/CD
+
+GitHub Actions로 테스트와 배포를 분리해서 운영합니다.
+
+| 워크플로우 | 트리거 | 동작 |
+|---|---|---|
+| `ci.yml` | main에 push 또는 PR | `./gradlew test` 실행, 실패 시 테스트 리포트를 아티팩트로 업로드 |
+| `deploy.yml` | main에 PR이 머지될 때 | SSH로 Lightsail 서버에 접속해 `git pull origin main` 후 `docker compose up -d --build app` 실행 |
+
+`deploy.yml`은 `app` 컨테이너만 재빌드·재시작하며, `db`와 `caddy` 컨테이너는 배포마다 재시작하지 않고 계속 유지됩니다.
+
+```yaml
+- name: Deploy to Lightsail
+  uses: appleboy/ssh-action@v1.2.5
+  with:
+    host: ${{ secrets.LIGHTSAIL_HOST }}
+    username: ${{ secrets.LIGHTSAIL_USER }}
+    key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+    script: |
+      cd ~/vroom-tracker
+      git pull origin main
+      docker compose up -d --build app
+```
+
+서버 접속 정보(`LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`)는 GitHub repo secrets로 관리하며, 배포 전용 SSH 키는 서버의 `~/.ssh/authorized_keys`에 공개키만 등록해 사용합니다.
 
 ## 주요 내부 API
 
