@@ -97,16 +97,18 @@
             <aside id="restStopDetailPanel" class="rest-stop-detail-panel d-none"
                    aria-labelledby="restStopDetailName" aria-busy="false">
                 <div class="rest-stop-detail-header">
-                    <div>
+                    <div class="rest-stop-detail-heading">
                         <div class="rest-stop-detail-kicker">선택한 휴게소</div>
                         <h2 id="restStopDetailName" class="rest-stop-detail-name"></h2>
+                    </div>
+                    <div class="rest-stop-detail-actions">
                         <button id="restStopFoodOpen" class="btn btn-primary rest-stop-food-open d-none"
                                 type="button" aria-haspopup="dialog" aria-controls="restStopFoodModal">
                             🍽 먹거리 보기
                         </button>
+                        <button id="restStopDetailClose" class="btn-close rest-stop-detail-close" type="button"
+                                aria-label="상세 정보 닫기"></button>
                     </div>
-                    <button id="restStopDetailClose" class="btn-close rest-stop-detail-close" type="button"
-                            aria-label="상세 정보 닫기"></button>
                 </div>
                 <div id="restStopDetailStatus" class="rest-stop-detail-status" aria-live="polite"></div>
                 <div id="restStopDetailContent" class="rest-stop-detail-content d-none">

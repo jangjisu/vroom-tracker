@@ -488,6 +488,17 @@ body.rest-stop-detail-sheet-open {
     background-color: #fff;
 }
 
+.rest-stop-detail-heading {
+    min-width: 0;
+}
+
+.rest-stop-detail-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
 .rest-stop-detail-close {
     flex: 0 0 44px;
     width: 44px;
@@ -706,10 +717,11 @@ body.rest-stop-detail-sheet-open {
 }
 
 .rest-stop-food-open {
-    margin-top: 0.6rem;
-    min-height: 2.5rem;
-    padding: 0.4rem 1rem;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .rest-stop-food-modal {
@@ -772,7 +784,7 @@ body.rest-stop-detail-sheet-open {
         width: 100%;
         min-height: 0;
         height: auto;
-        max-height: min(82vh, 680px);
+        max-height: 68vh;
         border: 0;
         border-radius: 16px 16px 0 0;
         box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.28);
@@ -790,19 +802,13 @@ body.rest-stop-detail-sheet-open {
 
     .rest-stop-detail-header {
         border-radius: 16px 16px 0 0;
-        padding-top: 1rem;
+        padding-top: 0.95rem;
     }
 
-    .rest-stop-detail-header::before {
-        position: absolute;
-        top: 0.45rem;
-        left: 50%;
-        width: 44px;
-        height: 4px;
-        border-radius: 999px;
-        background-color: #d7dde8;
-        content: '';
-        transform: translateX(-50%);
+    .rest-stop-food-open {
+        min-height: 2rem;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.8rem;
     }
 }
 
