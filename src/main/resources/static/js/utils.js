@@ -15,6 +15,29 @@ export function hideEl(id) {
     if (el) el.style.display = 'none';
 }
 
+export function showGlobalLoading(message) {
+    setText('globalLoadingMessage', message);
+    const overlay = document.getElementById('globalLoadingOverlay');
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.remove('d-none');
+    overlay.setAttribute('aria-busy', 'true');
+    document.body?.classList.add('global-loading-open');
+}
+
+export function hideGlobalLoading() {
+    const overlay = document.getElementById('globalLoadingOverlay');
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.add('d-none');
+    overlay.setAttribute('aria-busy', 'false');
+    document.body?.classList.remove('global-loading-open');
+}
+
 export function showApiUnavailableAlert() {
     const existing = document.getElementById('apiUnavailableAlert');
     if (existing) return; // 이미 표시 중이면 중복 생성 안 함

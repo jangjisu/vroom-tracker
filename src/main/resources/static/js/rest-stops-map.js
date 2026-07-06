@@ -1,4 +1,4 @@
-import { setText, showApiUnavailableAlert } from './utils.js';
+import { hideGlobalLoading, setText, showApiUnavailableAlert, showGlobalLoading } from './utils.js';
 import {
     availableDataTags,
     CONVENIENCE_FALLBACK,
@@ -1112,8 +1112,6 @@ function searchPlace(target, query) {
 }
 
 function clearEditedDestination() {
-    routeRequest?.invalidate();
-    setRouteLoading(false);
     if (!routePointSelection.getDestination()) {
         updateRoutePointSummary();
         return;
@@ -1121,6 +1119,7 @@ function clearEditedDestination() {
 
     routePointSelection.clear(ROUTE_POINT_TARGET.DESTINATION);
     automaticRouteRequestSignature = undefined;
+    routeRequest?.invalidate();
     setRouteStatus('변경한 도착지를 검색하고 후보를 선택해주세요.');
     updateRoutePointSummary();
 }
@@ -1184,6 +1183,10 @@ export function shouldRequestRouteAutomatically(origin, destination, isMobile) {
 
 export function shouldShowRouteSearchInline(origin, destination) {
     return canRequestRouteAutomatically(origin, destination);
+}
+
+export function isRouteGlobalLoadingState(state) {
+    return state?.status === 'loading';
 }
 
 function routeRequestSignature(origin, destination) {
@@ -1494,9 +1497,14 @@ function clearRouteMapDraftMarker() {
 }
 
 function renderRouteState(state) {
-    setRouteLoading(isRouteLoadingState(state));
+    setRouteGlobalLoading(isRouteGlobalLoadingState(state), '경로를 찾는 중입니다...');
+
     if (state.status === 'loading') {
         setRouteStatus('경로를 찾는 중입니다...');
+        return;
+    }
+
+    if (state.status === 'idle') {
         return;
     }
 
@@ -1521,10 +1529,6 @@ function renderRouteState(state) {
     }
 
     setRouteStatus('경로를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.');
-}
-
-export function isRouteLoadingState(state) {
-    return state?.status === 'loading';
 }
 
 function renderRoute(data) {
@@ -1799,12 +1803,15 @@ function clearRouteOverlays() {
 
 function setRouteStatus(message) {
     setText('routeSearchStatus', message);
-    document.getElementById('routeSearchFeedback')?.classList.toggle('d-none', !message);
 }
 
-function setRouteLoading(loading) {
-    document.getElementById('routeSearchLoadingSpinner')?.classList.toggle('d-none', !loading);
-    document.getElementById('routeSearchFeedback')?.setAttribute('aria-busy', loading ? 'true' : 'false');
+function setRouteGlobalLoading(loading, message) {
+    if (loading) {
+        showGlobalLoading(message);
+        return;
+    }
+
+    hideGlobalLoading();
 }
 
 function showMapError(message, status = '불러오기 실패') {

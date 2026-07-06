@@ -72,6 +72,7 @@ export function createRouteRestStopRequest({ fetchImpl = fetch, onState = () => 
         currentRequestId += 1;
         activeRequestController?.abort();
         activeRequestController = undefined;
+        onState({ status: 'idle' });
     }
 
     return { invalidate, load };
