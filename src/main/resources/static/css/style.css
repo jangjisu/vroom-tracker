@@ -827,6 +827,10 @@ body.rest-stop-detail-sheet-open {
         white-space: nowrap;
     }
 
+    #restStopLocateButton {
+        display: none;
+    }
+
     #markerModeToggle {
         grid-column: 1 / -1;
     }
@@ -928,6 +932,14 @@ body.rest-stop-detail-sheet-open {
 
     .route-map-selection-actions .btn {
         flex: 1;
+    }
+
+    #routeResultModal.route-result-modal {
+        width: 100vw;
+        max-width: none;
+        max-height: 72vh;
+        margin: auto 0 0;
+        border-radius: 16px 16px 0 0;
     }
 }
 
