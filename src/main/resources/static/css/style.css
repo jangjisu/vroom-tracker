@@ -443,6 +443,34 @@ body.rest-stop-detail-sheet-open {
     font-size: 0.8rem;
 }
 
+.route-result-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.35rem;
+}
+
+.route-result-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.35rem;
+    padding: 0.1rem 0.4rem;
+    border: 1px solid #cfe2ff;
+    border-radius: 999px;
+    background-color: #eef5ff;
+    color: #0b5ed7;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.route-result-summary {
+    margin: 0.18rem 0 0;
+    color: #495057;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
 .route-direction-alternative-badge {
     display: inline-flex;
     align-items: center;

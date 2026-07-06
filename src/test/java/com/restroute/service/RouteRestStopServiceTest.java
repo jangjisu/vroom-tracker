@@ -18,9 +18,20 @@ import com.restroute.client.response.KakaoDirectionsResponse.Summary;
 import com.restroute.client.response.KakaoLocalSearchResponse;
 import com.restroute.client.response.KakaoLocalSearchResponse.Document;
 import com.restroute.controller.response.RouteRestStopResponse;
+import com.restroute.domain.HighwayServiceAreaInfoEntity;
+import com.restroute.domain.RestFoodEntity;
+import com.restroute.domain.RestOilEntity;
+import com.restroute.domain.RestOilPriceEntity;
+import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.HighwayServiceAreaInfoRepository;
+import com.restroute.repository.RestFoodRepository;
+import com.restroute.repository.RestOilPriceRepository;
+import com.restroute.repository.RestOilRepository;
+import com.restroute.repository.RestStopDetailRepository;
 import com.restroute.repository.RestStopRepository;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,11 +50,33 @@ class RouteRestStopServiceTest {
     @Mock
     private RestStopRepository restStopRepository;
 
+    @Mock
+    private RestStopDetailRepository restStopDetailRepository;
+
+    @Mock
+    private HighwayServiceAreaInfoRepository highwayServiceAreaInfoRepository;
+
+    @Mock
+    private RestOilRepository restOilRepository;
+
+    @Mock
+    private RestOilPriceRepository restOilPriceRepository;
+
+    @Mock
+    private RestFoodRepository restFoodRepository;
+
     private RouteRestStopService service;
 
     @BeforeEach
     void setUp() {
-        service = new RouteRestStopService(kakaoMapClient, restStopRepository);
+        service = new RouteRestStopService(
+                kakaoMapClient,
+                restStopRepository,
+                restStopDetailRepository,
+                highwayServiceAreaInfoRepository,
+                restOilRepository,
+                restOilPriceRepository,
+                restFoodRepository);
     }
 
     private KakaoLocalSearchResponse searchResult(String x, String y, String placeName, String addressName) {
@@ -60,8 +93,41 @@ class RouteRestStopServiceTest {
         lenient().when(entity.getServiceAreaCode()).thenReturn(code);
         lenient().when(entity.getUnitName()).thenReturn(name);
         lenient().when(entity.getRouteName()).thenReturn(route);
+        lenient().when(entity.getRouteNo()).thenReturn("0010");
+        lenient().when(entity.getStdRestCd()).thenReturn(code + "-FOOD");
         lenient().when(entity.getXValue()).thenReturn(lng);
         lenient().when(entity.getYValue()).thenReturn(lat);
+        return entity;
+    }
+
+    private HighwayServiceAreaInfoEntity parking(String compact, String fullSize, String disabled) {
+        HighwayServiceAreaInfoEntity entity = mock(HighwayServiceAreaInfoEntity.class);
+        lenient().when(entity.getCompactCarParkingCount()).thenReturn(compact);
+        lenient().when(entity.getFullSizeCarParkingCount()).thenReturn(fullSize);
+        lenient().when(entity.getDisabledParkingCount()).thenReturn(disabled);
+        return entity;
+    }
+
+    private RestOilEntity oilConvenience(String standardRestCode, String convenienceName) {
+        RestOilEntity entity = mock(RestOilEntity.class);
+        lenient().when(entity.getStandardRestCode()).thenReturn(standardRestCode);
+        lenient().when(entity.getConvenienceName()).thenReturn(convenienceName);
+        return entity;
+    }
+
+    private RestOilPriceEntity oilPrice(String gasoline, String diesel, String lpg) {
+        RestOilPriceEntity entity = mock(RestOilPriceEntity.class);
+        lenient().when(entity.getGasolinePrice()).thenReturn(gasoline);
+        lenient().when(entity.getDieselPrice()).thenReturn(diesel);
+        lenient().when(entity.getLpgPrice()).thenReturn(lpg);
+        return entity;
+    }
+
+    private RestStopDetailEntity detail(String convenience, String maintenanceYn, String truckSaYn) {
+        RestStopDetailEntity entity = mock(RestStopDetailEntity.class);
+        lenient().when(entity.getConvenience()).thenReturn(convenience);
+        lenient().when(entity.getMaintenanceYn()).thenReturn(maintenanceYn);
+        lenient().when(entity.getTruckSaYn()).thenReturn(truckSaYn);
         return entity;
     }
 
@@ -162,6 +228,144 @@ class RouteRestStopServiceTest {
                 .extracting(RouteRestStopResponse.RouteRestStopItem::serviceAreaCode)
                 .containsExactly("A", "B");
         assertThat(response.restStops().get(0).distanceFromRouteMeters()).isLessThan(50L);
+    }
+
+    @Test
+    @DisplayName("경로 결과에 유종별 최저가, 최대 주차, 먹거리와 시설 태그 및 요약을 추가한다")
+    void success_addsComparisonSummaryAndRecommendationTags() {
+        when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+
+        RestStopEntity first = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
+        RestStopEntity second = restStop("B", "B휴게소", "경부선", "127.5001", "37.5001");
+        HighwayServiceAreaInfoEntity firstParking = parking("10", "5", "1");
+        HighwayServiceAreaInfoEntity secondParking = parking("40", "20", "3");
+        RestOilEntity firstOilConvenience = oilConvenience("OIL-A", "쉼터");
+        RestOilEntity secondOilConvenience = oilConvenience("OIL-B", "쉼터");
+        RestOilEntity thirdOilConvenience = oilConvenience("OIL-B", "샤워실");
+        RestOilEntity fourthOilConvenience = oilConvenience("OIL-B", "수면실");
+        RestOilPriceEntity firstOilPrice = oilPrice("1,700원", "1,500원", "1,200원");
+        RestOilPriceEntity secondOilPrice = oilPrice("1,650원", "1,550원", "1,100원");
+        RestFoodEntity firstFood = mock(RestFoodEntity.class);
+        RestFoodEntity secondFood = mock(RestFoodEntity.class);
+        RestFoodEntity thirdFood = mock(RestFoodEntity.class);
+        when(restStopRepository.findAll()).thenReturn(List.of(first, second));
+        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A"))
+                .thenReturn(List.of(firstParking));
+        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("B"))
+                .thenReturn(List.of(secondParking));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "A"))
+                .thenReturn(List.of(firstOilConvenience));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "B"))
+                .thenReturn(List.of(secondOilConvenience, thirdOilConvenience, fourthOilConvenience));
+        when(restOilPriceRepository.findByServiceAreaCode2("OIL-A")).thenReturn(Optional.of(firstOilPrice));
+        when(restOilPriceRepository.findByServiceAreaCode2("OIL-B")).thenReturn(Optional.of(secondOilPrice));
+        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("A-FOOD")).thenReturn(List.of(firstFood));
+        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("B-FOOD")).thenReturn(List.of(secondFood, thirdFood));
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
+
+        RouteRestStopResponse.RouteRestStopItem firstItem = response.restStops().get(0);
+        RouteRestStopResponse.RouteRestStopItem secondItem =
+                response.restStops().get(1);
+        assertThat(firstItem.comparisonSummary().gasolinePrice()).isEqualTo("1,700원");
+        assertThat(firstItem.comparisonSummary().dieselPrice()).isEqualTo("1,500원");
+        assertThat(firstItem.comparisonSummary().lpgPrice()).isEqualTo("1,200원");
+        assertThat(firstItem.comparisonSummary().totalParkingCount()).isEqualTo(16);
+        assertThat(firstItem.comparisonSummary().foodMenuCount()).isEqualTo(1);
+        assertThat(firstItem.comparisonSummary().facilityCount()).isEqualTo(1);
+        assertThat(firstItem.recommendationTags())
+                .extracting(RouteRestStopResponse.RecommendationTag::label)
+                .containsExactly("경유 최저가", "먹거리 있음");
+
+        assertThat(secondItem.comparisonSummary().gasolinePrice()).isEqualTo("1,650원");
+        assertThat(secondItem.comparisonSummary().totalParkingCount()).isEqualTo(63);
+        assertThat(secondItem.comparisonSummary().foodMenuCount()).isEqualTo(2);
+        assertThat(secondItem.comparisonSummary().facilityCount()).isEqualTo(3);
+        assertThat(secondItem.recommendationTags())
+                .extracting(RouteRestStopResponse.RecommendationTag::label)
+                .containsExactly("휘발유 최저가", "LPG 최저가", "주차장 큼", "먹거리 있음", "시설 많음");
+    }
+
+    @Test
+    @DisplayName("상세 편의시설과 운영 flag를 시설 개수에 포함한다")
+    void success_countsDetailConveniencesAndOperationFlagsAsFacilities() {
+        when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+
+        RestStopEntity restStop = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
+        RestStopDetailEntity detail = detail("수유실/쉼터, 쉼터", "Y", "X");
+        when(restStopRepository.findAll()).thenReturn(List.of(restStop));
+        when(restStopDetailRepository.findByServiceAreaCode("A")).thenReturn(Optional.of(detail));
+        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A"))
+                .thenReturn(List.of());
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "A"))
+                .thenReturn(List.of());
+        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("A-FOOD")).thenReturn(List.of());
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
+
+        RouteRestStopResponse.RouteRestStopItem item = response.restStops().get(0);
+        assertThat(item.comparisonSummary().facilityCount()).isEqualTo(3);
+        assertThat(item.recommendationTags())
+                .extracting(RouteRestStopResponse.RecommendationTag::label)
+                .containsExactly("시설 많음");
+    }
+
+    @Test
+    @DisplayName("상세 편의시설 문자열이 없어도 운영 flag 시설 개수를 계산한다")
+    void success_countsOperationFlagsWhenDetailConvenienceIsNull() {
+        when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+
+        RestStopEntity restStop = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
+        RestStopDetailEntity detail = detail(null, "Y", "Y");
+        when(restStopRepository.findAll()).thenReturn(List.of(restStop));
+        when(restStopDetailRepository.findByServiceAreaCode("A")).thenReturn(Optional.of(detail));
+        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A"))
+                .thenReturn(List.of());
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "A"))
+                .thenReturn(List.of());
+        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("A-FOOD")).thenReturn(List.of());
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
+
+        RouteRestStopResponse.RouteRestStopItem item = response.restStops().get(0);
+        assertThat(item.comparisonSummary().facilityCount()).isEqualTo(2);
+        assertThat(item.recommendationTags()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("가격과 주차 숫자를 해석할 수 없으면 최저가/주차 태그를 붙이지 않는다")
+    void success_skipsComparisonTagsWhenNumbersAreUnavailable() {
+        when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+
+        RestStopEntity restStop = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
+        HighwayServiceAreaInfoEntity parking =
+                parking("", "없음", "999999999999999999999999999999999999999999999999999999999999999999");
+        RestOilEntity oilConvenience = oilConvenience("OIL-A", "");
+        RestOilPriceEntity oilPrice =
+                oilPrice("", "무료", "999999999999999999999999999999999999999999999999999999999999999999");
+        when(restStopRepository.findAll()).thenReturn(List.of(restStop));
+        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A"))
+                .thenReturn(List.of(parking));
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "A"))
+                .thenReturn(List.of(oilConvenience));
+        when(restOilPriceRepository.findByServiceAreaCode2("OIL-A")).thenReturn(Optional.of(oilPrice));
+        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("A-FOOD")).thenReturn(List.of());
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
+
+        RouteRestStopResponse.RouteRestStopItem item = response.restStops().get(0);
+        assertThat(item.comparisonSummary().totalParkingCount()).isNull();
+        assertThat(item.comparisonSummary().foodMenuCount()).isZero();
+        assertThat(item.comparisonSummary().facilityCount()).isZero();
+        assertThat(item.recommendationTags()).isEmpty();
     }
 
     @Test

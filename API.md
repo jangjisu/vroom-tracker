@@ -511,7 +511,35 @@ DB에 저장된 전체 휴게소 위치 목록을 반환한다. 각 항목에는
 
 - `destination`: 목적지 이름과 좌표
 - `route`: 전체 거리(m), 예상 시간(초)과 다운샘플링한 `[경도, 위도]` 경로 좌표
-- `restStops`: 휴게소 코드, 이름, 노선, 좌표와 경로로부터의 거리(m)
+- `restStops`: 휴게소 코드, 이름, 노선, 좌표, 경로로부터의 거리(m), 방향 후보 여부, 비교 요약과 추천 태그
+
+`restStops[].comparisonSummary`는 기존 저장 데이터에서 조합한 화면용 요약이다.
+
+```json
+{
+  "gasolinePrice": "1,650원",
+  "dieselPrice": "1,550원",
+  "lpgPrice": "1,100원",
+  "totalParkingCount": 63,
+  "foodMenuCount": 2,
+  "facilityCount": 3
+}
+```
+
+`restStops[].recommendationTags`는 경로 결과 안에서 상대 비교하거나 정보 보유 여부를 기준으로 부여한 판단용
+뱃지 목록이다.
+
+| key | label | 기준 |
+|---|---|---|
+| `lowest-gasoline` | `휘발유 최저가` | 경로 결과 안에서 휘발유 가격 최저 |
+| `lowest-diesel` | `경유 최저가` | 경로 결과 안에서 경유 가격 최저 |
+| `lowest-lpg` | `LPG 최저가` | 경로 결과 안에서 LPG 가격 최저 |
+| `largest-parking` | `주차장 큼` | 소형·대형·장애인 주차 대수 합산이 경로 결과 안에서 최대 |
+| `food-available` | `먹거리 있음` | 음식 메뉴가 1개 이상 |
+| `many-facilities` | `시설 많음` | 시설 개수가 3개 이상 |
+
+가격은 숫자로 해석할 수 있는 저장값만 비교하고, 주차 수는 해석 가능한 숫자만 합산한다.
+요청 파라미터와 에러 응답 형식은 변경되지 않는다.
 
 목적지나 경로를 찾지 못하면 HTTP 404와 `NOT_FOUND`를 반환한다. 카카오 API 호출 자체가 실패하면
 `EXTERNAL_API_UNAVAILABLE`을 반환한다.
