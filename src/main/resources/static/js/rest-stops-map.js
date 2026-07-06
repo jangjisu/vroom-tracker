@@ -70,6 +70,7 @@ let routePointSelection = createRoutePointSelection();
 let routeMapClickListener;
 let routeMapDraftMarker;
 let routeMapSelectionTrigger;
+let automaticRouteRequestSignature;
 
 export async function initRestStopMap() {
     const mapElement = document.getElementById('restStopMap');
@@ -123,6 +124,7 @@ export async function initRestStopMap() {
         bindRouteSearch();
         bindRouteMapClick();
         bindMarkerModeToggle();
+        initializeMobileCurrentLocationOrigin();
 
         setText('restStopMapStatus', '휴게소 불러오는 중');
         const restStopResult = await fetchRestStops();
@@ -202,10 +204,11 @@ function resolveInitialCenter() {
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                resolveOnce({
+                currentLocation = {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude
-                });
+                };
+                resolveOnce(currentLocation);
             },
             () => resolveOnce(SEOUL_CENTER),
             {
@@ -953,6 +956,7 @@ function bindRouteSearch() {
 
     const signal = detailPanelEventController.signal;
     document.getElementById('routeSearchButton')?.addEventListener('click', requestSelectedRoute, { signal });
+    document.getElementById('routeSearchInlineButton')?.addEventListener('click', requestSelectedRoute, { signal });
     document.getElementById('routeOriginChangeButton')?.addEventListener('click', openRouteOriginModal, { signal });
     document.getElementById('routeOriginModalClose')?.addEventListener('click', closeRouteOriginModal, { signal });
     document.getElementById('routeOriginModal')?.addEventListener('click', (event) => {
@@ -1035,19 +1039,38 @@ function selectCurrentLocationAsOrigin() {
                 longitude: position.coords.longitude
             };
             hideLocateError();
-            const selectedOrigin = routePointSelection.select(ROUTE_POINT_TARGET.ORIGIN, {
-                name: '현재 위치',
-                ...currentLocation
-            });
-            renderEndpointMarker(ROUTE_POINT_TARGET.ORIGIN, selectedOrigin);
-            moveMapToPoint(selectedOrigin);
-            renderSelectedOrigin();
+            selectCurrentLocationOrigin({ moveMap: true });
             closeRouteOriginModal();
             setRouteStatus('현재 위치를 출발지로 설정했습니다.');
+            requestRouteAutomatically();
         },
         (error) => setRouteStatus(locateErrorMessage(error)),
         GEOLOCATION_OPTIONS
     );
+}
+
+function initializeMobileCurrentLocationOrigin() {
+    if (!isMobileDetailSheet() || !currentLocation || routePointSelection.getOrigin()) {
+        return;
+    }
+
+    selectCurrentLocationOrigin({ moveMap: false });
+    showCurrentLocationMarker(new naverMaps.LatLng(currentLocation.latitude, currentLocation.longitude));
+    setRoutePointFieldsExpanded(true);
+    setRouteStatus('현재 위치를 출발지로 설정했습니다. 도착지를 선택해주세요.');
+}
+
+function selectCurrentLocationOrigin({ moveMap = false } = {}) {
+    const selectedOrigin = routePointSelection.select(ROUTE_POINT_TARGET.ORIGIN, {
+        name: '현재 위치',
+        ...currentLocation
+    });
+    renderEndpointMarker(ROUTE_POINT_TARGET.ORIGIN, selectedOrigin);
+    if (moveMap) {
+        moveMapToPoint(selectedOrigin);
+    }
+    renderSelectedOrigin();
+    return selectedOrigin;
 }
 
 function openRouteResultModal() {
@@ -1095,6 +1118,7 @@ function clearEditedDestination() {
     }
 
     routePointSelection.clear(ROUTE_POINT_TARGET.DESTINATION);
+    automaticRouteRequestSignature = undefined;
     setRouteStatus('변경한 도착지를 검색하고 후보를 선택해주세요.');
     updateRoutePointSummary();
 }
@@ -1126,6 +1150,48 @@ function requestSelectedRoute() {
         destination.longitude,
         destination.name
     );
+}
+
+function requestRouteAutomatically() {
+    const origin = routePointSelection.getOrigin();
+    const destination = routePointSelection.getDestination();
+    if (!shouldRequestRouteAutomatically(origin, destination, isMobileDetailSheet())) {
+        return;
+    }
+
+    const signature = routeRequestSignature(origin, destination);
+    if (signature === automaticRouteRequestSignature) {
+        return;
+    }
+
+    automaticRouteRequestSignature = signature;
+    requestSelectedRoute();
+}
+
+export function canRequestRouteAutomatically(origin, destination) {
+    return Boolean(origin && destination)
+        && Number.isFinite(origin.latitude)
+        && Number.isFinite(origin.longitude)
+        && Number.isFinite(destination.latitude)
+        && Number.isFinite(destination.longitude);
+}
+
+export function shouldRequestRouteAutomatically(origin, destination, isMobile) {
+    return isMobile && canRequestRouteAutomatically(origin, destination);
+}
+
+export function shouldShowRouteSearchInline(origin, destination) {
+    return canRequestRouteAutomatically(origin, destination);
+}
+
+function routeRequestSignature(origin, destination) {
+    return [
+        origin.latitude,
+        origin.longitude,
+        destination.latitude,
+        destination.longitude,
+        destination.name ?? ''
+    ].join('|');
 }
 
 function renderSelectedOrigin() {
@@ -1179,6 +1245,11 @@ function updateRoutePointSummary() {
             ? routePointSummaryLabel(destination, '도착지 입력')
             : formatText(destinationQuery, '도착지 입력')
     );
+    toggleRouteSearchInlineButton(shouldShowRouteSearchInline(origin, destination));
+}
+
+function toggleRouteSearchInlineButton(visible) {
+    document.getElementById('routeSearchInlineButton')?.classList.toggle('d-none', !visible);
 }
 
 function routePointSummaryLabel(point, fallback) {
@@ -1274,6 +1345,7 @@ function selectPlaceCandidate(candidate) {
         setRoutePointFieldsExpanded(false);
     }
     setRouteStatus(`${routePointName(target)}를 설정했습니다.`);
+    requestRouteAutomatically();
 }
 
 function openPlaceCandidateModal() {
@@ -1387,6 +1459,7 @@ function confirmRouteMapSelection() {
     }
     finishRouteMapSelection();
     setRouteStatus(`${routePointName(target)}를 지도 위치로 설정했습니다.`);
+    requestRouteAutomatically();
 }
 
 function cancelRouteMapSelection() {

@@ -2,9 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+    canRequestRouteAutomatically,
     createPopupContent,
     routeMapSelectionMessage,
-    routePointLabel
+    routePointLabel,
+    shouldRequestRouteAutomatically,
+    shouldShowRouteSearchInline
 } from '../../main/resources/static/js/rest-stops-map.js';
 
 test('createPopupContent renders rest stop popup as a small summary card', () => {
@@ -70,4 +73,31 @@ test('routeMapSelectionMessage distinguishes target and confirmation state', () 
     assert.equal(routeMapSelectionMessage('origin', true), '선택한 출발 위치를 확정해주세요.');
     assert.equal(routeMapSelectionMessage('destination', false), '지도에서 도착 위치를 선택하세요.');
     assert.equal(routeMapSelectionMessage('destination', true), '선택한 도착 위치를 확정해주세요.');
+});
+
+test('canRequestRouteAutomatically requires selected origin and destination coordinates', () => {
+    const origin = { latitude: 37.5, longitude: 126.9 };
+    const destination = { latitude: 35.1, longitude: 129.0 };
+
+    assert.equal(canRequestRouteAutomatically(origin, destination), true);
+    assert.equal(canRequestRouteAutomatically(undefined, destination), false);
+    assert.equal(canRequestRouteAutomatically(origin, undefined), false);
+    assert.equal(canRequestRouteAutomatically(origin, { latitude: Number.NaN, longitude: 129.0 }), false);
+});
+
+test('shouldRequestRouteAutomatically keeps desktop route search manual', () => {
+    const origin = { latitude: 37.5, longitude: 126.9 };
+    const destination = { latitude: 35.1, longitude: 129.0 };
+
+    assert.equal(shouldRequestRouteAutomatically(origin, destination, true), true);
+    assert.equal(shouldRequestRouteAutomatically(origin, destination, false), false);
+});
+
+test('shouldShowRouteSearchInline requires both selected route points', () => {
+    const origin = { latitude: 37.5, longitude: 126.9 };
+    const destination = { latitude: 35.1, longitude: 129.0 };
+
+    assert.equal(shouldShowRouteSearchInline(origin, destination), true);
+    assert.equal(shouldShowRouteSearchInline(origin, undefined), false);
+    assert.equal(shouldShowRouteSearchInline(undefined, destination), false);
 });
