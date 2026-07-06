@@ -95,3 +95,16 @@ test('AbortError는 상태를 내지 않는다', async () => {
 
     assert.deepEqual(states, [{ status: 'loading' }]);
 });
+
+test('invalidate는 진행 중 로딩을 닫을 수 있도록 idle 상태를 낸다', async () => {
+    const { states, onState } = collect();
+    const request = createRouteRestStopRequest({
+        fetchImpl: async () => new Promise(() => {}),
+        onState
+    });
+
+    request.load(37.0, 127.0, '부산');
+    request.invalidate();
+
+    assert.deepEqual(states, [{ status: 'loading' }, { status: 'idle' }]);
+});

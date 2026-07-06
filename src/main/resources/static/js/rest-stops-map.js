@@ -1,4 +1,4 @@
-import { setText, showApiUnavailableAlert } from './utils.js';
+import { hideGlobalLoading, setText, showApiUnavailableAlert, showGlobalLoading } from './utils.js';
 import {
     availableDataTags,
     CONVENIENCE_FALLBACK,
@@ -1119,6 +1119,7 @@ function clearEditedDestination() {
 
     routePointSelection.clear(ROUTE_POINT_TARGET.DESTINATION);
     automaticRouteRequestSignature = undefined;
+    routeRequest?.invalidate();
     setRouteStatus('변경한 도착지를 검색하고 후보를 선택해주세요.');
     updateRoutePointSummary();
 }
@@ -1182,6 +1183,10 @@ export function shouldRequestRouteAutomatically(origin, destination, isMobile) {
 
 export function shouldShowRouteSearchInline(origin, destination) {
     return canRequestRouteAutomatically(origin, destination);
+}
+
+export function isRouteGlobalLoadingState(state) {
+    return state?.status === 'loading';
 }
 
 function routeRequestSignature(origin, destination) {
@@ -1492,8 +1497,14 @@ function clearRouteMapDraftMarker() {
 }
 
 function renderRouteState(state) {
+    setRouteGlobalLoading(isRouteGlobalLoadingState(state), '경로를 찾는 중입니다...');
+
     if (state.status === 'loading') {
         setRouteStatus('경로를 찾는 중입니다...');
+        return;
+    }
+
+    if (state.status === 'idle') {
         return;
     }
 
@@ -1656,6 +1667,44 @@ function renderDirectionAlternativeNotice(restStops) {
     notice.classList.toggle('d-none', !hasDirectionAlternative);
 }
 
+export function routeRecommendationLabels(restStop) {
+    if (!Array.isArray(restStop?.recommendationTags)) {
+        return [];
+    }
+    return restStop.recommendationTags
+        .map((tag) => formatText(tag?.label, ''))
+        .filter((label) => label !== '');
+}
+
+export function formatRouteComparisonSummary(restStop) {
+    const summary = restStop?.comparisonSummary;
+    if (!summary || typeof summary !== 'object') {
+        return [];
+    }
+
+    const priceParts = [
+        ['휘발유', summary.gasolinePrice],
+        ['경유', summary.dieselPrice],
+        ['LPG', summary.lpgPrice]
+    ]
+        .filter(([, value]) => !isMissingValue(value))
+        .map(([label, value]) => `${label} ${value}`);
+    const countParts = [];
+    if (Number.isFinite(summary.totalParkingCount) && summary.totalParkingCount > 0) {
+        countParts.push(`주차 ${summary.totalParkingCount.toLocaleString()}대`);
+    }
+    if (Number.isFinite(summary.foodMenuCount) && summary.foodMenuCount > 0) {
+        countParts.push(`먹거리 ${summary.foodMenuCount.toLocaleString()}개`);
+    }
+    if (Number.isFinite(summary.facilityCount) && summary.facilityCount > 0) {
+        countParts.push(`시설 ${summary.facilityCount.toLocaleString()}개`);
+    }
+
+    return [priceParts, countParts]
+        .filter((parts) => parts.length > 0)
+        .map((parts) => parts.join(' · '));
+}
+
 function createRouteResultItem(restStop) {
     const item = document.createElement('li');
     item.className = 'route-result-item';
@@ -1672,10 +1721,30 @@ function createRouteResultItem(restStop) {
         item.appendChild(badge);
     }
 
+    const recommendationLabels = routeRecommendationLabels(restStop);
+    if (recommendationLabels.length > 0) {
+        const tags = document.createElement('div');
+        tags.className = 'route-result-tags';
+        recommendationLabels.forEach((label) => {
+            const tag = document.createElement('span');
+            tag.className = 'route-result-tag';
+            tag.textContent = label;
+            tags.appendChild(tag);
+        });
+        item.appendChild(tags);
+    }
+
     const meta = document.createElement('p');
     meta.className = 'route-result-meta';
     meta.textContent = formatText(restStop?.routeName, '노선 정보 없음');
     item.appendChild(meta);
+
+    formatRouteComparisonSummary(restStop).forEach((summaryLine) => {
+        const summary = document.createElement('p');
+        summary.className = 'route-result-summary';
+        summary.textContent = summaryLine;
+        item.appendChild(summary);
+    });
 
     item.addEventListener('click', () => selectRouteRestStop(restStop));
 
@@ -1734,6 +1803,15 @@ function clearRouteOverlays() {
 
 function setRouteStatus(message) {
     setText('routeSearchStatus', message);
+}
+
+function setRouteGlobalLoading(loading, message) {
+    if (loading) {
+        showGlobalLoading(message);
+        return;
+    }
+
+    hideGlobalLoading();
 }
 
 function showMapError(message, status = '불러오기 실패') {

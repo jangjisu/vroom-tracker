@@ -30,7 +30,9 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
             double latitude,
             double longitude,
             boolean hasDirectionAlternative,
-            long distanceFromRouteMeters) {
+            long distanceFromRouteMeters,
+            ComparisonSummary comparisonSummary,
+            List<RecommendationTag> recommendationTags) {
 
         public RouteRestStopItem(
                 String serviceAreaCode,
@@ -39,7 +41,16 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                 double latitude,
                 double longitude,
                 long distanceFromRouteMeters) {
-            this(serviceAreaCode, unitName, routeName, latitude, longitude, false, distanceFromRouteMeters);
+            this(
+                    serviceAreaCode,
+                    unitName,
+                    routeName,
+                    latitude,
+                    longitude,
+                    false,
+                    distanceFromRouteMeters,
+                    ComparisonSummary.empty(),
+                    List.of());
         }
 
         public static RouteRestStopItem of(
@@ -50,7 +61,15 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                 double longitude,
                 long distanceFromRouteMeters) {
             return new RouteRestStopItem(
-                    serviceAreaCode, unitName, routeName, latitude, longitude, false, distanceFromRouteMeters);
+                    serviceAreaCode,
+                    unitName,
+                    routeName,
+                    latitude,
+                    longitude,
+                    false,
+                    distanceFromRouteMeters,
+                    ComparisonSummary.empty(),
+                    List.of());
         }
 
         public RouteRestStopItem withDirectionAlternative(boolean hasDirectionAlternative) {
@@ -61,7 +80,54 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     latitude,
                     longitude,
                     hasDirectionAlternative,
-                    distanceFromRouteMeters);
+                    distanceFromRouteMeters,
+                    comparisonSummary,
+                    recommendationTags);
+        }
+
+        public RouteRestStopItem withComparison(
+                ComparisonSummary comparisonSummary, List<RecommendationTag> recommendationTags) {
+            return new RouteRestStopItem(
+                    serviceAreaCode,
+                    unitName,
+                    routeName,
+                    latitude,
+                    longitude,
+                    hasDirectionAlternative,
+                    distanceFromRouteMeters,
+                    comparisonSummary,
+                    List.copyOf(recommendationTags));
+        }
+    }
+
+    public record ComparisonSummary(
+            String gasolinePrice,
+            String dieselPrice,
+            String lpgPrice,
+            Integer totalParkingCount,
+            int foodMenuCount,
+            int facilityCount) {
+
+        public static ComparisonSummary empty() {
+            return new ComparisonSummary(null, null, null, null, 0, 0);
+        }
+
+        public static ComparisonSummary of(
+                String gasolinePrice,
+                String dieselPrice,
+                String lpgPrice,
+                Integer totalParkingCount,
+                int foodMenuCount,
+                int facilityCount) {
+            return new ComparisonSummary(
+                    gasolinePrice, dieselPrice, lpgPrice, totalParkingCount, foodMenuCount, facilityCount);
+        }
+    }
+
+    public record RecommendationTag(String key, String label) {
+
+        public static RecommendationTag of(String key, String label) {
+            return new RecommendationTag(key, label);
         }
     }
 }

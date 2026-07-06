@@ -4,8 +4,11 @@ import test from 'node:test';
 import {
     canRequestRouteAutomatically,
     createPopupContent,
+    formatRouteComparisonSummary,
+    isRouteGlobalLoadingState,
     routeMapSelectionMessage,
     routePointLabel,
+    routeRecommendationLabels,
     shouldRequestRouteAutomatically,
     shouldShowRouteSearchInline
 } from '../../main/resources/static/js/rest-stops-map.js';
@@ -100,4 +103,51 @@ test('shouldShowRouteSearchInline requires both selected route points', () => {
     assert.equal(shouldShowRouteSearchInline(origin, destination), true);
     assert.equal(shouldShowRouteSearchInline(origin, undefined), false);
     assert.equal(shouldShowRouteSearchInline(undefined, destination), false);
+});
+
+test('isRouteGlobalLoadingState is true only while route search is loading', () => {
+    assert.equal(isRouteGlobalLoadingState({ status: 'loading' }), true);
+    assert.equal(isRouteGlobalLoadingState({ status: 'success' }), false);
+    assert.equal(isRouteGlobalLoadingState({ status: 'not-found' }), false);
+    assert.equal(isRouteGlobalLoadingState({ status: 'external-unavailable' }), false);
+    assert.equal(isRouteGlobalLoadingState({ status: 'error' }), false);
+    assert.equal(isRouteGlobalLoadingState(undefined), false);
+});
+
+test('routeRecommendationLabels returns comparison badge labels in response order', () => {
+    assert.deepEqual(routeRecommendationLabels({
+        recommendationTags: [
+            { key: 'lowest-gasoline', label: '휘발유 최저가' },
+            { key: 'largest-parking', label: '주차장 큼' }
+        ]
+    }), ['휘발유 최저가', '주차장 큼']);
+    assert.deepEqual(routeRecommendationLabels({ recommendationTags: [] }), []);
+    assert.deepEqual(routeRecommendationLabels({}), []);
+});
+
+test('formatRouteComparisonSummary renders prices, parking, food and facility counts compactly', () => {
+    assert.deepEqual(formatRouteComparisonSummary({
+        comparisonSummary: {
+            gasolinePrice: '1,650원',
+            dieselPrice: '1,550원',
+            lpgPrice: '1,100원',
+            totalParkingCount: 63,
+            foodMenuCount: 2,
+            facilityCount: 3
+        }
+    }), [
+        '휘발유 1,650원 · 경유 1,550원 · LPG 1,100원',
+        '주차 63대 · 먹거리 2개 · 시설 3개'
+    ]);
+
+    assert.deepEqual(formatRouteComparisonSummary({
+        comparisonSummary: {
+            gasolinePrice: null,
+            dieselPrice: '1,550원',
+            lpgPrice: null,
+            totalParkingCount: null,
+            foodMenuCount: 0,
+            facilityCount: 1
+        }
+    }), ['경유 1,550원', '시설 1개']);
 });
