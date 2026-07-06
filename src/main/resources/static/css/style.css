@@ -235,6 +235,10 @@ body.rest-stop-detail-sheet-open {
     font-weight: 600;
 }
 
+.route-search-inline-button {
+    display: none;
+}
+
 .route-result-open {
     white-space: nowrap;
     font-weight: 600;
@@ -827,7 +831,8 @@ body.rest-stop-detail-sheet-open {
         white-space: nowrap;
     }
 
-    #restStopLocateButton {
+    #restStopLocateButton,
+    #routeSearchButton {
         display: none;
     }
 
@@ -923,6 +928,14 @@ body.rest-stop-detail-sheet-open {
 
     .route-point-row:not(.route-origin-row) .btn {
         grid-column: auto;
+    }
+
+    .route-search-inline-button:not(.d-none) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        margin-top: 0.75rem;
     }
 
     .route-map-selection-toolbar {

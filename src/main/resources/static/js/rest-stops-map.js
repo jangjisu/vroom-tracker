@@ -956,6 +956,7 @@ function bindRouteSearch() {
 
     const signal = detailPanelEventController.signal;
     document.getElementById('routeSearchButton')?.addEventListener('click', requestSelectedRoute, { signal });
+    document.getElementById('routeSearchInlineButton')?.addEventListener('click', requestSelectedRoute, { signal });
     document.getElementById('routeOriginChangeButton')?.addEventListener('click', openRouteOriginModal, { signal });
     document.getElementById('routeOriginModalClose')?.addEventListener('click', closeRouteOriginModal, { signal });
     document.getElementById('routeOriginModal')?.addEventListener('click', (event) => {
@@ -1179,6 +1180,10 @@ export function shouldRequestRouteAutomatically(origin, destination, isMobile) {
     return isMobile && canRequestRouteAutomatically(origin, destination);
 }
 
+export function shouldShowRouteSearchInline(origin, destination) {
+    return canRequestRouteAutomatically(origin, destination);
+}
+
 function routeRequestSignature(origin, destination) {
     return [
         origin.latitude,
@@ -1240,6 +1245,11 @@ function updateRoutePointSummary() {
             ? routePointSummaryLabel(destination, '도착지 입력')
             : formatText(destinationQuery, '도착지 입력')
     );
+    toggleRouteSearchInlineButton(shouldShowRouteSearchInline(origin, destination));
+}
+
+function toggleRouteSearchInlineButton(visible) {
+    document.getElementById('routeSearchInlineButton')?.classList.toggle('d-none', !visible);
 }
 
 function routePointSummaryLabel(point, fallback) {

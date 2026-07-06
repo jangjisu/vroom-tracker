@@ -6,7 +6,8 @@ import {
     createPopupContent,
     routeMapSelectionMessage,
     routePointLabel,
-    shouldRequestRouteAutomatically
+    shouldRequestRouteAutomatically,
+    shouldShowRouteSearchInline
 } from '../../main/resources/static/js/rest-stops-map.js';
 
 test('createPopupContent renders rest stop popup as a small summary card', () => {
@@ -90,4 +91,13 @@ test('shouldRequestRouteAutomatically keeps desktop route search manual', () => 
 
     assert.equal(shouldRequestRouteAutomatically(origin, destination, true), true);
     assert.equal(shouldRequestRouteAutomatically(origin, destination, false), false);
+});
+
+test('shouldShowRouteSearchInline requires both selected route points', () => {
+    const origin = { latitude: 37.5, longitude: 126.9 };
+    const destination = { latitude: 35.1, longitude: 129.0 };
+
+    assert.equal(shouldShowRouteSearchInline(origin, destination), true);
+    assert.equal(shouldShowRouteSearchInline(origin, undefined), false);
+    assert.equal(shouldShowRouteSearchInline(undefined, destination), false);
 });
