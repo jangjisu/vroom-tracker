@@ -1112,6 +1112,8 @@ function searchPlace(target, query) {
 }
 
 function clearEditedDestination() {
+    routeRequest?.invalidate();
+    setRouteLoading(false);
     if (!routePointSelection.getDestination()) {
         updateRoutePointSummary();
         return;
@@ -1492,6 +1494,7 @@ function clearRouteMapDraftMarker() {
 }
 
 function renderRouteState(state) {
+    setRouteLoading(isRouteLoadingState(state));
     if (state.status === 'loading') {
         setRouteStatus('경로를 찾는 중입니다...');
         return;
@@ -1518,6 +1521,10 @@ function renderRouteState(state) {
     }
 
     setRouteStatus('경로를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.');
+}
+
+export function isRouteLoadingState(state) {
+    return state?.status === 'loading';
 }
 
 function renderRoute(data) {
@@ -1792,6 +1799,12 @@ function clearRouteOverlays() {
 
 function setRouteStatus(message) {
     setText('routeSearchStatus', message);
+    document.getElementById('routeSearchFeedback')?.classList.toggle('d-none', !message);
+}
+
+function setRouteLoading(loading) {
+    document.getElementById('routeSearchLoadingSpinner')?.classList.toggle('d-none', !loading);
+    document.getElementById('routeSearchFeedback')?.setAttribute('aria-busy', loading ? 'true' : 'false');
 }
 
 function showMapError(message, status = '불러오기 실패') {

@@ -5,6 +5,7 @@ import {
     canRequestRouteAutomatically,
     createPopupContent,
     formatRouteComparisonSummary,
+    isRouteLoadingState,
     routeMapSelectionMessage,
     routePointLabel,
     routeRecommendationLabels,
@@ -102,6 +103,15 @@ test('shouldShowRouteSearchInline requires both selected route points', () => {
     assert.equal(shouldShowRouteSearchInline(origin, destination), true);
     assert.equal(shouldShowRouteSearchInline(origin, undefined), false);
     assert.equal(shouldShowRouteSearchInline(undefined, destination), false);
+});
+
+test('isRouteLoadingState is true only while route search is loading', () => {
+    assert.equal(isRouteLoadingState({ status: 'loading' }), true);
+    assert.equal(isRouteLoadingState({ status: 'success' }), false);
+    assert.equal(isRouteLoadingState({ status: 'not-found' }), false);
+    assert.equal(isRouteLoadingState({ status: 'external-unavailable' }), false);
+    assert.equal(isRouteLoadingState({ status: 'error' }), false);
+    assert.equal(isRouteLoadingState(undefined), false);
 });
 
 test('routeRecommendationLabels returns comparison badge labels in response order', () => {

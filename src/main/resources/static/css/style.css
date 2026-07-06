@@ -371,6 +371,22 @@ body.rest-stop-detail-sheet-open {
     flex: 1;
 }
 
+.route-search-feedback {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.6rem;
+    color: #495057;
+    font-size: 0.82rem;
+}
+
+.route-search-spinner {
+    width: 0.9rem;
+    height: 0.9rem;
+    border-width: 0.14rem;
+    color: #0d6efd;
+}
+
 .route-result-list {
     display: grid;
     gap: 0.5rem;
