@@ -17,7 +17,8 @@ class ProductionEnvironmentValidatorContextTest {
                         "spring.profiles.active=prod",
                         "ex.api.key=YOUR_API_KEY_HERE",
                         "kakao.rest-api-key=real-kakao-key",
-                        "naver.maps.ncp-key-id=real-naver-key")
+                        "naver.maps.ncp-key-id=real-naver-key",
+                        "opinet.api.key=real-opinet-key")
                 .run(context -> assertThat(context.getStartupFailure())
                         .hasRootCauseInstanceOf(IllegalStateException.class)
                         .rootCause()
@@ -34,7 +35,8 @@ class ProductionEnvironmentValidatorContextTest {
                         "spring.profiles.active=prod",
                         "ex.api.key=real-ex-key",
                         "kakao.rest-api-key=real-kakao-key",
-                        "naver.maps.ncp-key-id=real-naver-key")
+                        "naver.maps.ncp-key-id=real-naver-key",
+                        "opinet.api.key=real-opinet-key")
                 .run(context -> assertThat(context).hasNotFailed());
     }
 

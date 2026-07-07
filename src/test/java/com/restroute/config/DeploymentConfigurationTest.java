@@ -82,6 +82,14 @@ class DeploymentConfigurationTest {
     }
 
     @Test
+    @DisplayName("배포 환경변수 템플릿은 오피넷 API 키를 포함한다")
+    void envExample_definesOpinetApiKey() throws Exception {
+        String envExample = Files.readString(Path.of(".env.example"));
+
+        assertThat(envExample).contains("OPINET_API_KEY=replace-with-real-opinet-api-key");
+    }
+
+    @Test
     @DisplayName("docker compose는 운영 컨테이너 타임존을 Asia/Seoul로 맞춘다")
     void dockerCompose_setsSeoulTimezoneForProductionContainers() throws Exception {
         String compose = Files.readString(Path.of("docker-compose.yml"));
