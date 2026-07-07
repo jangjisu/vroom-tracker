@@ -1656,8 +1656,18 @@ function renderRouteList(restStops, nationalOilPriceSummary = currentNationalOil
 
     renderDirectionAlternativeNotice(restStops);
     renderNationalOilPriceSummary(nationalOilPriceSummary);
+    renderRouteResultTitle(restStops.length);
     list.replaceChildren();
-    restStops.forEach((restStop) => list.appendChild(createRouteResultItem(restStop)));
+    restStops.forEach((restStop, index) => list.appendChild(createRouteResultItem(restStop, index)));
+}
+
+function renderRouteResultTitle(count) {
+    const title = document.getElementById('routeResultModalTitle');
+    if (!title) {
+        return;
+    }
+
+    title.textContent = count > 0 ? `경로상 휴게소 (${count}곳)` : '경로상 휴게소';
 }
 
 function renderDirectionAlternativeNotice(restStops) {
@@ -1683,18 +1693,28 @@ export function formatOilPriceComparison(price, diffFromAverage) {
     if (isMissingValue(price)) {
         return '';
     }
-    if (!Number.isFinite(diffFromAverage)) {
+
+    const delta = formatOilPriceDelta(diffFromAverage);
+    if (delta === null) {
         return price;
+    }
+
+    return `${price} ${delta.text}`;
+}
+
+export function formatOilPriceDelta(diffFromAverage) {
+    if (!Number.isFinite(diffFromAverage)) {
+        return null;
     }
 
     const absoluteDiff = Math.abs(diffFromAverage).toLocaleString('ko-KR');
     if (diffFromAverage < 0) {
-        return `${price} · 평균보다 ${absoluteDiff}원 저렴`;
+        return { text: `(-${absoluteDiff})`, tone: 'cheap' };
     }
     if (diffFromAverage > 0) {
-        return `${price} · 평균보다 ${absoluteDiff}원 비쌈`;
+        return { text: `(+${absoluteDiff})`, tone: 'expensive' };
     }
-    return `${price} · 전국 평균과 같음`;
+    return { text: '(0)', tone: 'same' };
 }
 
 export function formatNationalOilPriceSummary(summary) {
@@ -1777,13 +1797,26 @@ function renderNationalOilPriceSummary(summary) {
     const list = document.createElement('dl');
     list.className = 'route-national-oil-summary-list';
     formattedSummary.items.forEach((item) => {
+        const chip = document.createElement('div');
+        chip.className = 'route-national-oil-chip';
+
         const term = document.createElement('dt');
         term.textContent = item.label;
-        list.appendChild(term);
+        chip.appendChild(term);
 
         const description = document.createElement('dd');
-        description.textContent = `${item.price} · ${item.dailyDiff}`;
-        list.appendChild(description);
+        const price = document.createElement('span');
+        price.className = 'route-national-oil-chip-price';
+        price.textContent = item.price;
+        description.appendChild(price);
+
+        const diff = document.createElement('span');
+        diff.className = 'route-national-oil-chip-diff';
+        diff.textContent = item.dailyDiff;
+        description.appendChild(diff);
+
+        chip.appendChild(description);
+        list.appendChild(chip);
     });
     container.appendChild(list);
 }
@@ -1818,14 +1851,42 @@ export function formatRouteComparisonSummary(restStop) {
         .map((parts) => parts.join(' · '));
 }
 
-function createRouteResultItem(restStop) {
+function routeResultFuelItems(restStop) {
+    const summary = restStop?.comparisonSummary;
+    if (!summary || typeof summary !== 'object') {
+        return [];
+    }
+
+    return [
+        ['휘발유', summary.gasolinePrice, summary.gasolinePriceDiffFromAverage],
+        ['경유', summary.dieselPrice, summary.dieselPriceDiffFromAverage],
+        ['LPG', summary.lpgPrice, summary.lpgPriceDiffFromAverage]
+    ]
+        .filter(([, price]) => !isMissingValue(price))
+        .map(([label, price, diff]) => ({
+            label,
+            price,
+            delta: formatOilPriceDelta(diff)
+        }));
+}
+
+function createRouteResultItem(restStop, index) {
     const item = document.createElement('li');
     item.className = 'route-result-item';
+
+    const header = document.createElement('div');
+    header.className = 'route-result-item-header';
+
+    const rank = document.createElement('span');
+    rank.className = 'route-result-rank';
+    rank.textContent = String(index + 1);
+    header.appendChild(rank);
 
     const name = document.createElement('p');
     name.className = 'route-result-name';
     name.textContent = formatText(restStop?.unitName, '이름 정보 없음');
-    item.appendChild(name);
+    header.appendChild(name);
+    item.appendChild(header);
 
     if (restStop?.hasDirectionAlternative === true) {
         const badge = document.createElement('span');
@@ -1852,12 +1913,33 @@ function createRouteResultItem(restStop) {
     meta.textContent = formatText(restStop?.routeName, '노선 정보 없음');
     item.appendChild(meta);
 
-    formatRouteComparisonSummary(restStop).forEach((summaryLine) => {
+    const fuels = routeResultFuelItems(restStop);
+    if (fuels.length > 0) {
+        const fuelList = document.createElement('div');
+        fuelList.className = 'route-result-fuels';
+        fuels.forEach((fuel) => {
+            const fuelItem = document.createElement('span');
+            fuelItem.className = 'route-result-fuel';
+            fuelItem.appendChild(document.createTextNode(`${fuel.label} ${fuel.price}`));
+            if (fuel.delta !== null) {
+                const delta = document.createElement('span');
+                delta.className = `route-result-fuel-delta route-result-fuel-delta-${fuel.delta.tone}`;
+                delta.textContent = fuel.delta.text;
+                fuelItem.appendChild(document.createTextNode(' '));
+                fuelItem.appendChild(delta);
+            }
+            fuelList.appendChild(fuelItem);
+        });
+        item.appendChild(fuelList);
+    }
+
+    const countSummary = formatRouteComparisonSummary(restStop).at(1);
+    if (countSummary) {
         const summary = document.createElement('p');
         summary.className = 'route-result-summary';
-        summary.textContent = summaryLine;
+        summary.textContent = countSummary;
         item.appendChild(summary);
-    });
+    }
 
     item.addEventListener('click', () => selectRouteRestStop(restStop));
 

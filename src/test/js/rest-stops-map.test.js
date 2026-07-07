@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
     canRequestRouteAutomatically,
     createPopupContent,
+    formatOilPriceDelta,
     formatNationalOilPriceSummary,
     formatOilPriceComparison,
     formatRouteComparisonSummary,
@@ -141,7 +142,7 @@ test('formatRouteComparisonSummary renders prices, parking, food and facility co
             facilityCount: 3
         }
     }), [
-        '휘발유 1,650원 · 평균보다 43원 저렴 · 경유 1,550원 · 평균보다 20원 비쌈 · LPG 1,100원 · 전국 평균과 같음',
+        '휘발유 1,650원 (-43) · 경유 1,550원 (+20) · LPG 1,100원 (0)',
         '주차 63대 · 먹거리 2개 · 시설 3개'
     ]);
 
@@ -158,11 +159,18 @@ test('formatRouteComparisonSummary renders prices, parking, food and facility co
 });
 
 test('formatOilPriceComparison renders average diff only when it exists', () => {
-    assert.equal(formatOilPriceComparison('1,849원', -44), '1,849원 · 평균보다 44원 저렴');
-    assert.equal(formatOilPriceComparison('1,920원', 27), '1,920원 · 평균보다 27원 비쌈');
-    assert.equal(formatOilPriceComparison('1,892원', 0), '1,892원 · 전국 평균과 같음');
+    assert.equal(formatOilPriceComparison('1,849원', -44), '1,849원 (-44)');
+    assert.equal(formatOilPriceComparison('1,920원', 27), '1,920원 (+27)');
+    assert.equal(formatOilPriceComparison('1,892원', 0), '1,892원 (0)');
     assert.equal(formatOilPriceComparison('1,849원', null), '1,849원');
     assert.equal(formatOilPriceComparison(null, -44), '');
+});
+
+test('formatOilPriceDelta marks cheaper and expensive average differences', () => {
+    assert.deepEqual(formatOilPriceDelta(-44), { text: '(-44)', tone: 'cheap' });
+    assert.deepEqual(formatOilPriceDelta(27), { text: '(+27)', tone: 'expensive' });
+    assert.deepEqual(formatOilPriceDelta(0), { text: '(0)', tone: 'same' });
+    assert.equal(formatOilPriceDelta(null), null);
 });
 
 test('formatNationalOilPriceSummary renders gasoline diesel and lpg averages', () => {

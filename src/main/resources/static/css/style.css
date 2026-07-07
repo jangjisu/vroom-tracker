@@ -368,7 +368,7 @@ body.global-loading-open {
 
 .route-national-oil-summary {
     margin: 1rem 1.25rem 0;
-    padding: 0.75rem;
+    padding: 0.75rem 0.85rem;
     border: 1px solid #dbe5f3;
     border-radius: 8px;
     background-color: #f8fafc;
@@ -405,23 +405,44 @@ body.global-loading-open {
 
 .route-national-oil-summary-list {
     display: grid;
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    gap: 0.35rem 0.6rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
     margin: 0;
 }
 
-.route-national-oil-summary-list dt {
-    color: #5c6773;
-    font-size: 0.76rem;
+.route-national-oil-chip {
+    min-width: 0;
+    padding: 0.45rem 0.5rem;
+    border: 1px solid #dbe5f3;
+    border-radius: 6px;
+    background-color: #fff;
+}
+
+.route-national-oil-chip dt {
+    margin: 0 0 0.18rem;
+    color: #0b5ed7;
+    font-size: 0.74rem;
     font-weight: 700;
 }
 
-.route-national-oil-summary-list dd {
+.route-national-oil-chip dd {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
     margin: 0;
     color: #212529;
     font-size: 0.78rem;
     line-height: 1.35;
     overflow-wrap: anywhere;
+}
+
+.route-national-oil-chip-price {
+    font-weight: 700;
+}
+
+.route-national-oil-chip-diff {
+    color: #6c757d;
+    font-size: 0.7rem;
 }
 
 .route-point-modal {
@@ -464,22 +485,25 @@ body.global-loading-open {
 
 .route-result-list {
     display: grid;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin: 0.5rem 0 0;
     list-style: none;
     padding-left: 0;
 }
 
 .route-result-item {
-    padding: 0.5rem 0.5rem;
-    border-bottom: 1px solid #eef1f6;
-    border-radius: 6px;
+    padding: 0.85rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
     cursor: pointer;
-    transition: background-color 0.1s ease;
+    transition: border-color 0.1s ease, box-shadow 0.1s ease;
 }
 
 .route-result-item:hover {
-    background-color: #f3f7fd;
+    border-color: #bfd2f4;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
 }
 
 .route-candidate-item {
@@ -525,11 +549,33 @@ body.global-loading-open {
 .route-result-name {
     margin: 0;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+
+.route-result-item-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+}
+
+.route-result-rank {
+    display: inline-flex;
+    flex: 0 0 1.55rem;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 50%;
+    background-color: #0d6efd;
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .route-result-meta {
-    margin: 0.2rem 0 0;
+    margin: 0.35rem 0 0;
     color: #6c757d;
     font-size: 0.8rem;
 }
@@ -555,8 +601,42 @@ body.global-loading-open {
     line-height: 1.2;
 }
 
+.route-result-fuels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.6rem;
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid #eef1f6;
+    color: #212529;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.route-result-fuel {
+    display: inline-flex;
+    align-items: baseline;
+    white-space: nowrap;
+}
+
+.route-result-fuel-delta {
+    font-weight: 700;
+}
+
+.route-result-fuel-delta-cheap {
+    color: #2b8a3e;
+}
+
+.route-result-fuel-delta-expensive {
+    color: #e03131;
+}
+
+.route-result-fuel-delta-same {
+    color: #6c757d;
+}
+
 .route-result-summary {
-    margin: 0.18rem 0 0;
+    margin: 0.5rem 0 0;
     color: #495057;
     font-size: 0.78rem;
     line-height: 1.35;
