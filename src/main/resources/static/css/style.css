@@ -268,8 +268,22 @@ body.global-loading-open {
     font-weight: 600;
 }
 
+#routeSearchButton {
+    display: none;
+}
+
 .route-search-inline-button {
     display: none;
+}
+
+.route-search-inline-button:not(.d-none) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: end;
+    min-height: 2.4rem;
+    white-space: nowrap;
+    font-weight: 600;
 }
 
 .route-result-open {
