@@ -15,9 +15,11 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NationalOilPriceService {
@@ -42,6 +44,7 @@ public class NationalOilPriceService {
             transactionTemplate.execute(status -> saveFetchedItems(items));
             return summaryOf(nationalOilPriceRepository.findAllByTradeDate(today));
         } catch (RuntimeException e) {
+            log.warn("National oil price summary unavailable. tradeDate={}, message={}", today, e.getMessage());
             return Optional.empty();
         }
     }

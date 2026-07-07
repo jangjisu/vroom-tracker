@@ -21,12 +21,16 @@ import com.restroute.client.response.RestOilResponse;
 import com.restroute.client.response.RestStopDetailResponse;
 import com.restroute.client.response.RestStopResponse;
 import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+@Slf4j
 @Component
 public class ExApiClient {
+
+    private static final String API_NAME = "DATA_EX";
 
     private final ExApiFeignClient exApiFeignClient;
     private final String apiUrl;
@@ -140,6 +144,8 @@ public class ExApiClient {
     }
 
     private <T extends ExApiResponse> T fetch(String requestUrl, Supplier<T> request) {
+        String safeRequestUrl = ExternalApiRequestLog.sanitizeUrl(requestUrl);
+        log.info("External API request started. api={}, requestUrl={}", API_NAME, safeRequestUrl);
         try {
             T response = request.get();
             if (response == null) {
@@ -150,10 +156,21 @@ public class ExApiClient {
                 throw new ExApiException(requestUrl, response.getErrorMessage());
             }
 
+            log.info("External API request succeeded. api={}, requestUrl={}", API_NAME, safeRequestUrl);
             return response;
         } catch (ExApiException e) {
+            log.warn(
+                    "External API request failed. api={}, requestUrl={}, message={}",
+                    API_NAME,
+                    safeRequestUrl,
+                    e.getMessage());
             throw e;
         } catch (RuntimeException e) {
+            log.warn(
+                    "External API request failed. api={}, requestUrl={}, message={}",
+                    API_NAME,
+                    safeRequestUrl,
+                    e.getMessage());
             throw new ExApiException(requestUrl, e.getMessage(), e);
         }
     }

@@ -92,7 +92,7 @@ class RestFoodSyncServiceTest {
     @DisplayName("음식 메뉴 API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestFoods_doesNotReplaceRowsWhenApiFails() throws Exception {
         ExApiException exception =
-                new ExApiException("https://data.ex.co.kr/openapi/restinfo/restBestfoodList?key=test-key", "failed");
+                new ExApiException("https://data.ex.co.kr/openapi/restinfo/restBestfoodList?key=<redacted>", "failed");
         when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(2));
         when(exApiClient.getRestBestfoodList(2)).thenThrow(exception);
 

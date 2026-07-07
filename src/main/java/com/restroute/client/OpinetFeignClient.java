@@ -1,6 +1,5 @@
 package com.restroute.client;
 
-import com.restroute.client.response.OpinetAverageOilPriceResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -13,6 +12,5 @@ public interface OpinetFeignClient {
     String CODE_PARAMETER = "code";
 
     @GetMapping(AVERAGE_ALL_PRICE_PATH)
-    OpinetAverageOilPriceResponse getAverageOilPrices(
-            @RequestParam(OUT_PARAMETER) String out, @RequestParam(CODE_PARAMETER) String code);
+    String getAverageOilPrices(@RequestParam(OUT_PARAMETER) String out, @RequestParam(CODE_PARAMETER) String code);
 }

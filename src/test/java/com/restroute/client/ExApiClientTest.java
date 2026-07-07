@@ -133,7 +133,7 @@ class ExApiClientTest {
         assertThatThrownBy(() -> exApiClient.getRestBestfoodList(2))
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
-                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/restinfo/restBestfoodList?key=test-key&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/restinfo/restBestfoodList?key=<redacted>&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
     }
 
     @Test
@@ -147,7 +147,7 @@ class ExApiClientTest {
         assertThatThrownBy(() -> exApiClient.getLocationInfoRest(2))
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
-                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/locationinfo/locationinfoRest?key=test-key&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/locationinfo/locationinfoRest?key=<redacted>&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
     }
 
     @Test
@@ -167,7 +167,7 @@ class ExApiClientTest {
         assertThatThrownBy(() -> exApiClient.getConvenienceServiceArea(2))
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
-                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/conveniServiceArea?key=test-key&type=json&numOfRows=99&pageNo=2, message=For input string: \"\"");
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/conveniServiceArea?key=<redacted>&type=json&numOfRows=99&pageNo=2, message=For input string: \"\"");
     }
 
     @Test
@@ -178,7 +178,7 @@ class ExApiClientTest {
         assertThatThrownBy(exApiClient::getHighwayServiceAreaInfoList)
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
-                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/restinfo/hiwaySvarInfoList?key=test-key&type=json, message=empty response");
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/restinfo/hiwaySvarInfoList?key=<redacted>&type=json, message=empty response");
     }
 
     @Test
@@ -191,7 +191,7 @@ class ExApiClientTest {
         assertThatThrownBy(exApiClient::getRestOilList)
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
-                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/restinfo/restOilList?key=test-key&type=json, message=인증키가 유효하지 않습니다.");
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/restinfo/restOilList?key=<redacted>&type=json, message=인증키가 유효하지 않습니다.");
     }
 
     @Test
@@ -204,7 +204,7 @@ class ExApiClientTest {
         assertThatThrownBy(() -> exApiClient.getCurStateStation(2))
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
-                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/curStateStation?key=test-key&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/curStateStation?key=<redacted>&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
     }
 
     @Test
@@ -218,7 +218,7 @@ class ExApiClientTest {
         assertThatThrownBy(() -> exApiClient.getCurStateStationByServiceAreaCode2("000002"))
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
-                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/curStateStation?key=test-key&type=json&numOfRows=99&pageNo=1&serviceAreaCode2=000002, message=인증키가 유효하지 않습니다.");
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/curStateStation?key=<redacted>&type=json&numOfRows=99&pageNo=1&serviceAreaCode2=000002, message=인증키가 유효하지 않습니다.");
     }
 
     @Test
@@ -230,7 +230,7 @@ class ExApiClientTest {
         assertThatThrownBy(() -> exApiClient.getLocationInfoRest(2))
                 .isInstanceOf(ExApiException.class)
                 .hasMessage(
-                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/locationinfo/locationinfoRest?key=test-key&type=json&numOfRows=99&pageNo=2, message=Request Blocked")
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/locationinfo/locationinfoRest?key=<redacted>&type=json&numOfRows=99&pageNo=2, message=Request Blocked")
                 .hasCauseInstanceOf(IllegalStateException.class);
     }
 }

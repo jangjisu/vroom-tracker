@@ -3,13 +3,16 @@ package com.restroute.client;
 import com.restroute.client.response.KakaoDirectionsResponse;
 import com.restroute.client.response.KakaoLocalSearchResponse;
 import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class KakaoMapClient {
 
     private static final String DEFAULT_PRIORITY = "RECOMMEND";
+    private static final String API_NAME = "KAKAO";
 
     private final KakaoNaviFeignClient kakaoNaviFeignClient;
     private final KakaoLocalFeignClient kakaoLocalFeignClient;
@@ -39,15 +42,27 @@ public class KakaoMapClient {
     }
 
     private <T> T fetch(String requestDescription, Supplier<T> request) {
+        log.info("External API request started. api={}, endpoint={}", API_NAME, requestDescription);
         try {
             T response = request.get();
             if (response == null) {
                 throw new KakaoApiException(requestDescription, "empty response");
             }
+            log.info("External API request succeeded. api={}, endpoint={}", API_NAME, requestDescription);
             return response;
         } catch (KakaoApiException e) {
+            log.warn(
+                    "External API request failed. api={}, endpoint={}, message={}",
+                    API_NAME,
+                    requestDescription,
+                    e.getMessage());
             throw e;
         } catch (RuntimeException e) {
+            log.warn(
+                    "External API request failed. api={}, endpoint={}, message={}",
+                    API_NAME,
+                    requestDescription,
+                    e.getMessage());
             throw new KakaoApiException(requestDescription, e.getMessage(), e);
         }
     }
