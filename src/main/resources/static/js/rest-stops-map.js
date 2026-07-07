@@ -1759,10 +1759,10 @@ function formatNationalOilDailyDiff(value) {
 
     const absoluteDiff = Math.abs(diff).toLocaleString('ko-KR');
     if (diff < 0) {
-        return { dailyDiff: `↓ ${absoluteDiff}원`, dailyDiffTone: 'down' };
+        return { dailyDiff: `↓ ${absoluteDiff}원`, dailyDiffTone: 'favorable' };
     }
     if (diff > 0) {
-        return { dailyDiff: `↑ ${absoluteDiff}원`, dailyDiffTone: 'up' };
+        return { dailyDiff: `↑ ${absoluteDiff}원`, dailyDiffTone: 'unfavorable' };
     }
     return { dailyDiff: '0원', dailyDiffTone: 'same' };
 }
@@ -1864,6 +1864,7 @@ function routeResultFuelItems(restStop) {
     ]
         .map(([label, price, diff]) => ({
             label,
+            missing: isMissingValue(price),
             price: formatText(price, 'X'),
             delta: formatOilPriceDelta(diff)
         }));
@@ -1926,6 +1927,7 @@ function createRouteResultItem(restStop, index) {
 
             const fuelPrice = document.createElement('span');
             fuelPrice.className = 'route-result-fuel-price';
+            fuelPrice.classList.toggle('route-result-fuel-price-missing', fuel.missing);
             fuelPrice.textContent = fuel.price;
             fuelItem.appendChild(fuelPrice);
 

@@ -194,8 +194,8 @@ test('formatNationalOilPriceSummary renders gasoline diesel and lpg averages', (
     }), {
         tradeDate: '2026.07.07',
         items: [
-            { label: '휘발유', price: '1,893원', dailyDiff: '↓ 4.19원', dailyDiffTone: 'down' },
-            { label: '경유', price: '1,880원', dailyDiff: '↑ 3원', dailyDiffTone: 'up' },
+            { label: '휘발유', price: '1,893원', dailyDiff: '↓ 4.19원', dailyDiffTone: 'favorable' },
+            { label: '경유', price: '1,880원', dailyDiff: '↑ 3원', dailyDiffTone: 'unfavorable' },
             { label: 'LPG', price: '1,135원', dailyDiff: '0원', dailyDiffTone: 'same' }
         ]
     });

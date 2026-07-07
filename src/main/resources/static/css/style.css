@@ -413,14 +413,14 @@ body.global-loading-open {
 .route-national-oil-chip {
     min-width: 0;
     padding: 0.5rem 0.55rem;
-    border: 1px solid #dbe5f3;
+    border: 1px solid #e2e8f0;
     border-radius: 6px;
-    background-color: #fff;
+    background-color: #f8fafc;
 }
 
 .route-national-oil-chip dt {
     margin: 0 0 0.18rem;
-    color: #0b5ed7;
+    color: #5c6773;
     font-size: 0.74rem;
     font-weight: 700;
 }
@@ -448,12 +448,12 @@ body.global-loading-open {
     white-space: nowrap;
 }
 
-.route-national-oil-chip-diff-up {
-    color: #e03131;
+.route-national-oil-chip-diff-favorable {
+    color: #2b8a3e;
 }
 
-.route-national-oil-chip-diff-down {
-    color: #0b5ed7;
+.route-national-oil-chip-diff-unfavorable {
+    color: #e03131;
 }
 
 .route-national-oil-chip-diff-same {
@@ -651,6 +651,10 @@ body.global-loading-open {
     font-weight: 700;
     line-height: 1.2;
     white-space: nowrap;
+}
+
+.route-result-fuel-price-missing {
+    color: #868e96;
 }
 
 .route-result-fuel-delta {
