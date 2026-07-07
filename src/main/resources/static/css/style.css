@@ -732,6 +732,15 @@ body.global-loading-open {
     min-width: 0;
 }
 
+.rest-stop-detail-back {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 0 0.45rem;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
 .rest-stop-detail-actions {
     display: flex;
     flex: 0 0 auto;
@@ -1024,7 +1033,7 @@ body.global-loading-open {
         width: 100%;
         min-height: 0;
         height: auto;
-        max-height: 68vh;
+        max-height: 72vh;
         border: 0;
         border-radius: 16px 16px 0 0;
         box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.28);

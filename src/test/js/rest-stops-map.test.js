@@ -13,6 +13,7 @@ import {
     routePointLabel,
     routeRecommendationLabels,
     shouldRequestRouteAutomatically,
+    shouldShowRouteResultBackButton,
     shouldShowRouteSearchInline
 } from '../../main/resources/static/js/rest-stops-map.js';
 
@@ -106,6 +107,13 @@ test('shouldShowRouteSearchInline requires both selected route points', () => {
     assert.equal(shouldShowRouteSearchInline(origin, destination), true);
     assert.equal(shouldShowRouteSearchInline(origin, undefined), false);
     assert.equal(shouldShowRouteSearchInline(undefined, destination), false);
+});
+
+test('shouldShowRouteResultBackButton is visible only for mobile route-result detail navigation', () => {
+    assert.equal(shouldShowRouteResultBackButton(true, true), true);
+    assert.equal(shouldShowRouteResultBackButton(true, false), false);
+    assert.equal(shouldShowRouteResultBackButton(false, true), false);
+    assert.equal(shouldShowRouteResultBackButton(undefined, true), false);
 });
 
 test('isRouteGlobalLoadingState is true only while route search is loading', () => {

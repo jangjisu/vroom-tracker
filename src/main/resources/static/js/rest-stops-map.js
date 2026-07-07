@@ -67,6 +67,7 @@ let originMarker;
 let destinationMarker;
 let currentRouteRestStops = [];
 let currentNationalOilPriceSummary;
+let detailOpenedFromRouteResult = false;
 let routePointSelection = createRoutePointSelection();
 let routeMapClickListener;
 let routeMapDraftMarker;
@@ -385,6 +386,10 @@ export function routeMapSelectionMessage(target, hasDraft) {
         : `지도에서 ${pointName} 위치를 선택하세요.`;
 }
 
+export function shouldShowRouteResultBackButton(openedFromRouteResult, isMobileSheet) {
+    return openedFromRouteResult === true && isMobileSheet === true;
+}
+
 function bindDetailPanelEvents() {
     const closeButton = document.getElementById('restStopDetailClose');
     if (!closeButton || !detailPanelEventController) {
@@ -394,6 +399,9 @@ function bindDetailPanelEvents() {
     closeButton.addEventListener('click', () => {
         closeDetailPanel({ restoreMapFocus: true });
     }, { signal: detailPanelEventController.signal });
+    document.getElementById('restStopDetailRouteBack')?.addEventListener('click', returnToRouteResultModal, {
+        signal: detailPanelEventController.signal
+    });
     document.getElementById('restStopOilRefreshButton')?.addEventListener('click', refreshOilInfo, {
         signal: detailPanelEventController.signal
     });
@@ -457,14 +465,16 @@ function updateDetailSheetPresentation() {
     const panel = document.getElementById('restStopDetailPanel');
     const isOpen = panel && !panel.classList.contains('d-none');
     document.body.classList.toggle('rest-stop-detail-sheet-open', Boolean(isOpen && isMobileDetailSheet()));
+    updateRouteResultBackButton();
 }
 
-function openDetailPanel(restStop) {
+function openDetailPanel(restStop, { fromRouteResult = false } = {}) {
     const panel = document.getElementById('restStopDetailPanel');
     if (!panel || !detailRequest) {
         return;
     }
 
+    detailOpenedFromRouteResult = fromRouteResult;
     selectedRestStopName = restStop.unitName;
     selectedServiceAreaCode = restStop.serviceAreaCode;
     currentDetail = undefined;
@@ -482,6 +492,7 @@ function closeDetailPanel({ restoreMapFocus = false } = {}) {
         panel.classList.add('d-none');
         panel.setAttribute('aria-busy', 'false');
     }
+    detailOpenedFromRouteResult = false;
     updateDetailSheetPresentation();
 
     if (selectedInfoWindow) {
@@ -492,6 +503,23 @@ function closeDetailPanel({ restoreMapFocus = false } = {}) {
     if (restoreMapFocus) {
         document.getElementById('restStopMap')?.focus();
     }
+}
+
+function updateRouteResultBackButton() {
+    const button = document.getElementById('restStopDetailRouteBack');
+    if (!button) {
+        return;
+    }
+
+    button.classList.toggle(
+        'd-none',
+        !shouldShowRouteResultBackButton(detailOpenedFromRouteResult, isMobileDetailSheet())
+    );
+}
+
+function returnToRouteResultModal() {
+    closeDetailPanel();
+    openRouteResultModal();
 }
 
 function renderDetailState(state) {
@@ -1955,7 +1983,7 @@ function createRouteResultItem(restStop, index) {
     return item;
 }
 
-function openRestStopPopupAt(restStop, position) {
+function openRestStopPopupAt(restStop, position, { fromRouteResult = false } = {}) {
     if (selectedInfoWindow) {
         selectedInfoWindow.close();
     }
@@ -1966,7 +1994,7 @@ function openRestStopPopupAt(restStop, position) {
     infoWindow.open(map, position);
     selectedInfoWindow = infoWindow;
 
-    openDetailPanel(restStop);
+    openDetailPanel(restStop, { fromRouteResult });
     map.panTo(position);
 }
 
@@ -1974,13 +2002,17 @@ function selectRouteRestStop(restStop) {
     closeRouteResultModal();
 
     if (Number.isFinite(restStop?.latitude) && Number.isFinite(restStop?.longitude)) {
-        openRestStopPopupAt(restStop, new naverMaps.LatLng(restStop.latitude, restStop.longitude));
+        openRestStopPopupAt(restStop, new naverMaps.LatLng(restStop.latitude, restStop.longitude), {
+            fromRouteResult: true
+        });
         return;
     }
 
     openDetailPanel({
         serviceAreaCode: restStop?.serviceAreaCode,
         unitName: restStop?.unitName
+    }, {
+        fromRouteResult: true
     });
 }
 
