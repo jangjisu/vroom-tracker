@@ -1747,24 +1747,24 @@ function formatNationalOilPriceItem(fallbackLabel, item) {
     return {
         label: fallbackLabel,
         price: item.price,
-        dailyDiff: formatNationalOilDailyDiff(item.dailyDiff)
+        ...formatNationalOilDailyDiff(item.dailyDiff)
     };
 }
 
 function formatNationalOilDailyDiff(value) {
     const diff = Number.parseFloat(value);
     if (!Number.isFinite(diff)) {
-        return '전일 대비 정보 없음';
+        return { dailyDiff: '-', dailyDiffTone: 'same' };
     }
 
     const absoluteDiff = Math.abs(diff).toLocaleString('ko-KR');
     if (diff < 0) {
-        return `전일 대비 ${absoluteDiff}원 하락`;
+        return { dailyDiff: `↓ ${absoluteDiff}원`, dailyDiffTone: 'down' };
     }
     if (diff > 0) {
-        return `전일 대비 ${absoluteDiff}원 상승`;
+        return { dailyDiff: `↑ ${absoluteDiff}원`, dailyDiffTone: 'up' };
     }
-    return '전일과 같음';
+    return { dailyDiff: '0원', dailyDiffTone: 'same' };
 }
 
 function renderNationalOilPriceSummary(summary) {
@@ -1811,7 +1811,7 @@ function renderNationalOilPriceSummary(summary) {
         description.appendChild(price);
 
         const diff = document.createElement('span');
-        diff.className = 'route-national-oil-chip-diff';
+        diff.className = `route-national-oil-chip-diff route-national-oil-chip-diff-${item.dailyDiffTone}`;
         diff.textContent = item.dailyDiff;
         description.appendChild(diff);
 
@@ -1862,10 +1862,9 @@ function routeResultFuelItems(restStop) {
         ['경유', summary.dieselPrice, summary.dieselPriceDiffFromAverage],
         ['LPG', summary.lpgPrice, summary.lpgPriceDiffFromAverage]
     ]
-        .filter(([, price]) => !isMissingValue(price))
         .map(([label, price, diff]) => ({
             label,
-            price,
+            price: formatText(price, 'X'),
             delta: formatOilPriceDelta(diff)
         }));
 }
@@ -1920,12 +1919,20 @@ function createRouteResultItem(restStop, index) {
         fuels.forEach((fuel) => {
             const fuelItem = document.createElement('span');
             fuelItem.className = 'route-result-fuel';
-            fuelItem.appendChild(document.createTextNode(`${fuel.label} ${fuel.price}`));
+            const fuelLabel = document.createElement('span');
+            fuelLabel.className = 'route-result-fuel-label';
+            fuelLabel.textContent = fuel.label;
+            fuelItem.appendChild(fuelLabel);
+
+            const fuelPrice = document.createElement('span');
+            fuelPrice.className = 'route-result-fuel-price';
+            fuelPrice.textContent = fuel.price;
+            fuelItem.appendChild(fuelPrice);
+
             if (fuel.delta !== null) {
                 const delta = document.createElement('span');
                 delta.className = `route-result-fuel-delta route-result-fuel-delta-${fuel.delta.tone}`;
                 delta.textContent = fuel.delta.text;
-                fuelItem.appendChild(document.createTextNode(' '));
                 fuelItem.appendChild(delta);
             }
             fuelList.appendChild(fuelItem);
