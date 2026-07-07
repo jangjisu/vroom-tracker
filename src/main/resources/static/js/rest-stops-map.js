@@ -66,6 +66,8 @@ let markerMode = 'all';
 let originMarker;
 let destinationMarker;
 let currentRouteRestStops = [];
+let currentNationalOilPriceSummary;
+let detailOpenedFromRouteResult = false;
 let routePointSelection = createRoutePointSelection();
 let routeMapClickListener;
 let routeMapDraftMarker;
@@ -384,6 +386,10 @@ export function routeMapSelectionMessage(target, hasDraft) {
         : `지도에서 ${pointName} 위치를 선택하세요.`;
 }
 
+export function shouldShowRouteResultBackButton(openedFromRouteResult, isMobileSheet) {
+    return openedFromRouteResult === true && isMobileSheet === true;
+}
+
 function bindDetailPanelEvents() {
     const closeButton = document.getElementById('restStopDetailClose');
     if (!closeButton || !detailPanelEventController) {
@@ -393,6 +399,9 @@ function bindDetailPanelEvents() {
     closeButton.addEventListener('click', () => {
         closeDetailPanel({ restoreMapFocus: true });
     }, { signal: detailPanelEventController.signal });
+    document.getElementById('restStopDetailRouteBack')?.addEventListener('click', returnToRouteResultModal, {
+        signal: detailPanelEventController.signal
+    });
     document.getElementById('restStopOilRefreshButton')?.addEventListener('click', refreshOilInfo, {
         signal: detailPanelEventController.signal
     });
@@ -456,14 +465,16 @@ function updateDetailSheetPresentation() {
     const panel = document.getElementById('restStopDetailPanel');
     const isOpen = panel && !panel.classList.contains('d-none');
     document.body.classList.toggle('rest-stop-detail-sheet-open', Boolean(isOpen && isMobileDetailSheet()));
+    updateRouteResultBackButton();
 }
 
-function openDetailPanel(restStop) {
+function openDetailPanel(restStop, { fromRouteResult = false } = {}) {
     const panel = document.getElementById('restStopDetailPanel');
     if (!panel || !detailRequest) {
         return;
     }
 
+    detailOpenedFromRouteResult = fromRouteResult;
     selectedRestStopName = restStop.unitName;
     selectedServiceAreaCode = restStop.serviceAreaCode;
     currentDetail = undefined;
@@ -481,6 +492,7 @@ function closeDetailPanel({ restoreMapFocus = false } = {}) {
         panel.classList.add('d-none');
         panel.setAttribute('aria-busy', 'false');
     }
+    detailOpenedFromRouteResult = false;
     updateDetailSheetPresentation();
 
     if (selectedInfoWindow) {
@@ -491,6 +503,23 @@ function closeDetailPanel({ restoreMapFocus = false } = {}) {
     if (restoreMapFocus) {
         document.getElementById('restStopMap')?.focus();
     }
+}
+
+function updateRouteResultBackButton() {
+    const button = document.getElementById('restStopDetailRouteBack');
+    if (!button) {
+        return;
+    }
+
+    button.classList.toggle(
+        'd-none',
+        !shouldShowRouteResultBackButton(detailOpenedFromRouteResult, isMobileDetailSheet())
+    );
+}
+
+function returnToRouteResultModal() {
+    closeDetailPanel();
+    openRouteResultModal();
 }
 
 function renderDetailState(state) {
@@ -1514,7 +1543,7 @@ function renderRouteState(state) {
     }
 
     clearRouteOverlays();
-    renderRouteList([]);
+    renderRouteList([], null);
     toggleRouteResultButton(false);
     closeRouteResultModal();
     if (state.status === 'not-found') {
@@ -1552,6 +1581,7 @@ function renderRoute(data) {
     renderEndpointMarkers(data?.destination);
 
     const restStops = Array.isArray(data?.restStops) ? data.restStops : [];
+    currentNationalOilPriceSummary = data?.nationalOilPriceSummary ?? null;
     restStops.forEach((restStop) => {
         const position = new naverMaps.LatLng(restStop.latitude, restStop.longitude);
         const marker = new naverMaps.Marker({
@@ -1575,7 +1605,7 @@ function renderRoute(data) {
     });
 
     currentRouteRestStops = restStops;
-    renderRouteList(restStops);
+    renderRouteList(restStops, currentNationalOilPriceSummary);
     const destinationName = data?.destination?.name ?? '목적지';
     setRouteStatus(`${destinationName}까지 경로상 휴게소 ${restStops.length}곳`);
 
@@ -1646,15 +1676,26 @@ function fitMapToPath(latLngs) {
     map.fitBounds(bounds);
 }
 
-function renderRouteList(restStops) {
+function renderRouteList(restStops, nationalOilPriceSummary = currentNationalOilPriceSummary) {
     const list = document.getElementById('routeResultList');
     if (!list) {
         return;
     }
 
     renderDirectionAlternativeNotice(restStops);
+    renderNationalOilPriceSummary(nationalOilPriceSummary);
+    renderRouteResultTitle(restStops.length);
     list.replaceChildren();
-    restStops.forEach((restStop) => list.appendChild(createRouteResultItem(restStop)));
+    restStops.forEach((restStop, index) => list.appendChild(createRouteResultItem(restStop, index)));
+}
+
+function renderRouteResultTitle(count) {
+    const title = document.getElementById('routeResultModalTitle');
+    if (!title) {
+        return;
+    }
+
+    title.textContent = count > 0 ? `경로상 휴게소 (${count}곳)` : '경로상 휴게소';
 }
 
 function renderDirectionAlternativeNotice(restStops) {
@@ -1676,6 +1717,138 @@ export function routeRecommendationLabels(restStop) {
         .filter((label) => label !== '');
 }
 
+export function formatOilPriceComparison(price, diffFromAverage) {
+    if (isMissingValue(price)) {
+        return '';
+    }
+
+    const delta = formatOilPriceDelta(diffFromAverage);
+    if (delta === null) {
+        return price;
+    }
+
+    return `${price} ${delta.text}`;
+}
+
+export function formatOilPriceDelta(diffFromAverage) {
+    if (!Number.isFinite(diffFromAverage)) {
+        return null;
+    }
+
+    const absoluteDiff = Math.abs(diffFromAverage).toLocaleString('ko-KR');
+    if (diffFromAverage < 0) {
+        return { text: `(-${absoluteDiff})`, tone: 'cheap' };
+    }
+    if (diffFromAverage > 0) {
+        return { text: `(+${absoluteDiff})`, tone: 'expensive' };
+    }
+    return { text: '(0)', tone: 'same' };
+}
+
+export function formatNationalOilPriceSummary(summary) {
+    if (!summary || typeof summary !== 'object') {
+        return null;
+    }
+
+    const items = [
+        ['휘발유', summary.gasoline],
+        ['경유', summary.diesel],
+        ['LPG', summary.lpg]
+    ]
+        .map(([fallbackLabel, item]) => formatNationalOilPriceItem(fallbackLabel, item))
+        .filter((item) => item !== null);
+    if (items.length === 0) {
+        return null;
+    }
+
+    return {
+        tradeDate: formatText(summary.tradeDate, '오늘'),
+        items
+    };
+}
+
+function formatNationalOilPriceItem(fallbackLabel, item) {
+    if (!item || typeof item !== 'object' || isMissingValue(item.price)) {
+        return null;
+    }
+
+    return {
+        label: fallbackLabel,
+        price: item.price,
+        ...formatNationalOilDailyDiff(item.dailyDiff)
+    };
+}
+
+function formatNationalOilDailyDiff(value) {
+    const diff = Number.parseFloat(value);
+    if (!Number.isFinite(diff)) {
+        return { dailyDiff: '-', dailyDiffTone: 'same' };
+    }
+
+    const absoluteDiff = Math.abs(diff).toLocaleString('ko-KR');
+    if (diff < 0) {
+        return { dailyDiff: `↓ ${absoluteDiff}원`, dailyDiffTone: 'favorable' };
+    }
+    if (diff > 0) {
+        return { dailyDiff: `↑ ${absoluteDiff}원`, dailyDiffTone: 'unfavorable' };
+    }
+    return { dailyDiff: '0원', dailyDiffTone: 'same' };
+}
+
+function renderNationalOilPriceSummary(summary) {
+    const container = document.getElementById('routeNationalOilPriceSummary');
+    if (!container) {
+        return;
+    }
+
+    const formattedSummary = formatNationalOilPriceSummary(summary);
+    container.replaceChildren();
+    container.classList.toggle('d-none', formattedSummary === null);
+    if (formattedSummary === null) {
+        return;
+    }
+
+    const header = document.createElement('div');
+    header.className = 'route-national-oil-summary-header';
+
+    const title = document.createElement('p');
+    title.className = 'route-national-oil-summary-title';
+    title.textContent = '전국 평균 유가';
+    header.appendChild(title);
+
+    const date = document.createElement('p');
+    date.className = 'route-national-oil-summary-date';
+    date.textContent = formattedSummary.tradeDate;
+    header.appendChild(date);
+    container.appendChild(header);
+
+    const list = document.createElement('dl');
+    list.className = 'route-national-oil-summary-list';
+    formattedSummary.items.forEach((item) => {
+        const chip = document.createElement('div');
+        chip.className = 'route-national-oil-chip';
+
+        const term = document.createElement('dt');
+        term.textContent = item.label;
+        chip.appendChild(term);
+
+        const description = document.createElement('dd');
+        const price = document.createElement('span');
+        price.className = 'route-national-oil-chip-price';
+        price.textContent = item.price;
+        description.appendChild(price);
+
+        const diff = document.createElement('span');
+        diff.className = `route-national-oil-chip-diff route-national-oil-chip-diff-${item.dailyDiffTone}`;
+        diff.textContent = item.dailyDiff;
+        description.appendChild(diff);
+
+        chip.appendChild(description);
+        list.appendChild(chip);
+    });
+    container.appendChild(list);
+}
+
 export function formatRouteComparisonSummary(restStop) {
     const summary = restStop?.comparisonSummary;
     if (!summary || typeof summary !== 'object') {
@@ -1683,11 +1856,12 @@ export function formatRouteComparisonSummary(restStop) {
     }
 
     const priceParts = [
-        ['휘발유', summary.gasolinePrice],
-        ['경유', summary.dieselPrice],
-        ['LPG', summary.lpgPrice]
+        ['휘발유', summary.gasolinePrice, summary.gasolinePriceDiffFromAverage],
+        ['경유', summary.dieselPrice, summary.dieselPriceDiffFromAverage],
+        ['LPG', summary.lpgPrice, summary.lpgPriceDiffFromAverage]
     ]
-        .filter(([, value]) => !isMissingValue(value))
+        .map(([label, value, diff]) => [label, formatOilPriceComparison(value, diff)])
+        .filter(([, value]) => value !== '')
         .map(([label, value]) => `${label} ${value}`);
     const countParts = [];
     if (Number.isFinite(summary.totalParkingCount) && summary.totalParkingCount > 0) {
@@ -1705,14 +1879,42 @@ export function formatRouteComparisonSummary(restStop) {
         .map((parts) => parts.join(' · '));
 }
 
-function createRouteResultItem(restStop) {
+function routeResultFuelItems(restStop) {
+    const summary = restStop?.comparisonSummary;
+    if (!summary || typeof summary !== 'object') {
+        return [];
+    }
+
+    return [
+        ['휘발유', summary.gasolinePrice, summary.gasolinePriceDiffFromAverage],
+        ['경유', summary.dieselPrice, summary.dieselPriceDiffFromAverage],
+        ['LPG', summary.lpgPrice, summary.lpgPriceDiffFromAverage]
+    ]
+        .map(([label, price, diff]) => ({
+            label,
+            missing: isMissingValue(price),
+            price: formatText(price, 'X'),
+            delta: formatOilPriceDelta(diff)
+        }));
+}
+
+function createRouteResultItem(restStop, index) {
     const item = document.createElement('li');
     item.className = 'route-result-item';
+
+    const header = document.createElement('div');
+    header.className = 'route-result-item-header';
+
+    const rank = document.createElement('span');
+    rank.className = 'route-result-rank';
+    rank.textContent = String(index + 1);
+    header.appendChild(rank);
 
     const name = document.createElement('p');
     name.className = 'route-result-name';
     name.textContent = formatText(restStop?.unitName, '이름 정보 없음');
-    item.appendChild(name);
+    header.appendChild(name);
+    item.appendChild(header);
 
     if (restStop?.hasDirectionAlternative === true) {
         const badge = document.createElement('span');
@@ -1739,19 +1941,49 @@ function createRouteResultItem(restStop) {
     meta.textContent = formatText(restStop?.routeName, '노선 정보 없음');
     item.appendChild(meta);
 
-    formatRouteComparisonSummary(restStop).forEach((summaryLine) => {
+    const fuels = routeResultFuelItems(restStop);
+    if (fuels.length > 0) {
+        const fuelList = document.createElement('div');
+        fuelList.className = 'route-result-fuels';
+        fuels.forEach((fuel) => {
+            const fuelItem = document.createElement('span');
+            fuelItem.className = 'route-result-fuel';
+            const fuelLabel = document.createElement('span');
+            fuelLabel.className = 'route-result-fuel-label';
+            fuelLabel.textContent = fuel.label;
+            fuelItem.appendChild(fuelLabel);
+
+            const fuelPrice = document.createElement('span');
+            fuelPrice.className = 'route-result-fuel-price';
+            fuelPrice.classList.toggle('route-result-fuel-price-missing', fuel.missing);
+            fuelPrice.textContent = fuel.price;
+            fuelItem.appendChild(fuelPrice);
+
+            if (fuel.delta !== null) {
+                const delta = document.createElement('span');
+                delta.className = `route-result-fuel-delta route-result-fuel-delta-${fuel.delta.tone}`;
+                delta.textContent = fuel.delta.text;
+                fuelItem.appendChild(delta);
+            }
+            fuelList.appendChild(fuelItem);
+        });
+        item.appendChild(fuelList);
+    }
+
+    const countSummary = formatRouteComparisonSummary(restStop).at(1);
+    if (countSummary) {
         const summary = document.createElement('p');
         summary.className = 'route-result-summary';
-        summary.textContent = summaryLine;
+        summary.textContent = countSummary;
         item.appendChild(summary);
-    });
+    }
 
     item.addEventListener('click', () => selectRouteRestStop(restStop));
 
     return item;
 }
 
-function openRestStopPopupAt(restStop, position) {
+function openRestStopPopupAt(restStop, position, { fromRouteResult = false } = {}) {
     if (selectedInfoWindow) {
         selectedInfoWindow.close();
     }
@@ -1762,7 +1994,7 @@ function openRestStopPopupAt(restStop, position) {
     infoWindow.open(map, position);
     selectedInfoWindow = infoWindow;
 
-    openDetailPanel(restStop);
+    openDetailPanel(restStop, { fromRouteResult });
     map.panTo(position);
 }
 
@@ -1770,13 +2002,17 @@ function selectRouteRestStop(restStop) {
     closeRouteResultModal();
 
     if (Number.isFinite(restStop?.latitude) && Number.isFinite(restStop?.longitude)) {
-        openRestStopPopupAt(restStop, new naverMaps.LatLng(restStop.latitude, restStop.longitude));
+        openRestStopPopupAt(restStop, new naverMaps.LatLng(restStop.latitude, restStop.longitude), {
+            fromRouteResult: true
+        });
         return;
     }
 
     openDetailPanel({
         serviceAreaCode: restStop?.serviceAreaCode,
         unitName: restStop?.unitName
+    }, {
+        fromRouteResult: true
     });
 }
 
@@ -1799,6 +2035,7 @@ function clearRouteOverlays() {
     routeMarkers.forEach((marker) => marker.setMap(null));
     routeMarkers = [];
     currentRouteRestStops = [];
+    currentNationalOilPriceSummary = null;
 }
 
 function setRouteStatus(message) {

@@ -112,7 +112,7 @@ class RestOilPriceSyncServiceTest {
     @DisplayName("주유소 가격 API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestOilPrices_doesNotReplaceRowsWhenApiFails() {
         ExApiException exception =
-                new ExApiException("https://data.ex.co.kr/openapi/business/curStateStation?key=test-key", "failed");
+                new ExApiException("https://data.ex.co.kr/openapi/business/curStateStation?key=<redacted>", "failed");
         when(exApiClient.getCurStateStation(1)).thenReturn(restOilPriceResponse("SUCCESS", List.of()));
         when(exApiClient.getCurStateStation(2)).thenThrow(exception);
 

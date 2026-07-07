@@ -73,7 +73,7 @@ class HighwayServiceAreaInfoSyncServiceTest {
     @DisplayName("고속도로 휴게소 정보 API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshHighwayServiceAreaInfos_doesNotReplaceRowsWhenApiFails() {
         ExApiException exception =
-                new ExApiException("https://data.ex.co.kr/openapi/restinfo/hiwaySvarInfoList?key=test-key", "failed");
+                new ExApiException("https://data.ex.co.kr/openapi/restinfo/hiwaySvarInfoList?key=<redacted>", "failed");
         when(exApiClient.getHighwayServiceAreaInfoList()).thenThrow(exception);
 
         assertThatThrownBy(() -> highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos())

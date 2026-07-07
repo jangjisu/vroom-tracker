@@ -107,8 +107,8 @@ class RestStopDetailSyncServiceTest {
     @Test
     @DisplayName("상세 API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestStopDetails_doesNotReplaceRowsWhenApiFails() {
-        ExApiException exception =
-                new ExApiException("https://data.ex.co.kr/openapi/business/conveniServiceArea?key=test-key", "failed");
+        ExApiException exception = new ExApiException(
+                "https://data.ex.co.kr/openapi/business/conveniServiceArea?key=<redacted>", "failed");
         when(exApiClient.getConvenienceServiceArea(1)).thenThrow(exception);
 
         assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())

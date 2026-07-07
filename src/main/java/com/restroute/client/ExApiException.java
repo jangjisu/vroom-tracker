@@ -11,6 +11,7 @@ public class ExApiException extends RuntimeException {
     }
 
     private static String buildMessage(String requestUrl, String message) {
-        return "Failed to fetch API. requestUrl=" + requestUrl + ", message=" + message;
+        return "Failed to fetch API. requestUrl=" + ExternalApiRequestLog.sanitizeUrl(requestUrl) + ", message="
+                + message;
     }
 }

@@ -2,11 +2,27 @@ package com.restroute.controller.response;
 
 import java.util.List;
 
-public record RouteRestStopResponse(Destination destination, RouteSummary route, List<RouteRestStopItem> restStops) {
+public record RouteRestStopResponse(
+        Destination destination,
+        RouteSummary route,
+        NationalOilPriceSummary nationalOilPriceSummary,
+        List<RouteRestStopItem> restStops) {
+
+    public RouteRestStopResponse(Destination destination, RouteSummary route, List<RouteRestStopItem> restStops) {
+        this(destination, route, null, restStops);
+    }
 
     public static RouteRestStopResponse of(
             Destination destination, RouteSummary route, List<RouteRestStopItem> restStops) {
-        return new RouteRestStopResponse(destination, route, restStops);
+        return new RouteRestStopResponse(destination, route, null, restStops);
+    }
+
+    public static RouteRestStopResponse of(
+            Destination destination,
+            RouteSummary route,
+            NationalOilPriceSummary nationalOilPriceSummary,
+            List<RouteRestStopItem> restStops) {
+        return new RouteRestStopResponse(destination, route, nationalOilPriceSummary, restStops);
     }
 
     public record Destination(String name, double latitude, double longitude) {
@@ -104,23 +120,53 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
             String gasolinePrice,
             String dieselPrice,
             String lpgPrice,
+            Integer gasolinePriceDiffFromAverage,
+            Integer dieselPriceDiffFromAverage,
+            Integer lpgPriceDiffFromAverage,
             Integer totalParkingCount,
             int foodMenuCount,
             int facilityCount) {
 
         public static ComparisonSummary empty() {
-            return new ComparisonSummary(null, null, null, null, 0, 0);
+            return new ComparisonSummary(null, null, null, null, null, null, null, 0, 0);
         }
 
         public static ComparisonSummary of(
                 String gasolinePrice,
                 String dieselPrice,
                 String lpgPrice,
+                Integer gasolinePriceDiffFromAverage,
+                Integer dieselPriceDiffFromAverage,
+                Integer lpgPriceDiffFromAverage,
                 Integer totalParkingCount,
                 int foodMenuCount,
                 int facilityCount) {
             return new ComparisonSummary(
-                    gasolinePrice, dieselPrice, lpgPrice, totalParkingCount, foodMenuCount, facilityCount);
+                    gasolinePrice,
+                    dieselPrice,
+                    lpgPrice,
+                    gasolinePriceDiffFromAverage,
+                    dieselPriceDiffFromAverage,
+                    lpgPriceDiffFromAverage,
+                    totalParkingCount,
+                    foodMenuCount,
+                    facilityCount);
+        }
+    }
+
+    public record NationalOilPriceSummary(
+            String tradeDate, AverageOilPrice gasoline, AverageOilPrice diesel, AverageOilPrice lpg) {
+
+        public static NationalOilPriceSummary of(
+                String tradeDate, AverageOilPrice gasoline, AverageOilPrice diesel, AverageOilPrice lpg) {
+            return new NationalOilPriceSummary(tradeDate, gasoline, diesel, lpg);
+        }
+    }
+
+    public record AverageOilPrice(String productCode, String productName, String price, String dailyDiff) {
+
+        public static AverageOilPrice of(String productCode, String productName, String price, String dailyDiff) {
+            return new AverageOilPrice(productCode, productName, price, dailyDiff);
         }
     }
 

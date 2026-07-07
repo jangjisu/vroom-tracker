@@ -94,7 +94,7 @@ class RestOilSyncServiceTest {
     @DisplayName("주유소 편의시설 API 호출이 실패하면 기존 DB를 교체하지 않는다")
     void refreshRestOils_doesNotReplaceRowsWhenApiFails() {
         ExApiException exception =
-                new ExApiException("https://data.ex.co.kr/openapi/restinfo/restOilList?key=test-key", "failed");
+                new ExApiException("https://data.ex.co.kr/openapi/restinfo/restOilList?key=<redacted>", "failed");
         when(exApiClient.getRestOilList()).thenThrow(exception);
 
         assertThatThrownBy(restOilSyncService::refreshRestOils).isSameAs(exception);

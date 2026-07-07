@@ -16,11 +16,13 @@ class ProductionEnvironmentValidator implements InitializingBean {
     ProductionEnvironmentValidator(
             @Value("${ex.api.key:}") String exApiKey,
             @Value("${kakao.rest-api-key:}") String kakaoRestApiKey,
-            @Value("${naver.maps.ncp-key-id:}") String naverMapsNcpKeyId) {
+            @Value("${naver.maps.ncp-key-id:}") String naverMapsNcpKeyId,
+            @Value("${opinet.api.key:}") String opinetApiKey) {
         this.requiredProperties = List.of(
                 new RequiredProperty("EX_API_KEY", exApiKey),
                 new RequiredProperty("KAKAO_REST_API_KEY", kakaoRestApiKey),
-                new RequiredProperty("NAVER_MAPS_NCP_KEY_ID", naverMapsNcpKeyId));
+                new RequiredProperty("NAVER_MAPS_NCP_KEY_ID", naverMapsNcpKeyId),
+                new RequiredProperty("OPINET_API_KEY", opinetApiKey));
     }
 
     @Override
@@ -43,8 +45,10 @@ class ProductionEnvironmentValidator implements InitializingBean {
 
         String normalized = value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
         return normalized.contains("placeholder")
+                || normalized.contains("replacewithreal")
                 || normalized.equals("yourapikeyhere")
                 || normalized.equals("yourapikey")
+                || (normalized.startsWith("your") && normalized.endsWith("apikey"))
                 || normalized.equals("changeme");
     }
 

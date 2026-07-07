@@ -18,6 +18,8 @@ import com.restroute.client.response.KakaoDirectionsResponse.Summary;
 import com.restroute.client.response.KakaoLocalSearchResponse;
 import com.restroute.client.response.KakaoLocalSearchResponse.Document;
 import com.restroute.controller.response.RouteRestStopResponse;
+import com.restroute.controller.response.RouteRestStopResponse.AverageOilPrice;
+import com.restroute.controller.response.RouteRestStopResponse.NationalOilPriceSummary;
 import com.restroute.domain.HighwayServiceAreaInfoEntity;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.domain.RestOilEntity;
@@ -65,10 +67,14 @@ class RouteRestStopServiceTest {
     @Mock
     private RestFoodRepository restFoodRepository;
 
+    @Mock
+    private NationalOilPriceService nationalOilPriceService;
+
     private RouteRestStopService service;
 
     @BeforeEach
     void setUp() {
+        lenient().when(nationalOilPriceService.getTodaySummary()).thenReturn(Optional.empty());
         service = new RouteRestStopService(
                 kakaoMapClient,
                 restStopRepository,
@@ -76,7 +82,8 @@ class RouteRestStopServiceTest {
                 highwayServiceAreaInfoRepository,
                 restOilRepository,
                 restOilPriceRepository,
-                restFoodRepository);
+                restFoodRepository,
+                nationalOilPriceService);
     }
 
     private KakaoLocalSearchResponse searchResult(String x, String y, String placeName, String addressName) {
@@ -228,6 +235,41 @@ class RouteRestStopServiceTest {
                 .extracting(RouteRestStopResponse.RouteRestStopItem::serviceAreaCode)
                 .containsExactly("A", "B");
         assertThat(response.restStops().get(0).distanceFromRouteMeters()).isLessThan(50L);
+    }
+
+    @Test
+    @DisplayName("경로 결과에 전국 평균가 요약과 유종별 평균 대비 차이값을 추가한다")
+    void success_addsNationalOilPriceSummaryAndPriceDiffs() {
+        when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+        when(nationalOilPriceService.getTodaySummary())
+                .thenReturn(Optional.of(NationalOilPriceSummary.of(
+                        "2026.07.07",
+                        AverageOilPrice.of("B027", "휘발유", "1,893원", "-4.19"),
+                        AverageOilPrice.of("D047", "자동차용경유", "1,880원", "-4.51"),
+                        AverageOilPrice.of("K015", "자동차용부탄", "1,135원", "+0.01"))));
+
+        RestStopEntity restStop = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
+        RestOilEntity oilConvenience = oilConvenience("OIL-A", "쉼터");
+        RestOilPriceEntity oilPrice = oilPrice("1,850원", "1,900원", "1,135원");
+        when(restStopRepository.findAll()).thenReturn(List.of(restStop));
+        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A"))
+                .thenReturn(List.of());
+        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "A"))
+                .thenReturn(List.of(oilConvenience));
+        when(restOilPriceRepository.findByServiceAreaCode2("OIL-A")).thenReturn(Optional.of(oilPrice));
+        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("A-FOOD")).thenReturn(List.of());
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
+
+        assertThat(response.nationalOilPriceSummary()).isNotNull();
+        assertThat(response.nationalOilPriceSummary().tradeDate()).isEqualTo("2026.07.07");
+        RouteRestStopResponse.ComparisonSummary summary =
+                response.restStops().get(0).comparisonSummary();
+        assertThat(summary.gasolinePriceDiffFromAverage()).isEqualTo(-43);
+        assertThat(summary.dieselPriceDiffFromAverage()).isEqualTo(20);
+        assertThat(summary.lpgPriceDiffFromAverage()).isZero();
     }
 
     @Test

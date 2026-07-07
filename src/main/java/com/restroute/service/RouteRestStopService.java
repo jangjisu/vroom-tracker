@@ -4,8 +4,10 @@ import com.restroute.client.KakaoMapClient;
 import com.restroute.client.response.KakaoDirectionsResponse;
 import com.restroute.client.response.KakaoLocalSearchResponse;
 import com.restroute.controller.response.RouteRestStopResponse;
+import com.restroute.controller.response.RouteRestStopResponse.AverageOilPrice;
 import com.restroute.controller.response.RouteRestStopResponse.ComparisonSummary;
 import com.restroute.controller.response.RouteRestStopResponse.Destination;
+import com.restroute.controller.response.RouteRestStopResponse.NationalOilPriceSummary;
 import com.restroute.controller.response.RouteRestStopResponse.RecommendationTag;
 import com.restroute.controller.response.RouteRestStopResponse.RouteRestStopItem;
 import com.restroute.controller.response.RouteRestStopResponse.RouteSummary;
@@ -45,6 +47,7 @@ public class RouteRestStopService {
     private final RestOilRepository restOilRepository;
     private final RestOilPriceRepository restOilPriceRepository;
     private final RestFoodRepository restFoodRepository;
+    private final NationalOilPriceService nationalOilPriceService;
 
     public RouteRestStopResponse findRouteRestStops(
             double originLatitude,
@@ -72,8 +75,10 @@ public class RouteRestStopService {
             throw new RouteRestStopNotFoundException("경로 좌표가 없습니다.");
         }
 
-        List<RouteRestStopItem> restStops = restStopsOnRoute(polyline, radiusMeters);
-        return RouteRestStopResponse.of(destination, routeSummary(route, polyline), restStops);
+        Optional<NationalOilPriceSummary> nationalOilPriceSummary = nationalOilPriceService.getTodaySummary();
+        List<RouteRestStopItem> restStops = restStopsOnRoute(polyline, radiusMeters, nationalOilPriceSummary);
+        return RouteRestStopResponse.of(
+                destination, routeSummary(route, polyline), nationalOilPriceSummary.orElse(null), restStops);
     }
 
     private String routeFailureMessage(Integer resultCode) {
@@ -108,7 +113,8 @@ public class RouteRestStopService {
         return Destination.of(document.label(), latitude, longitude);
     }
 
-    private List<RouteRestStopItem> restStopsOnRoute(RoutePolyline polyline, int radiusMeters) {
+    private List<RouteRestStopItem> restStopsOnRoute(
+            RoutePolyline polyline, int radiusMeters, Optional<NationalOilPriceSummary> nationalOilPriceSummary) {
         List<RouteRestStopCandidate> candidates = new ArrayList<>();
         for (RestStopEntity restStop : restStopRepository.findAll()) {
             Double latitude = parseCoordinate(restStop.getYValue());
@@ -137,7 +143,8 @@ public class RouteRestStopService {
                 .map(RouteRestStopCandidate::groupKey)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         List<RouteRestStopComparison> comparisons = candidates.stream()
-                .map(candidate -> RouteRestStopComparison.of(candidate, comparisonOf(candidate.restStop())))
+                .map(candidate -> RouteRestStopComparison.of(
+                        candidate, comparisonOf(candidate.restStop(), nationalOilPriceSummary)))
                 .toList();
         Integer lowestGasolinePrice = lowestPrice(comparisons, FuelType.GASOLINE);
         Integer lowestDieselPrice = lowestPrice(comparisons, FuelType.DIESEL);
@@ -162,7 +169,8 @@ public class RouteRestStopService {
                 .toList();
     }
 
-    private ComparisonSummary comparisonOf(RestStopEntity restStop) {
+    private ComparisonSummary comparisonOf(
+            RestStopEntity restStop, Optional<NationalOilPriceSummary> nationalOilPriceSummary) {
         Optional<RestStopDetailEntity> detail =
                 restStopDetailRepository.findByServiceAreaCode(restStop.getServiceAreaCode());
         List<HighwayServiceAreaInfoEntity> infos =
@@ -177,9 +185,46 @@ public class RouteRestStopService {
                 oilPrice.map(RestOilPriceEntity::getGasolinePrice).orElse(null),
                 oilPrice.map(RestOilPriceEntity::getDieselPrice).orElse(null),
                 oilPrice.map(RestOilPriceEntity::getLpgPrice).orElse(null),
+                diffFromAverage(
+                        oilPrice.map(RestOilPriceEntity::getGasolinePrice).orElse(null),
+                        nationalOilPriceSummary,
+                        FuelType.GASOLINE),
+                diffFromAverage(
+                        oilPrice.map(RestOilPriceEntity::getDieselPrice).orElse(null),
+                        nationalOilPriceSummary,
+                        FuelType.DIESEL),
+                diffFromAverage(
+                        oilPrice.map(RestOilPriceEntity::getLpgPrice).orElse(null),
+                        nationalOilPriceSummary,
+                        FuelType.LPG),
                 totalParkingCount(infos),
                 foodMenuCount,
                 facilityCount(detail, oilConveniences));
+    }
+
+    private Integer diffFromAverage(
+            String price, Optional<NationalOilPriceSummary> nationalOilPriceSummary, FuelType fuelType) {
+        Optional<Integer> parsedPrice = parsePrice(price);
+        Optional<Integer> averagePrice = averagePrice(nationalOilPriceSummary, fuelType);
+        if (parsedPrice.isEmpty() || averagePrice.isEmpty()) {
+            return null;
+        }
+        return parsedPrice.get() - averagePrice.get();
+    }
+
+    private Optional<Integer> averagePrice(
+            Optional<NationalOilPriceSummary> nationalOilPriceSummary, FuelType fuelType) {
+        return nationalOilPriceSummary
+                .map(summary -> averageOilPrice(summary, fuelType))
+                .flatMap(price -> parsePrice(price.price()));
+    }
+
+    private AverageOilPrice averageOilPrice(NationalOilPriceSummary summary, FuelType fuelType) {
+        return switch (fuelType) {
+            case GASOLINE -> summary.gasoline();
+            case DIESEL -> summary.diesel();
+            case LPG -> summary.lpg();
+        };
     }
 
     private Optional<RestOilPriceEntity> findOilPrice(List<RestOilEntity> oilConveniences) {
