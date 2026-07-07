@@ -4,6 +4,8 @@ import test from 'node:test';
 import {
     canRequestRouteAutomatically,
     createPopupContent,
+    formatNationalOilPriceSummary,
+    formatOilPriceComparison,
     formatRouteComparisonSummary,
     isRouteGlobalLoadingState,
     routeMapSelectionMessage,
@@ -131,12 +133,15 @@ test('formatRouteComparisonSummary renders prices, parking, food and facility co
             gasolinePrice: '1,650원',
             dieselPrice: '1,550원',
             lpgPrice: '1,100원',
+            gasolinePriceDiffFromAverage: -43,
+            dieselPriceDiffFromAverage: 20,
+            lpgPriceDiffFromAverage: 0,
             totalParkingCount: 63,
             foodMenuCount: 2,
             facilityCount: 3
         }
     }), [
-        '휘발유 1,650원 · 경유 1,550원 · LPG 1,100원',
+        '휘발유 1,650원 · 평균보다 43원 저렴 · 경유 1,550원 · 평균보다 20원 비쌈 · LPG 1,100원 · 전국 평균과 같음',
         '주차 63대 · 먹거리 2개 · 시설 3개'
     ]);
 
@@ -150,4 +155,42 @@ test('formatRouteComparisonSummary renders prices, parking, food and facility co
             facilityCount: 1
         }
     }), ['경유 1,550원', '시설 1개']);
+});
+
+test('formatOilPriceComparison renders average diff only when it exists', () => {
+    assert.equal(formatOilPriceComparison('1,849원', -44), '1,849원 · 평균보다 44원 저렴');
+    assert.equal(formatOilPriceComparison('1,920원', 27), '1,920원 · 평균보다 27원 비쌈');
+    assert.equal(formatOilPriceComparison('1,892원', 0), '1,892원 · 전국 평균과 같음');
+    assert.equal(formatOilPriceComparison('1,849원', null), '1,849원');
+    assert.equal(formatOilPriceComparison(null, -44), '');
+});
+
+test('formatNationalOilPriceSummary renders gasoline diesel and lpg averages', () => {
+    assert.deepEqual(formatNationalOilPriceSummary({
+        tradeDate: '2026.07.07',
+        gasoline: {
+            productName: '휘발유',
+            price: '1,893원',
+            dailyDiff: '-4.19'
+        },
+        diesel: {
+            productName: '경유',
+            price: '1,880원',
+            dailyDiff: '+3'
+        },
+        lpg: {
+            productName: '자동차용부탄',
+            price: '1,135원',
+            dailyDiff: '0'
+        }
+    }), {
+        tradeDate: '2026.07.07',
+        items: [
+            { label: '휘발유', price: '1,893원', dailyDiff: '전일 대비 4.19원 하락' },
+            { label: '경유', price: '1,880원', dailyDiff: '전일 대비 3원 상승' },
+            { label: 'LPG', price: '1,135원', dailyDiff: '전일과 같음' }
+        ]
+    });
+
+    assert.equal(formatNationalOilPriceSummary(null), null);
 });

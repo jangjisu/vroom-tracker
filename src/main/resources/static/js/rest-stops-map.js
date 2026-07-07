@@ -66,6 +66,7 @@ let markerMode = 'all';
 let originMarker;
 let destinationMarker;
 let currentRouteRestStops = [];
+let currentNationalOilPriceSummary;
 let routePointSelection = createRoutePointSelection();
 let routeMapClickListener;
 let routeMapDraftMarker;
@@ -1514,7 +1515,7 @@ function renderRouteState(state) {
     }
 
     clearRouteOverlays();
-    renderRouteList([]);
+    renderRouteList([], null);
     toggleRouteResultButton(false);
     closeRouteResultModal();
     if (state.status === 'not-found') {
@@ -1552,6 +1553,7 @@ function renderRoute(data) {
     renderEndpointMarkers(data?.destination);
 
     const restStops = Array.isArray(data?.restStops) ? data.restStops : [];
+    currentNationalOilPriceSummary = data?.nationalOilPriceSummary ?? null;
     restStops.forEach((restStop) => {
         const position = new naverMaps.LatLng(restStop.latitude, restStop.longitude);
         const marker = new naverMaps.Marker({
@@ -1575,7 +1577,7 @@ function renderRoute(data) {
     });
 
     currentRouteRestStops = restStops;
-    renderRouteList(restStops);
+    renderRouteList(restStops, currentNationalOilPriceSummary);
     const destinationName = data?.destination?.name ?? '목적지';
     setRouteStatus(`${destinationName}까지 경로상 휴게소 ${restStops.length}곳`);
 
@@ -1646,13 +1648,14 @@ function fitMapToPath(latLngs) {
     map.fitBounds(bounds);
 }
 
-function renderRouteList(restStops) {
+function renderRouteList(restStops, nationalOilPriceSummary = currentNationalOilPriceSummary) {
     const list = document.getElementById('routeResultList');
     if (!list) {
         return;
     }
 
     renderDirectionAlternativeNotice(restStops);
+    renderNationalOilPriceSummary(nationalOilPriceSummary);
     list.replaceChildren();
     restStops.forEach((restStop) => list.appendChild(createRouteResultItem(restStop)));
 }
@@ -1676,6 +1679,115 @@ export function routeRecommendationLabels(restStop) {
         .filter((label) => label !== '');
 }
 
+export function formatOilPriceComparison(price, diffFromAverage) {
+    if (isMissingValue(price)) {
+        return '';
+    }
+    if (!Number.isFinite(diffFromAverage)) {
+        return price;
+    }
+
+    const absoluteDiff = Math.abs(diffFromAverage).toLocaleString('ko-KR');
+    if (diffFromAverage < 0) {
+        return `${price} · 평균보다 ${absoluteDiff}원 저렴`;
+    }
+    if (diffFromAverage > 0) {
+        return `${price} · 평균보다 ${absoluteDiff}원 비쌈`;
+    }
+    return `${price} · 전국 평균과 같음`;
+}
+
+export function formatNationalOilPriceSummary(summary) {
+    if (!summary || typeof summary !== 'object') {
+        return null;
+    }
+
+    const items = [
+        ['휘발유', summary.gasoline],
+        ['경유', summary.diesel],
+        ['LPG', summary.lpg]
+    ]
+        .map(([fallbackLabel, item]) => formatNationalOilPriceItem(fallbackLabel, item))
+        .filter((item) => item !== null);
+    if (items.length === 0) {
+        return null;
+    }
+
+    return {
+        tradeDate: formatText(summary.tradeDate, '오늘'),
+        items
+    };
+}
+
+function formatNationalOilPriceItem(fallbackLabel, item) {
+    if (!item || typeof item !== 'object' || isMissingValue(item.price)) {
+        return null;
+    }
+
+    return {
+        label: fallbackLabel,
+        price: item.price,
+        dailyDiff: formatNationalOilDailyDiff(item.dailyDiff)
+    };
+}
+
+function formatNationalOilDailyDiff(value) {
+    const diff = Number.parseFloat(value);
+    if (!Number.isFinite(diff)) {
+        return '전일 대비 정보 없음';
+    }
+
+    const absoluteDiff = Math.abs(diff).toLocaleString('ko-KR');
+    if (diff < 0) {
+        return `전일 대비 ${absoluteDiff}원 하락`;
+    }
+    if (diff > 0) {
+        return `전일 대비 ${absoluteDiff}원 상승`;
+    }
+    return '전일과 같음';
+}
+
+function renderNationalOilPriceSummary(summary) {
+    const container = document.getElementById('routeNationalOilPriceSummary');
+    if (!container) {
+        return;
+    }
+
+    const formattedSummary = formatNationalOilPriceSummary(summary);
+    container.replaceChildren();
+    container.classList.toggle('d-none', formattedSummary === null);
+    if (formattedSummary === null) {
+        return;
+    }
+
+    const header = document.createElement('div');
+    header.className = 'route-national-oil-summary-header';
+
+    const title = document.createElement('p');
+    title.className = 'route-national-oil-summary-title';
+    title.textContent = '전국 평균 유가';
+    header.appendChild(title);
+
+    const date = document.createElement('p');
+    date.className = 'route-national-oil-summary-date';
+    date.textContent = formattedSummary.tradeDate;
+    header.appendChild(date);
+    container.appendChild(header);
+
+    const list = document.createElement('dl');
+    list.className = 'route-national-oil-summary-list';
+    formattedSummary.items.forEach((item) => {
+        const term = document.createElement('dt');
+        term.textContent = item.label;
+        list.appendChild(term);
+
+        const description = document.createElement('dd');
+        description.textContent = `${item.price} · ${item.dailyDiff}`;
+        list.appendChild(description);
+    });
+    container.appendChild(list);
+}
+
 export function formatRouteComparisonSummary(restStop) {
     const summary = restStop?.comparisonSummary;
     if (!summary || typeof summary !== 'object') {
@@ -1683,11 +1795,12 @@ export function formatRouteComparisonSummary(restStop) {
     }
 
     const priceParts = [
-        ['휘발유', summary.gasolinePrice],
-        ['경유', summary.dieselPrice],
-        ['LPG', summary.lpgPrice]
+        ['휘발유', summary.gasolinePrice, summary.gasolinePriceDiffFromAverage],
+        ['경유', summary.dieselPrice, summary.dieselPriceDiffFromAverage],
+        ['LPG', summary.lpgPrice, summary.lpgPriceDiffFromAverage]
     ]
-        .filter(([, value]) => !isMissingValue(value))
+        .map(([label, value, diff]) => [label, formatOilPriceComparison(value, diff)])
+        .filter(([, value]) => value !== '')
         .map(([label, value]) => `${label} ${value}`);
     const countParts = [];
     if (Number.isFinite(summary.totalParkingCount) && summary.totalParkingCount > 0) {
@@ -1799,6 +1912,7 @@ function clearRouteOverlays() {
     routeMarkers.forEach((marker) => marker.setMap(null));
     routeMarkers = [];
     currentRouteRestStops = [];
+    currentNationalOilPriceSummary = null;
 }
 
 function setRouteStatus(message) {
