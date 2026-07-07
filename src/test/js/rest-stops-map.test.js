@@ -109,9 +109,9 @@ test('shouldShowRouteSearchInline requires both selected route points', () => {
     assert.equal(shouldShowRouteSearchInline(undefined, destination), false);
 });
 
-test('shouldShowRouteResultBackButton is visible only for mobile route-result detail navigation', () => {
+test('shouldShowRouteResultBackButton is visible whenever detail was opened from route results', () => {
     assert.equal(shouldShowRouteResultBackButton(true, true), true);
-    assert.equal(shouldShowRouteResultBackButton(true, false), false);
+    assert.equal(shouldShowRouteResultBackButton(true, false), true);
     assert.equal(shouldShowRouteResultBackButton(false, true), false);
     assert.equal(shouldShowRouteResultBackButton(undefined, true), false);
 });

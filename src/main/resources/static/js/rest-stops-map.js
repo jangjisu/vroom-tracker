@@ -386,8 +386,8 @@ export function routeMapSelectionMessage(target, hasDraft) {
         : `지도에서 ${pointName} 위치를 선택하세요.`;
 }
 
-export function shouldShowRouteResultBackButton(openedFromRouteResult, isMobileSheet) {
-    return openedFromRouteResult === true && isMobileSheet === true;
+export function shouldShowRouteResultBackButton(openedFromRouteResult) {
+    return openedFromRouteResult === true;
 }
 
 function bindDetailPanelEvents() {
@@ -513,7 +513,7 @@ function updateRouteResultBackButton() {
 
     button.classList.toggle(
         'd-none',
-        !shouldShowRouteResultBackButton(detailOpenedFromRouteResult, isMobileDetailSheet())
+        !shouldShowRouteResultBackButton(detailOpenedFromRouteResult)
     );
 }
 
