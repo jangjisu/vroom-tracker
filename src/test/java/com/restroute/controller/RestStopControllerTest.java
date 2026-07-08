@@ -15,6 +15,7 @@ import com.restroute.controller.response.OilStationConvenienceResponse;
 import com.restroute.controller.response.RestStopDetailViewResponse;
 import com.restroute.domain.RestStopEntity;
 import com.restroute.service.RestOilPriceRefreshService;
+import com.restroute.service.RestStopFoodMenuQueryService;
 import com.restroute.service.RestStopOilInfoQueryService;
 import com.restroute.service.RestStopQueryService;
 import java.time.LocalDateTime;
@@ -41,12 +42,18 @@ class RestStopControllerTest {
     @Mock
     private RestStopOilInfoQueryService restStopOilInfoQueryService;
 
+    @Mock
+    private RestStopFoodMenuQueryService restStopFoodMenuQueryService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(new RestStopController(
-                        restStopQueryService, restOilPriceRefreshService, restStopOilInfoQueryService))
+                        restStopQueryService,
+                        restOilPriceRefreshService,
+                        restStopOilInfoQueryService,
+                        restStopFoodMenuQueryService))
                 .build();
     }
 
@@ -192,6 +199,41 @@ class RestStopControllerTest {
         when(restStopOilInfoQueryService.findByServiceAreaCode("UNKNOWN")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/rest-stops/UNKNOWN/oil-info"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Resource not found"));
+    }
+
+    @Test
+    @DisplayName("GET /api/rest-stops/{serviceAreaCode}/foods는 음식 메뉴 정보를 ApiResponse로 반환한다")
+    void getRestStopFoods_returnsFoodMenu() throws Exception {
+        FoodMenuResponse response = new FoodMenuResponse(
+                List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true, true, false, "S", "여름")),
+                List.of(new FoodMenuSectionResponse(
+                        "recommended",
+                        "추천 메뉴",
+                        List.of(new FoodMenuItemResponse("농심어묵우동", "7000", "시원한 우동", true, true, false, "S", "여름")))));
+        when(restStopFoodMenuQueryService.findByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
+
+        mockMvc.perform(get("/api/rest-stops/A00001/foods"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.menus[0].foodName").value("농심어묵우동"))
+                .andExpect(jsonPath("$.data.menus[0].foodCost").value("7000"))
+                .andExpect(jsonPath("$.data.menus[0].representative").value(true))
+                .andExpect(jsonPath("$.data.menus[0].bestFood").value(true))
+                .andExpect(jsonPath("$.data.menus[0].seasonLabel").value("여름"))
+                .andExpect(jsonPath("$.data.sections[0].key").value("recommended"))
+                .andExpect(jsonPath("$.data.sections[0].menus[0].foodName").value("농심어묵우동"));
+    }
+
+    @Test
+    @DisplayName("GET /api/rest-stops/{serviceAreaCode}/foods는 대상 휴게소가 없으면 NOT_FOUND를 반환한다")
+    void getRestStopFoods_returnsNotFoundWhenRestStopMissing() throws Exception {
+        when(restStopFoodMenuQueryService.findByServiceAreaCode("UNKNOWN")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/rest-stops/UNKNOWN/foods"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("Resource not found"));

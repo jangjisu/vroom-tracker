@@ -2,10 +2,12 @@ package com.restroute.controller;
 
 import com.restroute.common.ApiResponse;
 import com.restroute.common.ResponseCode;
+import com.restroute.controller.response.FoodMenuResponse;
 import com.restroute.controller.response.OilInfoResponse;
 import com.restroute.controller.response.RestStopDetailViewResponse;
 import com.restroute.controller.response.RestStopItemResponse;
 import com.restroute.service.RestOilPriceRefreshService;
+import com.restroute.service.RestStopFoodMenuQueryService;
 import com.restroute.service.RestStopOilInfoQueryService;
 import com.restroute.service.RestStopQueryService;
 import java.util.List;
@@ -25,6 +27,7 @@ public class RestStopController {
     private final RestStopQueryService restStopQueryService;
     private final RestOilPriceRefreshService restOilPriceRefreshService;
     private final RestStopOilInfoQueryService restStopOilInfoQueryService;
+    private final RestStopFoodMenuQueryService restStopFoodMenuQueryService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<RestStopItemResponse>>> getRestStops() {
@@ -50,6 +53,15 @@ public class RestStopController {
         return restStopOilInfoQueryService
                 .findByServiceAreaCode(serviceAreaCode)
                 .map(oilInfo -> ResponseEntity.ok(ApiResponse.success(oilInfo)))
+                .orElseGet(() -> ResponseEntity.status(ResponseCode.NOT_FOUND.getHttpStatus())
+                        .body(ApiResponse.error(ResponseCode.NOT_FOUND)));
+    }
+
+    @GetMapping("/{serviceAreaCode}/foods")
+    public ResponseEntity<ApiResponse<FoodMenuResponse>> getRestStopFoods(@PathVariable String serviceAreaCode) {
+        return restStopFoodMenuQueryService
+                .findByServiceAreaCode(serviceAreaCode)
+                .map(foodMenu -> ResponseEntity.ok(ApiResponse.success(foodMenu)))
                 .orElseGet(() -> ResponseEntity.status(ResponseCode.NOT_FOUND.getHttpStatus())
                         .body(ApiResponse.error(ResponseCode.NOT_FOUND)));
     }
