@@ -3,6 +3,11 @@
 이 문서는 외부 데이터의 저장 방식, 테이블 관계와 연결 키를 기록한다.
 외부 API별 요청과 응답 실측 명세는 `API.md`에서 관리한다.
 
+관련 설계 문서:
+
+- `DATA_RELATIONSHIP_DIAGRAM.md`: 현재 DB 테이블 관계와 조회 조합 기준
+- `DATA_LOOKUP_KEY_DESIGN.md`: `rest_stop.service_area_code` 기반 내부 조회 키 설계
+
 ## 현재 상태
 
 - 한국도로공사 OpenAPI 응답을 API별 Entity와 테이블에 저장한다.
