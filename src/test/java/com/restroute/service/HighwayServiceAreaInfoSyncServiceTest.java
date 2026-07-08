@@ -107,6 +107,27 @@ class HighwayServiceAreaInfoSyncServiceTest {
     }
 
     @Test
+    @DisplayName("DB에 이미 같은 serviceAreaCode의 행이 두 개 있어도 예외 없이 첫 번째 행을 유지한다")
+    void refreshHighwayServiceAreaInfos_toleratesPreExistingDuplicateNaturalKeysInDb() {
+        runTransactionCallback();
+        HighwayServiceAreaInfoItem originalItem = highwayServiceAreaInfoItem("000561", "북대전(논산)졸음쉼터");
+        HighwayServiceAreaInfoEntity duplicate1 = HighwayServiceAreaInfoEntity.from(originalItem);
+        HighwayServiceAreaInfoEntity duplicate2 = HighwayServiceAreaInfoEntity.from(originalItem);
+        when(highwayServiceAreaInfoRepository.findAll()).thenReturn(List.of(duplicate1, duplicate2));
+        HighwayServiceAreaInfoItem updatedItem = highwayServiceAreaInfoItem("000561", "이름이바뀐졸음쉼터");
+        when(exApiClient.getHighwayServiceAreaInfoList())
+                .thenReturn(highwayServiceAreaInfoResponse("SUCCESS", List.of(updatedItem)));
+
+        int savedCount = highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<HighwayServiceAreaInfoEntity> saved = captureSavedEntities();
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0)).isSameAs(duplicate1);
+        assertThat(saved.get(0).getServiceAreaName()).isEqualTo("이름이바뀐졸음쉼터");
+    }
+
+    @Test
     @DisplayName("고속도로 휴게소 정보 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
     void refreshHighwayServiceAreaInfos_doesNotUpsertRowsWhenApiFails() {
         ExApiException exception =

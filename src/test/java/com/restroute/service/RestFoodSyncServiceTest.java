@@ -126,6 +126,25 @@ class RestFoodSyncServiceTest {
     }
 
     @Test
+    @DisplayName("DB에 이미 같은 자연키(stdRestCd+seq)의 행이 두 개 있어도 예외 없이 첫 번째 행을 유지한다")
+    void refreshRestFoods_toleratesPreExistingDuplicateNaturalKeysInDb() throws Exception {
+        runTransactionCallback();
+        RestBestfoodItem originalItem = foodResponse(1, "농심어묵우동").getList().get(0);
+        RestFoodEntity duplicate1 = RestFoodEntity.from(originalItem);
+        RestFoodEntity duplicate2 = RestFoodEntity.from(originalItem);
+        when(restFoodRepository.findAll()).thenReturn(List.of(duplicate1, duplicate2));
+        when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(1, "한우국밥"));
+
+        int savedCount = restFoodSyncService.refreshRestFoods();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestFoodEntity> saved = captureSavedEntities();
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0)).isSameAs(duplicate1);
+        assertThat(saved.get(0).getFoodName()).isEqualTo("한우국밥");
+    }
+
+    @Test
     @DisplayName("음식 메뉴 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
     void refreshRestFoods_doesNotUpsertRowsWhenApiFails() throws Exception {
         ExApiException exception =

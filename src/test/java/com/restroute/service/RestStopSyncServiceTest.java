@@ -105,6 +105,25 @@ class RestStopSyncServiceTest {
     }
 
     @Test
+    @DisplayName("DB에 이미 같은 serviceAreaCode의 행이 두 개 있어도 예외 없이 첫 번째 행을 유지한다")
+    void refreshRestStops_toleratesPreExistingDuplicateNaturalKeysInDb() {
+        runTransactionCallback();
+        RestStopEntity duplicate1 = RestStopEntity.from(restStopItem("001", "먼저", "A00001"));
+        RestStopEntity duplicate2 = RestStopEntity.from(restStopItem("001", "나중", "A00001"));
+        when(restStopRepository.findAll()).thenReturn(List.of(duplicate1, duplicate2));
+        RestStopItem updatedItem = restStopItem("001", "업데이트됨", "A00001");
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("SUCCESS", "1", List.of(updatedItem)));
+
+        int savedCount = restStopSyncService.refreshRestStops();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestStopEntity> savedEntities = captureSavedEntities();
+        assertThat(savedEntities).hasSize(1);
+        assertThat(savedEntities.get(0)).isSameAs(duplicate1);
+        assertThat(savedEntities.get(0).getUnitName()).isEqualTo("업데이트됨");
+    }
+
+    @Test
     @DisplayName("DB가 비어 있으면 서버 시작 시 휴게소 목록을 적재한다")
     void initializeRestStopsIfEmpty_refreshesWhenTableIsEmpty() {
         when(restStopRepository.count()).thenReturn(0L);

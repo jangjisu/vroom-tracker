@@ -141,6 +141,27 @@ class RestStopDetailSyncServiceTest {
     }
 
     @Test
+    @DisplayName("DB에 이미 같은 serviceAreaCode의 행이 두 개 있어도 예외 없이 첫 번째 행을 유지한다")
+    void refreshRestStopDetails_toleratesPreExistingDuplicateNaturalKeysInDb() {
+        runTransactionCallback();
+        RestStopDetailItem originalItem = restStopDetailItem("A00078", "건천(부산)휴게소");
+        RestStopDetailEntity duplicate1 = RestStopDetailEntity.from(originalItem);
+        RestStopDetailEntity duplicate2 = RestStopDetailEntity.from(originalItem);
+        when(restStopDetailRepository.findAll()).thenReturn(List.of(duplicate1, duplicate2));
+        RestStopDetailItem updatedItem = restStopDetailItem("A00078", "이름이바뀐휴게소");
+        when(exApiClient.getConvenienceServiceArea(1))
+                .thenReturn(restStopDetailResponse("SUCCESS", "1", List.of(updatedItem)));
+
+        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestStopDetailEntity> saved = captureSavedEntities();
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0)).isSameAs(duplicate1);
+        assertThat(saved.get(0).getServiceAreaName()).isEqualTo("이름이바뀐휴게소");
+    }
+
+    @Test
     @DisplayName("상세 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
     void refreshRestStopDetails_doesNotUpsertRowsWhenApiFails() {
         ExApiException exception = new ExApiException(

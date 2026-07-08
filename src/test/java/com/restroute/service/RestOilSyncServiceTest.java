@@ -126,6 +126,26 @@ class RestOilSyncServiceTest {
     }
 
     @Test
+    @DisplayName("DB에 이미 같은 자연키(standardRestCode+convenienceCode)의 행이 두 개 있어도 예외 없이 첫 번째 행을 유지한다")
+    void refreshRestOils_toleratesPreExistingDuplicateNaturalKeysInDb() {
+        runTransactionCallback();
+        RestOilItem originalItem = restOilItem("000002", "서울만남(부산)주유소", "07");
+        RestOilEntity duplicate1 = RestOilEntity.from(originalItem);
+        RestOilEntity duplicate2 = RestOilEntity.from(originalItem);
+        when(restOilRepository.findAll()).thenReturn(List.of(duplicate1, duplicate2));
+        RestOilItem updatedItem = restOilItem("000002", "변경된주유소명", "07");
+        when(exApiClient.getRestOilList()).thenReturn(restOilResponse("SUCCESS", List.of(updatedItem)));
+
+        int savedCount = restOilSyncService.refreshRestOils();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestOilEntity> saved = captureSavedEntities();
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0)).isSameAs(duplicate1);
+        assertThat(saved.get(0).getStandardRestName()).isEqualTo("변경된주유소명");
+    }
+
+    @Test
     @DisplayName("주유소 편의시설 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
     void refreshRestOils_doesNotUpsertRowsWhenApiFails() {
         ExApiException exception =
