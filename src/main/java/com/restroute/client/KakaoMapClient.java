@@ -1,5 +1,6 @@
 package com.restroute.client;
 
+import com.restroute.client.exception.KakaoApiException;
 import com.restroute.client.response.KakaoDirectionsResponse;
 import com.restroute.client.response.KakaoLocalSearchResponse;
 import java.util.function.Supplier;

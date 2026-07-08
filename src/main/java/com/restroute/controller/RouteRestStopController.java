@@ -2,7 +2,7 @@ package com.restroute.controller;
 
 import com.restroute.common.ApiResponse;
 import com.restroute.controller.response.RouteRestStopResponse;
-import com.restroute.service.RouteRestStopService;
+import com.restroute.service.route.RouteRestStopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

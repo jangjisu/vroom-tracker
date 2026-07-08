@@ -11,7 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.restroute.client.ExApiClient;
-import com.restroute.client.ExApiException;
+import com.restroute.client.exception.ExApiException;
 import com.restroute.client.response.RestOilPriceItem;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.repository.RestOilPriceRepository;

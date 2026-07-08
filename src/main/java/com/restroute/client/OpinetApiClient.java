@@ -6,6 +6,7 @@ import static com.restroute.client.OpinetFeignClient.OUT_PARAMETER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.restroute.client.exception.ExApiException;
 import com.restroute.client.response.OpinetAverageOilPriceResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

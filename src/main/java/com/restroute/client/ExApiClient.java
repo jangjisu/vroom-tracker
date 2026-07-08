@@ -13,6 +13,7 @@ import static com.restroute.client.ExApiFeignClient.REST_STOP_NUM_OF_ROWS;
 import static com.restroute.client.ExApiFeignClient.SERVICE_AREA_CODE2_PARAMETER;
 import static com.restroute.client.ExApiFeignClient.TYPE_PARAMETER;
 
+import com.restroute.client.exception.ExApiException;
 import com.restroute.client.response.ExApiResponse;
 import com.restroute.client.response.HighwayServiceAreaInfoResponse;
 import com.restroute.client.response.RestBestfoodResponse;

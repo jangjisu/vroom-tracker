@@ -10,14 +10,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.restroute.client.KakaoApiException;
+import com.restroute.client.exception.KakaoApiException;
 import com.restroute.common.GlobalExceptionHandler;
 import com.restroute.controller.response.RouteRestStopResponse;
 import com.restroute.controller.response.RouteRestStopResponse.Destination;
 import com.restroute.controller.response.RouteRestStopResponse.RouteRestStopItem;
 import com.restroute.controller.response.RouteRestStopResponse.RouteSummary;
-import com.restroute.service.RouteRestStopNotFoundException;
-import com.restroute.service.RouteRestStopService;
+import com.restroute.service.route.RouteRestStopNotFoundException;
+import com.restroute.service.route.RouteRestStopService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

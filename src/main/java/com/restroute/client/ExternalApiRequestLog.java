@@ -2,13 +2,13 @@ package com.restroute.client;
 
 import java.util.Set;
 
-final class ExternalApiRequestLog {
+public final class ExternalApiRequestLog {
 
     private static final Set<String> SENSITIVE_PARAMETERS = Set.of("key", "code");
 
     private ExternalApiRequestLog() {}
 
-    static String sanitizeUrl(String requestUrl) {
+    public static String sanitizeUrl(String requestUrl) {
         if (requestUrl == null || requestUrl.isBlank()) {
             return requestUrl;
         }

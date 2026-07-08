@@ -1,4 +1,4 @@
-package com.restroute.service;
+package com.restroute.service.route;
 
 import com.restroute.client.response.KakaoDirectionsResponse;
 import java.util.ArrayList;
