@@ -51,12 +51,13 @@ class RestStopSyncServiceTest {
     }
 
     @Test
-    @DisplayName("총 페이지 수만큼 휴게소 API를 호출하고 전체 목록을 교체 저장한다")
-    void refreshRestStops_fetchesAllPagesAndReplacesRows() {
+    @DisplayName("총 페이지 수만큼 휴게소 API를 호출하고, 기존에 없는 자연키는 새로 삽입한다")
+    void refreshRestStops_fetchesAllPagesAndInsertsNewRows() {
         runTransactionCallback();
-        RestStopItem first = restStopItem("001", "서울만남(부산)휴게소");
-        RestStopItem second = restStopItem("002", "죽전(서울)휴게소");
-        RestStopItem third = restStopItem("003", "기흥(부산)휴게소");
+        when(restStopRepository.findAll()).thenReturn(List.of());
+        RestStopItem first = restStopItem("001", "서울만남(부산)휴게소", "A00001");
+        RestStopItem second = restStopItem("002", "죽전(서울)휴게소", "A00002");
+        RestStopItem third = restStopItem("003", "기흥(부산)휴게소", "A00003");
         when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("SUCCESS", "3", List.of(first)));
         when(exApiClient.getLocationInfoRest(2)).thenReturn(restStopResponse("SUCCESS", "3", List.of(second)));
         when(exApiClient.getLocationInfoRest(3)).thenReturn(restStopResponse("SUCCESS", "3", List.of(third)));
@@ -64,9 +65,43 @@ class RestStopSyncServiceTest {
         int savedCount = restStopSyncService.refreshRestStops();
 
         assertThat(savedCount).isEqualTo(3);
-        verify(restStopRepository).deleteAllInBatch();
         List<RestStopEntity> savedEntities = captureSavedEntities();
         assertThat(savedEntities).extracting(RestStopEntity::getUnitCode).containsExactly("001", "002", "003");
+    }
+
+    @Test
+    @DisplayName("기존 DB에 같은 serviceAreaCode가 있으면 같은 행을 업데이트한다")
+    void refreshRestStops_updatesExistingRowWithSameServiceAreaCode() {
+        runTransactionCallback();
+        RestStopItem originalItem = restStopItem("001", "서울만남(부산)휴게소");
+        RestStopEntity existing = RestStopEntity.from(originalItem);
+        when(restStopRepository.findAll()).thenReturn(List.of(existing));
+        RestStopItem updatedItem = restStopItem("001", "이름이바뀐휴게소");
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("SUCCESS", "1", List.of(updatedItem)));
+
+        int savedCount = restStopSyncService.refreshRestStops();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestStopEntity> savedEntities = captureSavedEntities();
+        assertThat(savedEntities).hasSize(1);
+        assertThat(savedEntities.get(0)).isSameAs(existing);
+        assertThat(savedEntities.get(0).getUnitName()).isEqualTo("이름이바뀐휴게소");
+    }
+
+    @Test
+    @DisplayName("같은 응답 안에 serviceAreaCode가 중복되면 한 행으로 합쳐 저장한다")
+    void refreshRestStops_mergesDuplicateServiceAreaCodesWithinSameBatch() {
+        runTransactionCallback();
+        when(restStopRepository.findAll()).thenReturn(List.of());
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(duplicateServiceAreaCodeResponse());
+
+        int savedCount = restStopSyncService.refreshRestStops();
+
+        assertThat(savedCount).isEqualTo(2);
+        List<RestStopEntity> saved = captureSavedEntities();
+        List<RestStopEntity> distinctRows = saved.stream().distinct().toList();
+        assertThat(distinctRows).hasSize(1);
+        assertThat(distinctRows.get(0).getUnitName()).isEqualTo("이름이바뀐휴게소");
     }
 
     @Test
@@ -74,13 +109,13 @@ class RestStopSyncServiceTest {
     void initializeRestStopsIfEmpty_refreshesWhenTableIsEmpty() {
         when(restStopRepository.count()).thenReturn(0L);
         runTransactionCallback();
+        when(restStopRepository.findAll()).thenReturn(List.of());
         RestStopItem restStop = restStopItem("001", "서울만남(부산)휴게소");
         when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("SUCCESS", "1", List.of(restStop)));
 
         int savedCount = restStopSyncService.initializeRestStopsIfEmpty();
 
         assertThat(savedCount).isEqualTo(1);
-        verify(restStopRepository).deleteAllInBatch();
         List<RestStopEntity> savedEntities = captureSavedEntities();
         assertThat(savedEntities).extracting(RestStopEntity::getUnitCode).containsExactly("001");
     }
@@ -94,20 +129,19 @@ class RestStopSyncServiceTest {
 
         assertThat(savedCount).isZero();
         verify(exApiClient, never()).getLocationInfoRest(anyInt());
-        verify(restStopRepository, never()).deleteAllInBatch();
         verify(restStopRepository, never()).saveAll(any());
     }
 
     @Test
-    @DisplayName("API 호출이 실패하면 기존 DB를 교체하지 않는다")
-    void refreshRestStops_doesNotReplaceRowsWhenApiFails() {
+    @DisplayName("API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
+    void refreshRestStops_doesNotUpsertRowsWhenApiFails() {
         ExApiException exception = new ExApiException(
                 "https://data.ex.co.kr/openapi/locationinfo/locationinfoRest?key=<redacted>", "failed");
         when(exApiClient.getLocationInfoRest(1)).thenThrow(exception);
 
         assertThatThrownBy(() -> restStopSyncService.refreshRestStops()).isSameAs(exception);
 
-        verify(restStopRepository, never()).deleteAllInBatch();
+        verify(restStopRepository, never()).findAll();
         verify(restStopRepository, never()).saveAll(any());
     }
 
@@ -115,6 +149,7 @@ class RestStopSyncServiceTest {
     @DisplayName("API 응답 성공 여부는 Client 계약을 신뢰하고 다시 검사하지 않는다")
     void refreshRestStops_doesNotCheckApiSuccessAgain() {
         runTransactionCallback();
+        when(restStopRepository.findAll()).thenReturn(List.of());
         RestStopResponse response = mock(RestStopResponse.class);
         when(response.getTotalPageCount()).thenReturn(1);
         when(response.getList()).thenReturn(List.of());
@@ -123,6 +158,12 @@ class RestStopSyncServiceTest {
         restStopSyncService.refreshRestStops();
 
         verify(response, never()).isSuccess();
+    }
+
+    private RestStopResponse duplicateServiceAreaCodeResponse() {
+        RestStopItem first = restStopItem("001", "서울만남(부산)휴게소");
+        RestStopItem second = restStopItem("001", "이름이바뀐휴게소");
+        return restStopResponse("SUCCESS", "1", List.of(first, second));
     }
 
     private void runTransactionCallback() {
