@@ -8,7 +8,7 @@ import com.restroute.domain.RestStopDetailEntity;
 import java.util.List;
 import java.util.Optional;
 
-record RestStopRelatedInfo(
+public record RestStopRelatedInfo(
         Optional<RestStopDetailEntity> detail,
         List<HighwayServiceAreaInfoEntity> highwayServiceAreaInfos,
         List<RestOilEntity> oilStationConveniences,
@@ -16,7 +16,7 @@ record RestStopRelatedInfo(
         Optional<RestOilPriceEntity> oilPrice,
         List<RestFoodEntity> foods) {
 
-    static RestStopRelatedInfo of(
+    public static RestStopRelatedInfo of(
             Optional<RestStopDetailEntity> detail,
             List<HighwayServiceAreaInfoEntity> highwayServiceAreaInfos,
             List<RestOilEntity> oilStationConveniences,

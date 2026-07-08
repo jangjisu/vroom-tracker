@@ -1,4 +1,4 @@
-package com.restroute.service;
+package com.restroute.service.route;
 
 import com.restroute.controller.response.RouteRestStopResponse.RouteRestStopItem;
 import com.restroute.domain.RestStopEntity;

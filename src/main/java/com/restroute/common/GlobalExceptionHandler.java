@@ -1,7 +1,7 @@
 package com.restroute.common;
 
 import com.restroute.client.exception.KakaoApiException;
-import com.restroute.service.RouteRestStopNotFoundException;
+import com.restroute.service.route.RouteRestStopNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

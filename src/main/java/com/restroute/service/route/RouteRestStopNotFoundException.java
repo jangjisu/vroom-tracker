@@ -1,4 +1,4 @@
-package com.restroute.service;
+package com.restroute.service.route;
 
 public class RouteRestStopNotFoundException extends RuntimeException {
 
