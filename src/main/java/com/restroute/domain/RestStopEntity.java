@@ -41,6 +41,7 @@ public class RestStopEntity {
     }
 
     public void updateFrom(RestStopItem item) {
+        this.unitCode = item.getUnitCode();
         this.unitName = item.getUnitName();
         this.routeNo = item.getRouteNo();
         this.routeName = item.getRouteName();
