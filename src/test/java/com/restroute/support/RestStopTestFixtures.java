@@ -104,6 +104,10 @@ public final class RestStopTestFixtures {
     }
 
     public static RestOilItem restOilItem(String standardRestCode, String standardRestName) {
+        return restOilItem(standardRestCode, standardRestName, "07");
+    }
+
+    public static RestOilItem restOilItem(String standardRestCode, String standardRestName, String convenienceCode) {
         RestOilItem item = instantiate(RestOilItem.class);
         ReflectionTestUtils.setField(item, "standardRestCode", standardRestCode);
         ReflectionTestUtils.setField(item, "standardRestName", standardRestName);
@@ -116,7 +120,7 @@ public final class RestStopTestFixtures {
         ReflectionTestUtils.setField(item, "serviceAreaAddress", "서울시 서초구");
         ReflectionTestUtils.setField(item, "routeCode", "0010");
         ReflectionTestUtils.setField(item, "routeName", "경부선");
-        ReflectionTestUtils.setField(item, "convenienceCode", "07");
+        ReflectionTestUtils.setField(item, "convenienceCode", convenienceCode);
         ReflectionTestUtils.setField(item, "convenienceName", "쉼터");
         ReflectionTestUtils.setField(item, "convenienceDescription", "고객쉼터");
         return item;

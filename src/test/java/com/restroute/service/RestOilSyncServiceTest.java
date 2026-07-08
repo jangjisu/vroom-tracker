@@ -54,12 +54,12 @@ class RestOilSyncServiceTest {
         runTransactionCallback();
         RestOilItem item = restOilItem("000002", "서울만남(부산)주유소");
         when(restOilRepository.count()).thenReturn(0L);
+        when(restOilRepository.findAll()).thenReturn(List.of());
         when(exApiClient.getRestOilList()).thenReturn(restOilResponse("SUCCESS", List.of(item)));
 
         int savedCount = restOilSyncService.initializeRestOilsIfEmpty();
 
         assertThat(savedCount).isEqualTo(1);
-        verify(restOilRepository).deleteAllInBatch();
     }
 
     @Test
@@ -74,39 +74,75 @@ class RestOilSyncServiceTest {
     }
 
     @Test
-    @DisplayName("주유소 편의시설 API 전체 목록을 복수 행 그대로 교체 저장한다")
-    void refreshRestOils_fetchesAndReplacesRows() {
+    @DisplayName("자연키(standardRestCode+convenienceCode)가 다른 항목은 각각 새로 삽입한다")
+    void refreshRestOils_insertsRowsWithDifferentNaturalKeys() {
         runTransactionCallback();
-        RestOilItem first = restOilItem("000002", "서울만남(부산)주유소");
-        RestOilItem second = restOilItem("000002", "서울만남(부산)주유소");
+        when(restOilRepository.findAll()).thenReturn(List.of());
+        RestOilItem first = restOilItem("000002", "서울만남(부산)주유소", "07");
+        RestOilItem second = restOilItem("000002", "서울만남(부산)주유소", "08");
         when(exApiClient.getRestOilList()).thenReturn(restOilResponse("SUCCESS", List.of(first, second)));
 
         int savedCount = restOilSyncService.refreshRestOils();
 
         assertThat(savedCount).isEqualTo(2);
-        List<RestOilEntity> savedEntities = captureSavedEntities();
-        assertThat(savedEntities)
-                .extracting(RestOilEntity::getNormalizedStationName)
-                .containsExactly("서울만남(부산)", "서울만남(부산)");
+        assertThat(captureSavedEntities()).hasSize(2);
     }
 
     @Test
-    @DisplayName("주유소 편의시설 API 호출이 실패하면 기존 DB를 교체하지 않는다")
-    void refreshRestOils_doesNotReplaceRowsWhenApiFails() {
+    @DisplayName("기존 DB에 같은 자연키(standardRestCode+convenienceCode)가 있으면 같은 행을 업데이트한다")
+    void refreshRestOils_updatesExistingRowWithSameNaturalKey() {
+        runTransactionCallback();
+        RestOilItem originalItem = restOilItem("000002", "서울만남(부산)주유소", "07");
+        RestOilEntity existing = RestOilEntity.from(originalItem);
+        when(restOilRepository.findAll()).thenReturn(List.of(existing));
+        RestOilItem updatedItem = restOilItem("000002", "변경된주유소명", "07");
+        when(exApiClient.getRestOilList()).thenReturn(restOilResponse("SUCCESS", List.of(updatedItem)));
+
+        int savedCount = restOilSyncService.refreshRestOils();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestOilEntity> saved = captureSavedEntities();
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0)).isSameAs(existing);
+        assertThat(saved.get(0).getStandardRestName()).isEqualTo("변경된주유소명");
+    }
+
+    @Test
+    @DisplayName("같은 응답 안에 자연키가 중복되면 한 행으로 합쳐 저장한다")
+    void refreshRestOils_mergesDuplicateNaturalKeysWithinSameBatch() {
+        runTransactionCallback();
+        when(restOilRepository.findAll()).thenReturn(List.of());
+        RestOilItem first = restOilItem("000002", "서울만남(부산)주유소", "07");
+        RestOilItem second = restOilItem("000002", "변경된주유소명", "07");
+        when(exApiClient.getRestOilList()).thenReturn(restOilResponse("SUCCESS", List.of(first, second)));
+
+        int savedCount = restOilSyncService.refreshRestOils();
+
+        assertThat(savedCount).isEqualTo(2);
+        List<RestOilEntity> saved = captureSavedEntities();
+        List<RestOilEntity> distinctRows = saved.stream().distinct().toList();
+        assertThat(distinctRows).hasSize(1);
+        assertThat(distinctRows.get(0).getStandardRestName()).isEqualTo("변경된주유소명");
+    }
+
+    @Test
+    @DisplayName("주유소 편의시설 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
+    void refreshRestOils_doesNotUpsertRowsWhenApiFails() {
         ExApiException exception =
                 new ExApiException("https://data.ex.co.kr/openapi/restinfo/restOilList?key=<redacted>", "failed");
         when(exApiClient.getRestOilList()).thenThrow(exception);
 
         assertThatThrownBy(restOilSyncService::refreshRestOils).isSameAs(exception);
 
-        verify(restOilRepository, never()).deleteAllInBatch();
+        verify(restOilRepository, never()).findAll();
         verify(restOilRepository, never()).saveAll(any());
     }
 
     @Test
-    @DisplayName("API list가 null이면 빈 목록으로 전체 교체한다")
-    void refreshRestOils_replacesWithEmptyRowsWhenListIsNull() {
+    @DisplayName("API list가 null이면 빈 목록으로 upsert해 아무것도 저장하지 않는다")
+    void refreshRestOils_upsertsEmptyListWhenListIsNull() {
         runTransactionCallback();
+        when(restOilRepository.findAll()).thenReturn(List.of());
         var response = restOilResponse("SUCCESS", List.of());
         ReflectionTestUtils.setField(response, "list", null);
         when(exApiClient.getRestOilList()).thenReturn(response);
@@ -114,7 +150,6 @@ class RestOilSyncServiceTest {
         int savedCount = restOilSyncService.refreshRestOils();
 
         assertThat(savedCount).isZero();
-        verify(restOilRepository).deleteAllInBatch();
         verify(restOilRepository).saveAll(List.of());
     }
 

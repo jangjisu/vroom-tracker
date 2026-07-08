@@ -66,6 +66,22 @@ public class RestOilEntity {
         this.normalizedStationName = normalizeStationName(item.getStandardRestName());
     }
 
+    public void updateFrom(RestOilItem item) {
+        this.standardRestName = item.getStandardRestName();
+        this.startTime = item.getStartTime();
+        this.endTime = item.getEndTime();
+        this.originalModifierId = item.getOriginalModifierId();
+        this.originalModifiedDateTime = item.getOriginalModifiedDateTime();
+        this.lastModifiedUser = item.getLastModifiedUser();
+        this.lastModifiedDateTime = item.getLastModifiedDateTime();
+        this.serviceAreaAddress = item.getServiceAreaAddress();
+        this.routeCode = item.getRouteCode();
+        this.routeName = item.getRouteName();
+        this.convenienceName = item.getConvenienceName();
+        this.convenienceDescription = item.getConvenienceDescription();
+        this.normalizedStationName = normalizeStationName(item.getStandardRestName());
+    }
+
     public static RestOilEntity from(RestOilItem item) {
         return new RestOilEntity(item);
     }
