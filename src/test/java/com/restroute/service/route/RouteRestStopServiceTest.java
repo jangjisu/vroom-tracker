@@ -54,6 +54,10 @@ class RouteRestStopServiceTest {
     @Mock
     private RestStopRelatedInfoQueryService restStopRelatedInfoQueryService;
 
+    private RouteRestStopComparisonSummaryService routeRestStopComparisonSummaryService;
+
+    private RouteRestStopRecommendationTagService routeRestStopRecommendationTagService;
+
     @Mock
     private NationalOilPriceService nationalOilPriceService;
 
@@ -65,8 +69,15 @@ class RouteRestStopServiceTest {
         lenient()
                 .when(restStopRelatedInfoQueryService.findByRestStop(any(RestStopEntity.class)))
                 .thenReturn(emptyRelatedInfo());
+        routeRestStopComparisonSummaryService =
+                new RouteRestStopComparisonSummaryService(restStopRelatedInfoQueryService);
+        routeRestStopRecommendationTagService = new RouteRestStopRecommendationTagService();
         service = new RouteRestStopService(
-                kakaoMapClient, restStopRepository, restStopRelatedInfoQueryService, nationalOilPriceService);
+                kakaoMapClient,
+                restStopRepository,
+                routeRestStopComparisonSummaryService,
+                routeRestStopRecommendationTagService,
+                nationalOilPriceService);
     }
 
     private KakaoLocalSearchResponse searchResult(String x, String y, String placeName, String addressName) {
