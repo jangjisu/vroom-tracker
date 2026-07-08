@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restroute.client.ExApiClient;
 import com.restroute.client.exception.ExApiException;
+import com.restroute.client.response.RestBestfoodItem;
 import com.restroute.client.response.RestBestfoodResponse;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.repository.RestFoodRepository;
@@ -52,12 +53,13 @@ class RestFoodSyncServiceTest {
     void initializeRestFoodsIfEmpty_refreshesWhenTableIsEmpty() throws Exception {
         runTransactionCallback();
         when(restFoodRepository.count()).thenReturn(0L);
+        when(restFoodRepository.findAll()).thenReturn(List.of());
         when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(1, "농심어묵우동"));
 
         int savedCount = restFoodSyncService.initializeRestFoodsIfEmpty();
 
         assertThat(savedCount).isEqualTo(1);
-        verify(restFoodRepository).deleteAllInBatch();
+        assertThat(captureSavedEntities()).extracting(RestFoodEntity::getFoodName).containsExactly("농심어묵우동");
     }
 
     @Test
@@ -72,25 +74,44 @@ class RestFoodSyncServiceTest {
     }
 
     @Test
-    @DisplayName("pageSize만큼 페이지를 순회해 전체 교체 저장한다")
-    void refreshRestFoods_fetchesAllPagesAndReplacesRows() throws Exception {
+    @DisplayName("기존 DB에 없는 자연키(stdRestCd+seq)의 항목은 새로 삽입한다")
+    void refreshRestFoods_insertsRowsWithNewNaturalKey() throws Exception {
         runTransactionCallback();
-        when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(2, "농심어묵우동"));
-        when(exApiClient.getRestBestfoodList(2)).thenReturn(foodResponse(2, "한우국밥"));
+        when(restFoodRepository.findAll()).thenReturn(List.of());
+        when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(2, "농심어묵우동", "한우국밥"));
+        when(exApiClient.getRestBestfoodList(2)).thenReturn(foodResponse(2, "육개장"));
 
         int savedCount = restFoodSyncService.refreshRestFoods();
 
-        assertThat(savedCount).isEqualTo(2);
+        assertThat(savedCount).isEqualTo(3);
         verify(exApiClient).getRestBestfoodList(1);
         verify(exApiClient).getRestBestfoodList(2);
         assertThat(captureSavedEntities())
                 .extracting(RestFoodEntity::getFoodName)
-                .containsExactly("농심어묵우동", "한우국밥");
+                .containsExactly("농심어묵우동", "한우국밥", "육개장");
     }
 
     @Test
-    @DisplayName("음식 메뉴 API 호출이 실패하면 기존 DB를 교체하지 않는다")
-    void refreshRestFoods_doesNotReplaceRowsWhenApiFails() throws Exception {
+    @DisplayName("기존 DB에 같은 자연키(stdRestCd+seq)가 있으면 같은 행을 업데이트한다")
+    void refreshRestFoods_updatesExistingRowWithSameNaturalKey() throws Exception {
+        runTransactionCallback();
+        RestBestfoodItem originalItem = foodResponse(1, "농심어묵우동").getList().get(0);
+        RestFoodEntity existing = RestFoodEntity.from(originalItem);
+        when(restFoodRepository.findAll()).thenReturn(List.of(existing));
+        when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(1, "한우국밥"));
+
+        int savedCount = restFoodSyncService.refreshRestFoods();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestFoodEntity> saved = captureSavedEntities();
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0)).isSameAs(existing);
+        assertThat(saved.get(0).getFoodName()).isEqualTo("한우국밥");
+    }
+
+    @Test
+    @DisplayName("음식 메뉴 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
+    void refreshRestFoods_doesNotUpsertRowsWhenApiFails() throws Exception {
         ExApiException exception =
                 new ExApiException("https://data.ex.co.kr/openapi/restinfo/restBestfoodList?key=<redacted>", "failed");
         when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(2));
@@ -98,14 +119,15 @@ class RestFoodSyncServiceTest {
 
         assertThatThrownBy(restFoodSyncService::refreshRestFoods).isSameAs(exception);
 
-        verify(restFoodRepository, never()).deleteAllInBatch();
+        verify(restFoodRepository, never()).findAll();
         verify(restFoodRepository, never()).saveAll(any());
     }
 
     @Test
-    @DisplayName("API list가 null이면 빈 목록으로 전체 교체한다")
-    void refreshRestFoods_replacesWithEmptyRowsWhenListIsNull() throws Exception {
+    @DisplayName("API list가 null이면 빈 목록으로 upsert해 아무것도 저장하지 않는다")
+    void refreshRestFoods_upsertsEmptyListWhenListIsNull() throws Exception {
         runTransactionCallback();
+        when(restFoodRepository.findAll()).thenReturn(List.of());
         RestBestfoodResponse response = foodResponse(1);
         ReflectionTestUtils.setField(response, "list", null);
         when(exApiClient.getRestBestfoodList(1)).thenReturn(response);
@@ -113,7 +135,6 @@ class RestFoodSyncServiceTest {
         int savedCount = restFoodSyncService.refreshRestFoods();
 
         assertThat(savedCount).isZero();
-        verify(restFoodRepository).deleteAllInBatch();
         verify(restFoodRepository).saveAll(List.of());
     }
 
@@ -123,7 +144,9 @@ class RestFoodSyncServiceTest {
             if (i > 0) {
                 list.append(",");
             }
-            list.append("{\"stdRestCd\":\"000001\",\"foodNm\":\"")
+            list.append("{\"stdRestCd\":\"000001\",\"seq\":\"")
+                    .append(i + 1)
+                    .append("\",\"foodNm\":\"")
                     .append(foodNames[i])
                     .append("\"}");
         }

@@ -65,6 +65,23 @@ public class RestFoodEntity {
         this.appExposeYn = item.getApp();
     }
 
+    public void updateFrom(RestBestfoodItem item) {
+        this.stdRestName = item.getStdRestNm();
+        this.restCode = item.getRestCd();
+        this.routeCode = item.getRouteCd();
+        this.routeName = item.getRouteNm();
+        this.serviceAreaAddress = item.getServiceAreaAddress();
+        this.foodName = item.getFoodNm();
+        this.foodCost = item.getFoodCost();
+        this.description = item.getEtc();
+        this.foodMaterial = item.getFoodMaterial();
+        this.recommendYn = item.getRecommendyn();
+        this.bestFoodYn = item.getBestfoodyn();
+        this.premiumYn = item.getPremiumyn();
+        this.seasonMenu = item.getSeasonMenu();
+        this.appExposeYn = item.getApp();
+    }
+
     public static RestFoodEntity from(RestBestfoodItem item) {
         return new RestFoodEntity(item);
     }
