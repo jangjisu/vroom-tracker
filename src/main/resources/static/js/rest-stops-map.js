@@ -984,8 +984,6 @@ function bindRouteSearch() {
     }
 
     const signal = detailPanelEventController.signal;
-    document.getElementById('routeSearchButton')?.addEventListener('click', requestSelectedRoute, { signal });
-    document.getElementById('routeSearchInlineButton')?.addEventListener('click', requestSelectedRoute, { signal });
     document.getElementById('routeOriginChangeButton')?.addEventListener('click', openRouteOriginModal, { signal });
     document.getElementById('routeOriginModalClose')?.addEventListener('click', closeRouteOriginModal, { signal });
     document.getElementById('routeOriginModal')?.addEventListener('click', (event) => {
@@ -1090,6 +1088,7 @@ function initializeMobileCurrentLocationOrigin() {
 }
 
 function selectCurrentLocationOrigin({ moveMap = false } = {}) {
+    const previousSignature = currentRouteSelectionSignature();
     const selectedOrigin = routePointSelection.select(ROUTE_POINT_TARGET.ORIGIN, {
         name: '현재 위치',
         ...currentLocation
@@ -1099,6 +1098,7 @@ function selectCurrentLocationOrigin({ moveMap = false } = {}) {
         moveMapToPoint(selectedOrigin);
     }
     renderSelectedOrigin();
+    invalidateRouteResultIfSelectionChanged(previousSignature);
     return selectedOrigin;
 }
 
@@ -1146,9 +1146,9 @@ function clearEditedDestination() {
         return;
     }
 
+    const previousSignature = currentRouteSelectionSignature();
     routePointSelection.clear(ROUTE_POINT_TARGET.DESTINATION);
-    automaticRouteRequestSignature = undefined;
-    routeRequest?.invalidate();
+    invalidateRouteResultIfSelectionChanged(previousSignature);
     setRouteStatus('변경한 도착지를 검색하고 후보를 선택해주세요.');
     updateRoutePointSummary();
 }
@@ -1185,7 +1185,7 @@ function requestSelectedRoute() {
 function requestRouteAutomatically() {
     const origin = routePointSelection.getOrigin();
     const destination = routePointSelection.getDestination();
-    if (!shouldRequestRouteAutomatically(origin, destination, isMobileDetailSheet())) {
+    if (!shouldRequestRouteAutomatically(origin, destination)) {
         return;
     }
 
@@ -1206,12 +1206,12 @@ export function canRequestRouteAutomatically(origin, destination) {
         && Number.isFinite(destination.longitude);
 }
 
-export function shouldRequestRouteAutomatically(origin, destination, isMobile) {
-    return isMobile && canRequestRouteAutomatically(origin, destination);
+export function shouldRequestRouteAutomatically(origin, destination) {
+    return canRequestRouteAutomatically(origin, destination);
 }
 
-export function shouldShowRouteSearchInline(origin, destination) {
-    return canRequestRouteAutomatically(origin, destination);
+export function shouldShowRouteSearchInline() {
+    return false;
 }
 
 export function isRouteGlobalLoadingState(state) {
@@ -1226,6 +1226,28 @@ function routeRequestSignature(origin, destination) {
         destination.longitude,
         destination.name ?? ''
     ].join('|');
+}
+
+function currentRouteSelectionSignature() {
+    const origin = routePointSelection.getOrigin();
+    const destination = routePointSelection.getDestination();
+    if (!canRequestRouteAutomatically(origin, destination)) {
+        return undefined;
+    }
+    return routeRequestSignature(origin, destination);
+}
+
+function invalidateRouteResultIfSelectionChanged(previousSignature) {
+    if (previousSignature === currentRouteSelectionSignature()) {
+        return;
+    }
+
+    automaticRouteRequestSignature = undefined;
+    routeRequest?.invalidate();
+    clearRouteOverlays();
+    renderRouteList([], null);
+    toggleRouteResultButton(false);
+    closeRouteResultModal();
 }
 
 function renderSelectedOrigin() {
@@ -1365,6 +1387,7 @@ function createCandidateItem(candidate) {
 
 function selectPlaceCandidate(candidate) {
     const target = routePointSelection.getSearchTarget();
+    const previousSignature = currentRouteSelectionSignature();
     const selected = routePointSelection.select(target, candidate);
     closePlaceCandidateModal();
 
@@ -1378,6 +1401,7 @@ function selectPlaceCandidate(candidate) {
         renderSelectedDestination();
         setRoutePointFieldsExpanded(false);
     }
+    invalidateRouteResultIfSelectionChanged(previousSignature);
     setRouteStatus(`${routePointName(target)}를 설정했습니다.`);
     requestRouteAutomatically();
 }
@@ -1480,6 +1504,7 @@ function updateRouteMapSelectionMessage(hasDraft) {
 
 function confirmRouteMapSelection() {
     const target = routePointSelection.getMapTarget();
+    const previousSignature = currentRouteSelectionSignature();
     const selected = routePointSelection.confirmMapSelection();
     if (!selected) {
         return;
@@ -1492,6 +1517,7 @@ function confirmRouteMapSelection() {
         renderSelectedDestination();
     }
     finishRouteMapSelection();
+    invalidateRouteResultIfSelectionChanged(previousSignature);
     setRouteStatus(`${routePointName(target)}를 지도 위치로 설정했습니다.`);
     requestRouteAutomatically();
 }

@@ -92,24 +92,24 @@ test('canRequestRouteAutomatically requires selected origin and destination coor
     assert.equal(canRequestRouteAutomatically(origin, { latitude: Number.NaN, longitude: 129.0 }), false);
 });
 
-test('shouldRequestRouteAutomatically keeps desktop route search manual', () => {
+test('shouldRequestRouteAutomatically allows automatic route search on mobile and desktop', () => {
     const origin = { latitude: 37.5, longitude: 126.9 };
     const destination = { latitude: 35.1, longitude: 129.0 };
 
     assert.equal(shouldRequestRouteAutomatically(origin, destination, true), true);
-    assert.equal(shouldRequestRouteAutomatically(origin, destination, false), false);
+    assert.equal(shouldRequestRouteAutomatically(origin, destination, false), true);
 });
 
-test('shouldShowRouteSearchInline requires both selected route points', () => {
+test('shouldShowRouteSearchInline is hidden after route points are selected because route search is automatic', () => {
     const origin = { latitude: 37.5, longitude: 126.9 };
     const destination = { latitude: 35.1, longitude: 129.0 };
 
-    assert.equal(shouldShowRouteSearchInline(origin, destination), true);
+    assert.equal(shouldShowRouteSearchInline(origin, destination), false);
     assert.equal(shouldShowRouteSearchInline(origin, undefined), false);
     assert.equal(shouldShowRouteSearchInline(undefined, destination), false);
 });
 
-test('shouldShowRouteResultBackButton is visible only for mobile route-result detail navigation', () => {
+test('shouldShowRouteResultBackButton is visible only on mobile detail opened from route results', () => {
     assert.equal(shouldShowRouteResultBackButton(true, true), true);
     assert.equal(shouldShowRouteResultBackButton(true, false), false);
     assert.equal(shouldShowRouteResultBackButton(false, true), false);
