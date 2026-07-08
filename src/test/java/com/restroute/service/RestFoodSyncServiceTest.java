@@ -79,7 +79,7 @@ class RestFoodSyncServiceTest {
         runTransactionCallback();
         when(restFoodRepository.findAll()).thenReturn(List.of());
         when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(2, "농심어묵우동", "한우국밥"));
-        when(exApiClient.getRestBestfoodList(2)).thenReturn(foodResponse(2, "육개장"));
+        when(exApiClient.getRestBestfoodList(2)).thenReturn(foodResponse(2, 2, "육개장"));
 
         int savedCount = restFoodSyncService.refreshRestFoods();
 
@@ -107,6 +107,22 @@ class RestFoodSyncServiceTest {
         assertThat(saved).hasSize(1);
         assertThat(saved.get(0)).isSameAs(existing);
         assertThat(saved.get(0).getFoodName()).isEqualTo("한우국밥");
+    }
+
+    @Test
+    @DisplayName("같은 응답 안에 자연키가 중복되면 한 행으로 합쳐 저장한다")
+    void refreshRestFoods_mergesDuplicateNaturalKeysWithinSameBatch() throws Exception {
+        runTransactionCallback();
+        when(restFoodRepository.findAll()).thenReturn(List.of());
+        when(exApiClient.getRestBestfoodList(1)).thenReturn(duplicateSeqFoodResponse());
+
+        int savedCount = restFoodSyncService.refreshRestFoods();
+
+        assertThat(savedCount).isEqualTo(2);
+        List<RestFoodEntity> saved = captureSavedEntities();
+        List<RestFoodEntity> distinctRows = saved.stream().distinct().toList();
+        assertThat(distinctRows).hasSize(1);
+        assertThat(distinctRows.get(0).getFoodName()).isEqualTo("한우국밥");
     }
 
     @Test
@@ -139,18 +155,30 @@ class RestFoodSyncServiceTest {
     }
 
     private RestBestfoodResponse foodResponse(int pageSize, String... foodNames) throws Exception {
+        return foodResponse(pageSize, 0, foodNames);
+    }
+
+    private RestBestfoodResponse foodResponse(int pageSize, int seqOffset, String... foodNames) throws Exception {
         StringBuilder list = new StringBuilder();
         for (int i = 0; i < foodNames.length; i++) {
             if (i > 0) {
                 list.append(",");
             }
             list.append("{\"stdRestCd\":\"000001\",\"seq\":\"")
-                    .append(i + 1)
+                    .append(seqOffset + i + 1)
                     .append("\",\"foodNm\":\"")
                     .append(foodNames[i])
                     .append("\"}");
         }
         String json = "{\"code\":\"SUCCESS\",\"pageSize\":" + pageSize + ",\"list\":[" + list + "]}";
+        return new ObjectMapper().readValue(json, RestBestfoodResponse.class);
+    }
+
+    private RestBestfoodResponse duplicateSeqFoodResponse() throws Exception {
+        String json = "{\"code\":\"SUCCESS\",\"pageSize\":1,\"list\":["
+                + "{\"stdRestCd\":\"000001\",\"seq\":\"1\",\"foodNm\":\"농심어묵우동\"},"
+                + "{\"stdRestCd\":\"000001\",\"seq\":\"1\",\"foodNm\":\"한우국밥\"}"
+                + "]}";
         return new ObjectMapper().readValue(json, RestBestfoodResponse.class);
     }
 

@@ -63,10 +63,14 @@ public class RestFoodSyncService {
     private void upsertRestFoods(List<RestBestfoodItem> items) {
         Map<FoodKey, RestFoodEntity> existingByKey = restFoodRepository.findAll().stream()
                 .collect(Collectors.toMap(
-                        entity -> new FoodKey(entity.getStdRestCd(), entity.getSeq()), entity -> entity));
+                        entity -> new FoodKey(entity.getStdRestCd(), entity.getSeq()),
+                        entity -> entity,
+                        (first, second) -> first));
 
-        List<RestFoodEntity> toSave =
-                items.stream().map(item -> upsertOne(item, existingByKey)).toList();
+        List<RestFoodEntity> toSave = new ArrayList<>();
+        for (RestBestfoodItem item : items) {
+            toSave.add(upsertOne(item, existingByKey));
+        }
 
         restFoodRepository.saveAll(toSave);
     }
@@ -76,7 +80,9 @@ public class RestFoodSyncService {
         RestFoodEntity existing = existingByKey.get(key);
 
         if (existing == null) {
-            return RestFoodEntity.from(item);
+            RestFoodEntity created = RestFoodEntity.from(item);
+            existingByKey.put(key, created);
+            return created;
         }
 
         existing.updateFrom(item);
