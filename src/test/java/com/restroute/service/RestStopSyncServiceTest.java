@@ -3,7 +3,6 @@ package com.restroute.service;
 import static com.restroute.support.RestStopTestFixtures.restStopItem;
 import static com.restroute.support.RestStopTestFixtures.restStopResponse;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
@@ -152,16 +151,38 @@ class RestStopSyncServiceTest {
     }
 
     @Test
-    @DisplayName("API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
-    void refreshRestStops_doesNotUpsertRowsWhenApiFails() {
+    @DisplayName("첫 페이지 API 호출이 실패하면 예외를 전파하지 않고 DB를 조회하거나 저장하지 않는다")
+    void refreshRestStops_doesNotUpsertRowsWhenFirstPageFails() {
         ExApiException exception = new ExApiException(
                 "https://data.ex.co.kr/openapi/locationinfo/locationinfoRest?key=<redacted>", "failed");
         when(exApiClient.getLocationInfoRest(1)).thenThrow(exception);
 
-        assertThatThrownBy(() -> restStopSyncService.refreshRestStops()).isSameAs(exception);
+        int savedCount = restStopSyncService.refreshRestStops();
 
+        assertThat(savedCount).isZero();
         verify(restStopRepository, never()).findAll();
         verify(restStopRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("중간 페이지 API 호출이 실패해도 성공한 페이지의 휴게소 목록을 저장한다")
+    void refreshRestStops_upsertsSuccessfulPagesWhenMiddlePageFails() {
+        runTransactionCallback();
+        when(restStopRepository.findAll()).thenReturn(List.of());
+        RestStopItem first = restStopItem("001", "서울만남(부산)휴게소", "A00001");
+        RestStopItem third = restStopItem("003", "기흥(부산)휴게소", "A00003");
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("SUCCESS", "3", List.of(first)));
+        when(exApiClient.getLocationInfoRest(2))
+                .thenThrow(new ExApiException(
+                        "https://data.ex.co.kr/openapi/locationinfo/locationinfoRest?pageNo=2", "failed"));
+        when(exApiClient.getLocationInfoRest(3)).thenReturn(restStopResponse("SUCCESS", "3", List.of(third)));
+
+        int savedCount = restStopSyncService.refreshRestStops();
+
+        assertThat(savedCount).isEqualTo(2);
+        assertThat(captureSavedEntities())
+                .extracting(RestStopEntity::getServiceAreaCode)
+                .containsExactly("A00001", "A00003");
     }
 
     @Test

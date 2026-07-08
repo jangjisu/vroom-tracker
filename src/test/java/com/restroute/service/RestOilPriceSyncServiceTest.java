@@ -3,7 +3,6 @@ package com.restroute.service;
 import static com.restroute.support.RestStopTestFixtures.restOilPriceItem;
 import static com.restroute.support.RestStopTestFixtures.restOilPriceResponse;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -109,15 +108,48 @@ class RestOilPriceSyncServiceTest {
     }
 
     @Test
-    @DisplayName("주유소 가격 API 호출이 실패하면 기존 DB를 교체하지 않는다")
-    void refreshRestOilPrices_doesNotReplaceRowsWhenApiFails() {
+    @DisplayName("주유소 가격 API 일부 페이지가 실패하면 기존 DB를 삭제하지 않고 성공한 페이지를 저장한다")
+    void refreshRestOilPrices_upsertsSuccessfulPagesWithoutDeletingWhenPageFails() {
+        runTransactionCallback();
         ExApiException exception =
                 new ExApiException("https://data.ex.co.kr/openapi/business/curStateStation?key=<redacted>", "failed");
-        when(exApiClient.getCurStateStation(1)).thenReturn(restOilPriceResponse("SUCCESS", List.of()));
+        RestOilPriceItem first = restOilPriceItem("000002", "서울만남(부산)주유소");
+        RestOilPriceItem third = restOilPriceItem("000010", "안성(부산)주유소");
+        RestOilPriceEntity existing = RestOilPriceEntity.from(restOilPriceItem("000002", "기존주유소"));
+        when(exApiClient.getCurStateStation(1)).thenReturn(restOilPriceResponse("SUCCESS", List.of(first)));
         when(exApiClient.getCurStateStation(2)).thenThrow(exception);
+        when(exApiClient.getCurStateStation(3)).thenReturn(restOilPriceResponse("SUCCESS", List.of(third)));
+        when(restOilPriceRepository.findByServiceAreaCode2("000002")).thenReturn(java.util.Optional.of(existing));
+        when(restOilPriceRepository.findByServiceAreaCode2("000010")).thenReturn(java.util.Optional.empty());
 
-        assertThatThrownBy(restOilPriceSyncService::refreshRestOilPrices).isSameAs(exception);
+        int savedCount = restOilPriceSyncService.refreshRestOilPrices();
 
+        assertThat(savedCount).isEqualTo(2);
+        verify(restOilPriceRepository, never()).deleteAllInBatch();
+        List<RestOilPriceEntity> savedEntities = captureSavedEntities();
+        assertThat(savedEntities)
+                .extracting(RestOilPriceEntity::getServiceAreaCode2)
+                .containsExactly("000002", "000010");
+        assertThat(savedEntities.get(0)).isSameAs(existing);
+        assertThat(savedEntities.get(0).getServiceAreaName()).isEqualTo("서울만남(부산)주유소");
+    }
+
+    @Test
+    @DisplayName("주유소 가격 API 모든 페이지가 실패하면 기존 DB를 삭제하거나 저장하지 않는다")
+    void refreshRestOilPrices_keepsExistingRowsWhenAllPagesFail() {
+        when(exApiClient.getCurStateStation(1))
+                .thenThrow(new ExApiException(
+                        "https://data.ex.co.kr/openapi/business/curStateStation?pageNo=1", "failed"));
+        when(exApiClient.getCurStateStation(2))
+                .thenThrow(new ExApiException(
+                        "https://data.ex.co.kr/openapi/business/curStateStation?pageNo=2", "failed"));
+        when(exApiClient.getCurStateStation(3))
+                .thenThrow(new ExApiException(
+                        "https://data.ex.co.kr/openapi/business/curStateStation?pageNo=3", "failed"));
+
+        int savedCount = restOilPriceSyncService.refreshRestOilPrices();
+
+        assertThat(savedCount).isZero();
         verify(restOilPriceRepository, never()).deleteAllInBatch();
         verify(restOilPriceRepository, never()).saveAll(any());
     }
