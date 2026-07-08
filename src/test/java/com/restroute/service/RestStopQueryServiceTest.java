@@ -19,11 +19,6 @@ import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
-import com.restroute.repository.HighwayServiceAreaInfoRepository;
-import com.restroute.repository.RestFoodRepository;
-import com.restroute.repository.RestOilPriceRepository;
-import com.restroute.repository.RestOilRepository;
-import com.restroute.repository.RestStopDetailRepository;
 import com.restroute.repository.RestStopRepository;
 import java.util.List;
 import java.util.Optional;
@@ -42,31 +37,13 @@ class RestStopQueryServiceTest {
     private RestStopRepository restStopRepository;
 
     @Mock
-    private RestStopDetailRepository restStopDetailRepository;
-
-    @Mock
-    private HighwayServiceAreaInfoRepository highwayServiceAreaInfoRepository;
-
-    @Mock
-    private RestOilRepository restOilRepository;
-
-    @Mock
-    private RestOilPriceRepository restOilPriceRepository;
-
-    @Mock
-    private RestFoodRepository restFoodRepository;
+    private RestStopRelatedInfoQueryService restStopRelatedInfoQueryService;
 
     private RestStopQueryService restStopQueryService;
 
     @BeforeEach
     void setUp() {
-        restStopQueryService = new RestStopQueryService(
-                restStopRepository,
-                restStopDetailRepository,
-                highwayServiceAreaInfoRepository,
-                restOilRepository,
-                restOilPriceRepository,
-                restFoodRepository);
+        restStopQueryService = new RestStopQueryService(restStopRepository, restStopRelatedInfoQueryService);
     }
 
     @Test
@@ -97,14 +74,14 @@ class RestStopQueryServiceTest {
         RestOilPriceEntity oilPrice = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
 
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
-        when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(detail));
-        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A00001"))
-                .thenReturn(List.of(firstInfo, secondInfo));
-        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
-                .thenReturn(List.of(firstConvenience, secondConvenience));
-        when(restOilPriceRepository.findByServiceAreaCode2("000002")).thenReturn(Optional.of(oilPrice));
-        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("000001"))
-                .thenReturn(List.of(foodEntity("농심어묵우동", "Y"), foodEntity("한우국밥", "N")));
+        when(restStopRelatedInfoQueryService.findByRestStop(restStop))
+                .thenReturn(RestStopRelatedInfo.of(
+                        Optional.of(detail),
+                        List.of(firstInfo, secondInfo),
+                        List.of(firstConvenience, secondConvenience),
+                        Optional.of("000002"),
+                        Optional.of(oilPrice),
+                        List.of(foodEntity("농심어묵우동", "Y"), foodEntity("한우국밥", "N"))));
 
         Optional<RestStopDetailViewResponse> result = restStopQueryService.findDetailByServiceAreaCode("A00001");
 
@@ -145,12 +122,9 @@ class RestStopQueryServiceTest {
     void findDetailByServiceAreaCode_returnsNullFieldsWhenOptionalDataMissing() throws Exception {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
-        when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.empty());
-        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A00001"))
-                .thenReturn(List.of());
-        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
-                .thenReturn(List.of());
-        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("000001")).thenReturn(List.of());
+        when(restStopRelatedInfoQueryService.findByRestStop(restStop))
+                .thenReturn(RestStopRelatedInfo.of(
+                        Optional.empty(), List.of(), List.of(), Optional.empty(), Optional.empty(), List.of()));
 
         Optional<RestStopDetailViewResponse> result = restStopQueryService.findDetailByServiceAreaCode("A00001");
 

@@ -8,7 +8,6 @@ import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopEntity;
 import com.restroute.repository.RestOilPriceRepository;
-import com.restroute.repository.RestOilRepository;
 import com.restroute.repository.RestStopRepository;
 import java.time.Clock;
 import java.time.Duration;
@@ -18,7 +17,6 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +25,7 @@ public class RestOilPriceRefreshService {
     private static final Duration REFRESH_TTL = Duration.ofMinutes(10);
 
     private final RestStopRepository restStopRepository;
-    private final RestOilRepository restOilRepository;
+    private final RestStopRelatedInfoQueryService restStopRelatedInfoQueryService;
     private final RestOilPriceRepository restOilPriceRepository;
     private final ExApiClient exApiClient;
     private final TransactionTemplate transactionTemplate;
@@ -38,14 +36,14 @@ public class RestOilPriceRefreshService {
     }
 
     private Optional<OilInfoResponse> refreshByRestStop(RestStopEntity restStop) {
-        List<RestOilEntity> conveniences = findOilStationConveniences(restStop);
-        Optional<String> serviceAreaCode2 = firstServiceAreaCode2(conveniences);
+        RestStopRelatedInfo relatedInfo = restStopRelatedInfoQueryService.findByRestStop(restStop);
+        List<RestOilEntity> conveniences = relatedInfo.oilStationConveniences();
+        Optional<String> serviceAreaCode2 = relatedInfo.oilServiceAreaCode2();
         if (serviceAreaCode2.isEmpty()) {
             return Optional.empty();
         }
 
-        Optional<RestOilPriceEntity> cachedOilPrice =
-                restOilPriceRepository.findByServiceAreaCode2(serviceAreaCode2.get());
+        Optional<RestOilPriceEntity> cachedOilPrice = relatedInfo.oilPrice();
         if (cachedOilPrice.filter(this::isFresh).isPresent()) {
             return Optional.of(OilInfoResponse.from(cachedOilPrice, conveniences));
         }
@@ -57,19 +55,6 @@ public class RestOilPriceRefreshService {
 
         RestOilPriceEntity oilPrice = upsertOilPrice(serviceAreaCode2.get(), fetchedItem.get());
         return Optional.of(OilInfoResponse.from(Optional.of(oilPrice), conveniences));
-    }
-
-    private List<RestOilEntity> findOilStationConveniences(RestStopEntity restStop) {
-        String normalizedStationName = RestOilEntity.normalizeStationName(restStop.getUnitName());
-        return restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc(
-                restStop.getRouteNo(), normalizedStationName);
-    }
-
-    private Optional<String> firstServiceAreaCode2(List<RestOilEntity> conveniences) {
-        return conveniences.stream()
-                .map(RestOilEntity::getStandardRestCode)
-                .filter(StringUtils::hasText)
-                .findFirst();
     }
 
     private Optional<RestOilPriceItem> fetchOilPrice(String serviceAreaCode2) {

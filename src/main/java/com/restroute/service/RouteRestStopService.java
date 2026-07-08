@@ -16,11 +16,6 @@ import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
-import com.restroute.repository.HighwayServiceAreaInfoRepository;
-import com.restroute.repository.RestFoodRepository;
-import com.restroute.repository.RestOilPriceRepository;
-import com.restroute.repository.RestOilRepository;
-import com.restroute.repository.RestStopDetailRepository;
 import com.restroute.repository.RestStopRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -42,11 +37,7 @@ public class RouteRestStopService {
 
     private final KakaoMapClient kakaoMapClient;
     private final RestStopRepository restStopRepository;
-    private final RestStopDetailRepository restStopDetailRepository;
-    private final HighwayServiceAreaInfoRepository highwayServiceAreaInfoRepository;
-    private final RestOilRepository restOilRepository;
-    private final RestOilPriceRepository restOilPriceRepository;
-    private final RestFoodRepository restFoodRepository;
+    private final RestStopRelatedInfoQueryService restStopRelatedInfoQueryService;
     private final NationalOilPriceService nationalOilPriceService;
 
     public RouteRestStopResponse findRouteRestStops(
@@ -171,16 +162,12 @@ public class RouteRestStopService {
 
     private ComparisonSummary comparisonOf(
             RestStopEntity restStop, Optional<NationalOilPriceSummary> nationalOilPriceSummary) {
-        Optional<RestStopDetailEntity> detail =
-                restStopDetailRepository.findByServiceAreaCode(restStop.getServiceAreaCode());
-        List<HighwayServiceAreaInfoEntity> infos =
-                highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode(restStop.getServiceAreaCode());
-        List<RestOilEntity> oilConveniences = restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc(
-                restStop.getRouteNo(), RestOilEntity.normalizeStationName(restStop.getUnitName()));
-        Optional<RestOilPriceEntity> oilPrice = findOilPrice(oilConveniences);
-        int foodMenuCount = restFoodRepository
-                .findAllByStdRestCdOrderByIdAsc(restStop.getStdRestCd())
-                .size();
+        RestStopRelatedInfo relatedInfo = restStopRelatedInfoQueryService.findByRestStop(restStop);
+        Optional<RestStopDetailEntity> detail = relatedInfo.detail();
+        List<HighwayServiceAreaInfoEntity> infos = relatedInfo.highwayServiceAreaInfos();
+        List<RestOilEntity> oilConveniences = relatedInfo.oilStationConveniences();
+        Optional<RestOilPriceEntity> oilPrice = relatedInfo.oilPrice();
+        int foodMenuCount = relatedInfo.foods().size();
         return ComparisonSummary.of(
                 oilPrice.map(RestOilPriceEntity::getGasolinePrice).orElse(null),
                 oilPrice.map(RestOilPriceEntity::getDieselPrice).orElse(null),
@@ -225,14 +212,6 @@ public class RouteRestStopService {
             case DIESEL -> summary.diesel();
             case LPG -> summary.lpg();
         };
-    }
-
-    private Optional<RestOilPriceEntity> findOilPrice(List<RestOilEntity> oilConveniences) {
-        return oilConveniences.stream()
-                .map(RestOilEntity::getStandardRestCode)
-                .filter(StringUtils::hasText)
-                .findFirst()
-                .flatMap(restOilPriceRepository::findByServiceAreaCode2);
     }
 
     private Integer totalParkingCount(List<HighwayServiceAreaInfoEntity> infos) {
