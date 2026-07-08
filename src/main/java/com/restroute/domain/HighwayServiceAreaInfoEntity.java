@@ -62,6 +62,27 @@ public class HighwayServiceAreaInfoEntity {
         this.representativeTelNo = item.getRepresentativeTelNo();
     }
 
+    public void updateFrom(HighwayServiceAreaInfoItem item) {
+        this.serviceAreaName = item.getServiceAreaName();
+        this.routeCode = item.getRouteCode();
+        this.routeName = item.getRouteName();
+        this.headquartersCode = item.getHeadquartersCode();
+        this.headquartersName = item.getHeadquartersName();
+        this.branchOfficeCode = item.getBranchOfficeCode();
+        this.branchOfficeName = item.getBranchOfficeName();
+        this.facilityTypeCode = item.getFacilityTypeCode();
+        this.facilityTypeName = item.getFacilityTypeName();
+        this.directionTypeCode = item.getDirectionTypeCode();
+        this.directionTypeName = item.getDirectionTypeName();
+        this.postalCode = item.getPostalCode();
+        this.serviceAreaAddress = item.getServiceAreaAddress();
+        this.compactCarParkingCount = item.getCompactCarParkingCount();
+        this.fullSizeCarParkingCount = item.getFullSizeCarParkingCount();
+        this.disabledParkingCount = item.getDisabledParkingCount();
+        this.businessFacilityCode = item.getBusinessFacilityCode();
+        this.representativeTelNo = item.getRepresentativeTelNo();
+    }
+
     public static HighwayServiceAreaInfoEntity from(HighwayServiceAreaInfoItem item) {
         return new HighwayServiceAreaInfoEntity(item);
     }

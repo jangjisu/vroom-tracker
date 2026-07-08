@@ -7,6 +7,8 @@ import com.restroute.domain.RestFoodEntity;
 import com.restroute.repository.RestFoodRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -32,7 +34,7 @@ public class RestFoodSyncService {
     public int refreshRestFoods() {
         List<RestBestfoodItem> items = fetchRestFoods();
 
-        transactionTemplate.executeWithoutResult(status -> replaceRestFoods(items));
+        transactionTemplate.executeWithoutResult(status -> upsertRestFoods(items));
 
         return items.size();
     }
@@ -58,8 +60,35 @@ public class RestFoodSyncService {
         items.addAll(response.getList());
     }
 
-    private void replaceRestFoods(List<RestBestfoodItem> items) {
-        restFoodRepository.deleteAllInBatch();
-        restFoodRepository.saveAll(items.stream().map(RestFoodEntity::from).toList());
+    private void upsertRestFoods(List<RestBestfoodItem> items) {
+        Map<FoodKey, RestFoodEntity> existingByKey = restFoodRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        entity -> new FoodKey(entity.getStdRestCd(), entity.getSeq()),
+                        entity -> entity,
+                        (first, second) -> first));
+
+        List<RestFoodEntity> toSave = new ArrayList<>();
+        for (RestBestfoodItem item : items) {
+            toSave.add(upsertOne(item, existingByKey));
+        }
+
+        restFoodRepository.saveAll(toSave);
     }
+
+    private RestFoodEntity upsertOne(RestBestfoodItem item, Map<FoodKey, RestFoodEntity> existingByKey) {
+        FoodKey key = new FoodKey(item.getStdRestCd(), item.getSeq());
+        RestFoodEntity existing = existingByKey.get(key);
+
+        if (existing == null) {
+            RestFoodEntity created = RestFoodEntity.from(item);
+            existingByKey.put(key, created);
+            return created;
+        }
+
+        existing.updateFrom(item);
+        return existing;
+    }
+
+    private record FoodKey(String stdRestCd, String seq) {}
 }
+

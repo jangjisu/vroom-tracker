@@ -56,6 +56,7 @@ class RestStopDetailSyncServiceTest {
     void initializeRestStopDetailsIfEmpty_refreshesWhenTableIsEmpty() {
         when(restStopDetailRepository.count()).thenReturn(0L);
         runTransactionCallback();
+        when(restStopDetailRepository.findAll()).thenReturn(List.of());
         RestStopDetailItem detail = restStopDetailItem("A00078", "건천(부산)휴게소");
         when(exApiClient.getConvenienceServiceArea(1))
                 .thenReturn(restStopDetailResponse("SUCCESS", "1", List.of(detail)));
@@ -63,7 +64,6 @@ class RestStopDetailSyncServiceTest {
         int savedCount = restStopDetailSyncService.initializeRestStopDetailsIfEmpty();
 
         assertThat(savedCount).isEqualTo(1);
-        verify(restStopDetailRepository).deleteAllInBatch();
         List<RestStopDetailEntity> savedEntities = captureSavedEntities();
         assertThat(savedEntities)
                 .extracting(RestStopDetailEntity::getServiceAreaCode)
@@ -79,14 +79,14 @@ class RestStopDetailSyncServiceTest {
 
         assertThat(savedCount).isZero();
         verify(exApiClient, never()).getConvenienceServiceArea(anyInt());
-        verify(restStopDetailRepository, never()).deleteAllInBatch();
         verify(restStopDetailRepository, never()).saveAll(any());
     }
 
     @Test
-    @DisplayName("총 페이지 수만큼 휴게소 상세 API를 호출하고 전체 목록을 교체 저장한다")
-    void refreshRestStopDetails_fetchesAllPagesAndReplacesRows() {
+    @DisplayName("총 페이지 수만큼 휴게소 상세 API를 호출하고, 기존에 없는 자연키는 새로 삽입한다")
+    void refreshRestStopDetails_fetchesAllPagesAndInsertsNewRows() {
         runTransactionCallback();
+        when(restStopDetailRepository.findAll()).thenReturn(List.of());
         RestStopDetailItem first = restStopDetailItem("A00078", "건천(부산)휴게소");
         RestStopDetailItem second = restStopDetailItem("A00315", "처인휴게소");
         when(exApiClient.getConvenienceServiceArea(1))
@@ -97,7 +97,6 @@ class RestStopDetailSyncServiceTest {
         int savedCount = restStopDetailSyncService.refreshRestStopDetails();
 
         assertThat(savedCount).isEqualTo(2);
-        verify(restStopDetailRepository).deleteAllInBatch();
         List<RestStopDetailEntity> savedEntities = captureSavedEntities();
         assertThat(savedEntities)
                 .extracting(RestStopDetailEntity::getServiceAreaCode)
@@ -105,8 +104,66 @@ class RestStopDetailSyncServiceTest {
     }
 
     @Test
-    @DisplayName("상세 API 호출이 실패하면 기존 DB를 교체하지 않는다")
-    void refreshRestStopDetails_doesNotReplaceRowsWhenApiFails() {
+    @DisplayName("기존 DB에 같은 serviceAreaCode가 있으면 같은 행을 업데이트한다")
+    void refreshRestStopDetails_updatesExistingRowWithSameServiceAreaCode() {
+        runTransactionCallback();
+        RestStopDetailItem originalItem = restStopDetailItem("A00078", "건천(부산)휴게소");
+        RestStopDetailEntity existing = RestStopDetailEntity.from(originalItem);
+        when(restStopDetailRepository.findAll()).thenReturn(List.of(existing));
+        RestStopDetailItem updatedItem = restStopDetailItem("A00078", "이름이바뀐휴게소");
+        when(exApiClient.getConvenienceServiceArea(1))
+                .thenReturn(restStopDetailResponse("SUCCESS", "1", List.of(updatedItem)));
+
+        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestStopDetailEntity> savedEntities = captureSavedEntities();
+        assertThat(savedEntities).hasSize(1);
+        assertThat(savedEntities.get(0)).isSameAs(existing);
+        assertThat(savedEntities.get(0).getServiceAreaName()).isEqualTo("이름이바뀐휴게소");
+    }
+
+    @Test
+    @DisplayName("같은 응답 안에 serviceAreaCode가 중복되면 한 행으로 합쳐 저장한다")
+    void refreshRestStopDetails_mergesDuplicateServiceAreaCodesWithinSameBatch() {
+        runTransactionCallback();
+        when(restStopDetailRepository.findAll()).thenReturn(List.of());
+        when(exApiClient.getConvenienceServiceArea(1))
+                .thenReturn(duplicateServiceAreaCodeResponse());
+
+        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
+
+        assertThat(savedCount).isEqualTo(2);
+        List<RestStopDetailEntity> saved = captureSavedEntities();
+        List<RestStopDetailEntity> distinctRows = saved.stream().distinct().toList();
+        assertThat(distinctRows).hasSize(1);
+        assertThat(distinctRows.get(0).getServiceAreaName()).isEqualTo("이름이바뀐휴게소");
+    }
+
+    @Test
+    @DisplayName("DB에 이미 같은 serviceAreaCode의 행이 두 개 있어도 예외 없이 첫 번째 행을 유지한다")
+    void refreshRestStopDetails_toleratesPreExistingDuplicateNaturalKeysInDb() {
+        runTransactionCallback();
+        RestStopDetailItem originalItem = restStopDetailItem("A00078", "건천(부산)휴게소");
+        RestStopDetailEntity duplicate1 = RestStopDetailEntity.from(originalItem);
+        RestStopDetailEntity duplicate2 = RestStopDetailEntity.from(originalItem);
+        when(restStopDetailRepository.findAll()).thenReturn(List.of(duplicate1, duplicate2));
+        RestStopDetailItem updatedItem = restStopDetailItem("A00078", "이름이바뀐휴게소");
+        when(exApiClient.getConvenienceServiceArea(1))
+                .thenReturn(restStopDetailResponse("SUCCESS", "1", List.of(updatedItem)));
+
+        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestStopDetailEntity> saved = captureSavedEntities();
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0)).isSameAs(duplicate1);
+        assertThat(saved.get(0).getServiceAreaName()).isEqualTo("이름이바뀐휴게소");
+    }
+
+    @Test
+    @DisplayName("상세 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
+    void refreshRestStopDetails_doesNotUpsertRowsWhenApiFails() {
         ExApiException exception = new ExApiException(
                 "https://data.ex.co.kr/openapi/business/conveniServiceArea?key=<redacted>", "failed");
         when(exApiClient.getConvenienceServiceArea(1)).thenThrow(exception);
@@ -114,7 +171,7 @@ class RestStopDetailSyncServiceTest {
         assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())
                 .isSameAs(exception);
 
-        verify(restStopDetailRepository, never()).deleteAllInBatch();
+        verify(restStopDetailRepository, never()).findAll();
         verify(restStopDetailRepository, never()).saveAll(any());
     }
 
@@ -122,6 +179,7 @@ class RestStopDetailSyncServiceTest {
     @DisplayName("상세 API 응답 성공 여부는 Client 계약을 신뢰하고 다시 검사하지 않는다")
     void refreshRestStopDetails_doesNotCheckApiSuccessAgain() {
         runTransactionCallback();
+        when(restStopDetailRepository.findAll()).thenReturn(List.of());
         RestStopDetailResponse response = mock(RestStopDetailResponse.class);
         when(response.getTotalPageCount()).thenReturn(1);
         when(response.getList()).thenReturn(List.of());
@@ -130,6 +188,12 @@ class RestStopDetailSyncServiceTest {
         restStopDetailSyncService.refreshRestStopDetails();
 
         verify(response, never()).isSuccess();
+    }
+
+    private RestStopDetailResponse duplicateServiceAreaCodeResponse() {
+        RestStopDetailItem first = restStopDetailItem("A00078", "건천(부산)휴게소");
+        RestStopDetailItem second = restStopDetailItem("A00078", "이름이바뀐휴게소");
+        return restStopDetailResponse("SUCCESS", "1", List.of(first, second));
     }
 
     private void runTransactionCallback() {

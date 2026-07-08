@@ -7,6 +7,8 @@ import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.repository.RestStopDetailRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -32,7 +34,7 @@ public class RestStopDetailSyncService {
     public int refreshRestStopDetails() {
         List<RestStopDetailItem> items = fetchAllRestStopDetails();
 
-        transactionTemplate.executeWithoutResult(status -> replaceRestStopDetails(items));
+        transactionTemplate.executeWithoutResult(status -> upsertRestStopDetails(items));
 
         return items.size();
     }
@@ -60,9 +62,28 @@ public class RestStopDetailSyncService {
         }
     }
 
-    private void replaceRestStopDetails(List<RestStopDetailItem> items) {
-        restStopDetailRepository.deleteAllInBatch();
-        restStopDetailRepository.saveAll(
-                items.stream().map(RestStopDetailEntity::from).toList());
+    private void upsertRestStopDetails(List<RestStopDetailItem> items) {
+        Map<String, RestStopDetailEntity> existingByKey = restStopDetailRepository.findAll().stream()
+                .collect(Collectors.toMap(RestStopDetailEntity::getServiceAreaCode, entity -> entity, (first, second) -> first));
+
+        List<RestStopDetailEntity> toSave = new ArrayList<>();
+        for (RestStopDetailItem item : items) {
+            toSave.add(upsertOne(item, existingByKey));
+        }
+
+        restStopDetailRepository.saveAll(toSave);
+    }
+
+    private RestStopDetailEntity upsertOne(RestStopDetailItem item, Map<String, RestStopDetailEntity> existingByKey) {
+        RestStopDetailEntity existing = existingByKey.get(item.getServiceAreaCode());
+
+        if (existing == null) {
+            RestStopDetailEntity created = RestStopDetailEntity.from(item);
+            existingByKey.put(item.getServiceAreaCode(), created);
+            return created;
+        }
+
+        existing.updateFrom(item);
+        return existing;
     }
 }

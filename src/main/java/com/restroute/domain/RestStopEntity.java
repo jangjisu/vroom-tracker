@@ -40,6 +40,16 @@ public class RestStopEntity {
         this.serviceAreaCode = item.getServiceAreaCode();
     }
 
+    public void updateFrom(RestStopItem item) {
+        this.unitCode = item.getUnitCode();
+        this.unitName = item.getUnitName();
+        this.routeNo = item.getRouteNo();
+        this.routeName = item.getRouteName();
+        this.xValue = item.getXValue();
+        this.yValue = item.getYValue();
+        this.stdRestCd = item.getStdRestCd();
+    }
+
     public static RestStopEntity from(RestStopItem item) {
         return new RestStopEntity(item);
     }

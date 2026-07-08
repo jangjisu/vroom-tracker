@@ -5,7 +5,10 @@ import com.restroute.client.response.HighwayServiceAreaInfoItem;
 import com.restroute.client.response.HighwayServiceAreaInfoResponse;
 import com.restroute.domain.HighwayServiceAreaInfoEntity;
 import com.restroute.repository.HighwayServiceAreaInfoRepository;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -21,7 +24,7 @@ public class HighwayServiceAreaInfoSyncService {
     public int refreshHighwayServiceAreaInfos() {
         List<HighwayServiceAreaInfoItem> items = fetchHighwayServiceAreaInfos();
 
-        transactionTemplate.executeWithoutResult(status -> replaceHighwayServiceAreaInfos(items));
+        transactionTemplate.executeWithoutResult(status -> upsertHighwayServiceAreaInfos(items));
 
         return items.size();
     }
@@ -36,9 +39,30 @@ public class HighwayServiceAreaInfoSyncService {
         return response.getList();
     }
 
-    private void replaceHighwayServiceAreaInfos(List<HighwayServiceAreaInfoItem> items) {
-        highwayServiceAreaInfoRepository.deleteAllInBatch();
-        highwayServiceAreaInfoRepository.saveAll(
-                items.stream().map(HighwayServiceAreaInfoEntity::from).toList());
+    private void upsertHighwayServiceAreaInfos(List<HighwayServiceAreaInfoItem> items) {
+        Map<String, HighwayServiceAreaInfoEntity> existingByKey = highwayServiceAreaInfoRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        HighwayServiceAreaInfoEntity::getServiceAreaCode, entity -> entity, (first, second) -> first));
+
+        List<HighwayServiceAreaInfoEntity> toSave = new ArrayList<>();
+        for (HighwayServiceAreaInfoItem item : items) {
+            toSave.add(upsertOne(item, existingByKey));
+        }
+
+        highwayServiceAreaInfoRepository.saveAll(toSave);
+    }
+
+    private HighwayServiceAreaInfoEntity upsertOne(
+            HighwayServiceAreaInfoItem item, Map<String, HighwayServiceAreaInfoEntity> existingByKey) {
+        HighwayServiceAreaInfoEntity existing = existingByKey.get(item.getServiceAreaCode());
+
+        if (existing == null) {
+            HighwayServiceAreaInfoEntity created = HighwayServiceAreaInfoEntity.from(item);
+            existingByKey.put(item.getServiceAreaCode(), created);
+            return created;
+        }
+
+        existing.updateFrom(item);
+        return existing;
     }
 }

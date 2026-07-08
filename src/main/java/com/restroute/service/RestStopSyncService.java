@@ -7,6 +7,8 @@ import com.restroute.domain.RestStopEntity;
 import com.restroute.repository.RestStopRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -32,7 +34,7 @@ public class RestStopSyncService {
     public int refreshRestStops() {
         List<RestStopItem> items = fetchAllRestStops();
 
-        transactionTemplate.executeWithoutResult(status -> replaceRestStops(items));
+        transactionTemplate.executeWithoutResult(status -> upsertRestStops(items));
 
         return items.size();
     }
@@ -60,8 +62,28 @@ public class RestStopSyncService {
         }
     }
 
-    private void replaceRestStops(List<RestStopItem> items) {
-        restStopRepository.deleteAllInBatch();
-        restStopRepository.saveAll(items.stream().map(RestStopEntity::from).toList());
+    private void upsertRestStops(List<RestStopItem> items) {
+        Map<String, RestStopEntity> existingByKey = restStopRepository.findAll().stream()
+                .collect(Collectors.toMap(RestStopEntity::getServiceAreaCode, entity -> entity, (first, second) -> first));
+
+        List<RestStopEntity> toSave = new ArrayList<>();
+        for (RestStopItem item : items) {
+            toSave.add(upsertOne(item, existingByKey));
+        }
+
+        restStopRepository.saveAll(toSave);
+    }
+
+    private RestStopEntity upsertOne(RestStopItem item, Map<String, RestStopEntity> existingByKey) {
+        RestStopEntity existing = existingByKey.get(item.getServiceAreaCode());
+
+        if (existing == null) {
+            RestStopEntity created = RestStopEntity.from(item);
+            existingByKey.put(item.getServiceAreaCode(), created);
+            return created;
+        }
+
+        existing.updateFrom(item);
+        return existing;
     }
 }

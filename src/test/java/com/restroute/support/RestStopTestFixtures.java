@@ -19,6 +19,10 @@ public final class RestStopTestFixtures {
     private RestStopTestFixtures() {}
 
     public static RestStopItem restStopItem(String unitCode, String unitName) {
+        return restStopItem(unitCode, unitName, "A00001");
+    }
+
+    public static RestStopItem restStopItem(String unitCode, String unitName, String serviceAreaCode) {
         RestStopItem item = instantiate(RestStopItem.class);
         ReflectionTestUtils.setField(item, "unitCode", unitCode);
         ReflectionTestUtils.setField(item, "unitName", unitName);
@@ -27,7 +31,7 @@ public final class RestStopTestFixtures {
         ReflectionTestUtils.setField(item, "xValue", "127.042514");
         ReflectionTestUtils.setField(item, "yValue", "37.459939");
         ReflectionTestUtils.setField(item, "stdRestCd", "000001");
-        ReflectionTestUtils.setField(item, "serviceAreaCode", "A00001");
+        ReflectionTestUtils.setField(item, "serviceAreaCode", serviceAreaCode);
         return item;
     }
 
@@ -104,6 +108,10 @@ public final class RestStopTestFixtures {
     }
 
     public static RestOilItem restOilItem(String standardRestCode, String standardRestName) {
+        return restOilItem(standardRestCode, standardRestName, "07");
+    }
+
+    public static RestOilItem restOilItem(String standardRestCode, String standardRestName, String convenienceCode) {
         RestOilItem item = instantiate(RestOilItem.class);
         ReflectionTestUtils.setField(item, "standardRestCode", standardRestCode);
         ReflectionTestUtils.setField(item, "standardRestName", standardRestName);
@@ -116,7 +124,7 @@ public final class RestStopTestFixtures {
         ReflectionTestUtils.setField(item, "serviceAreaAddress", "서울시 서초구");
         ReflectionTestUtils.setField(item, "routeCode", "0010");
         ReflectionTestUtils.setField(item, "routeName", "경부선");
-        ReflectionTestUtils.setField(item, "convenienceCode", "07");
+        ReflectionTestUtils.setField(item, "convenienceCode", convenienceCode);
         ReflectionTestUtils.setField(item, "convenienceName", "쉼터");
         ReflectionTestUtils.setField(item, "convenienceDescription", "고객쉼터");
         return item;

@@ -5,7 +5,10 @@ import com.restroute.client.response.RestOilItem;
 import com.restroute.client.response.RestOilResponse;
 import com.restroute.domain.RestOilEntity;
 import com.restroute.repository.RestOilRepository;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -29,7 +32,7 @@ public class RestOilSyncService {
     public int refreshRestOils() {
         List<RestOilItem> items = fetchRestOils();
 
-        transactionTemplate.executeWithoutResult(status -> replaceRestOils(items));
+        transactionTemplate.executeWithoutResult(status -> upsertRestOils(items));
 
         return items.size();
     }
@@ -43,8 +46,34 @@ public class RestOilSyncService {
         return response.getList();
     }
 
-    private void replaceRestOils(List<RestOilItem> items) {
-        restOilRepository.deleteAllInBatch();
-        restOilRepository.saveAll(items.stream().map(RestOilEntity::from).toList());
+    private void upsertRestOils(List<RestOilItem> items) {
+        Map<OilKey, RestOilEntity> existingByKey = restOilRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        entity -> new OilKey(entity.getStandardRestCode(), entity.getConvenienceCode()),
+                        entity -> entity,
+                        (first, second) -> first));
+
+        List<RestOilEntity> toSave = new ArrayList<>();
+        for (RestOilItem item : items) {
+            toSave.add(upsertOne(item, existingByKey));
+        }
+
+        restOilRepository.saveAll(toSave);
     }
+
+    private RestOilEntity upsertOne(RestOilItem item, Map<OilKey, RestOilEntity> existingByKey) {
+        OilKey key = new OilKey(item.getStandardRestCode(), item.getConvenienceCode());
+        RestOilEntity existing = existingByKey.get(key);
+
+        if (existing == null) {
+            RestOilEntity created = RestOilEntity.from(item);
+            existingByKey.put(key, created);
+            return created;
+        }
+
+        existing.updateFrom(item);
+        return existing;
+    }
+
+    private record OilKey(String standardRestCode, String convenienceCode) {}
 }

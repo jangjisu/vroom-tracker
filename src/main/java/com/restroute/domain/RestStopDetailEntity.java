@@ -46,6 +46,19 @@ public class RestStopDetailEntity {
         this.truckSaYn = item.getTruckSaYn();
     }
 
+    public void updateFrom(RestStopDetailItem item) {
+        this.routeName = item.getRouteName();
+        this.serviceAreaName = item.getServiceAreaName();
+        this.telNo = item.getTelNo();
+        this.brand = item.getBrand();
+        this.routeCode = item.getRouteCode();
+        this.serviceAreaCode2 = item.getServiceAreaCode2();
+        this.svarAddr = item.getSvarAddr();
+        this.convenience = item.getConvenience();
+        this.maintenanceYn = item.getMaintenanceYn();
+        this.truckSaYn = item.getTruckSaYn();
+    }
+
     public static RestStopDetailEntity from(RestStopDetailItem item) {
         return new RestStopDetailEntity(item);
     }
