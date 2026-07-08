@@ -1,7 +1,6 @@
 package com.restroute.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -59,7 +58,9 @@ class RestFoodSyncServiceTest {
         int savedCount = restFoodSyncService.initializeRestFoodsIfEmpty();
 
         assertThat(savedCount).isEqualTo(1);
-        assertThat(captureSavedEntities()).extracting(RestFoodEntity::getFoodName).containsExactly("농심어묵우동");
+        assertThat(captureSavedEntities())
+                .extracting(RestFoodEntity::getFoodName)
+                .containsExactly("농심어묵우동");
     }
 
     @Test
@@ -145,17 +146,36 @@ class RestFoodSyncServiceTest {
     }
 
     @Test
-    @DisplayName("음식 메뉴 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
-    void refreshRestFoods_doesNotUpsertRowsWhenApiFails() throws Exception {
+    @DisplayName("첫 페이지 음식 메뉴 API 호출이 실패하면 예외를 전파하지 않고 DB를 조회하거나 저장하지 않는다")
+    void refreshRestFoods_doesNotUpsertRowsWhenFirstPageFails() {
         ExApiException exception =
                 new ExApiException("https://data.ex.co.kr/openapi/restinfo/restBestfoodList?key=<redacted>", "failed");
-        when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(2));
-        when(exApiClient.getRestBestfoodList(2)).thenThrow(exception);
+        when(exApiClient.getRestBestfoodList(1)).thenThrow(exception);
 
-        assertThatThrownBy(restFoodSyncService::refreshRestFoods).isSameAs(exception);
+        int savedCount = restFoodSyncService.refreshRestFoods();
 
+        assertThat(savedCount).isZero();
         verify(restFoodRepository, never()).findAll();
         verify(restFoodRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("중간 페이지 음식 메뉴 API 호출이 실패해도 성공한 페이지의 음식 메뉴를 저장한다")
+    void refreshRestFoods_upsertsSuccessfulPagesWhenMiddlePageFails() throws Exception {
+        runTransactionCallback();
+        when(restFoodRepository.findAll()).thenReturn(List.of());
+        when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(3, "농심어묵우동"));
+        when(exApiClient.getRestBestfoodList(2))
+                .thenThrow(new ExApiException(
+                        "https://data.ex.co.kr/openapi/restinfo/restBestfoodList?pageNo=2", "failed"));
+        when(exApiClient.getRestBestfoodList(3)).thenReturn(foodResponse(3, 2, "육개장"));
+
+        int savedCount = restFoodSyncService.refreshRestFoods();
+
+        assertThat(savedCount).isEqualTo(2);
+        assertThat(captureSavedEntities())
+                .extracting(RestFoodEntity::getFoodName)
+                .containsExactly("농심어묵우동", "육개장");
     }
 
     @Test

@@ -10,9 +10,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RestOilPriceSyncService {
@@ -34,20 +36,38 @@ public class RestOilPriceSyncService {
     }
 
     public int refreshRestOilPrices() {
-        List<RestOilPriceItem> items = fetchRestOilPrices();
+        List<RestOilPriceItem> items = new ArrayList<>();
+        boolean allPagesFetched = fetchRestOilPrices(items);
+        if (items.isEmpty() && !allPagesFetched) {
+            return 0;
+        }
 
-        transactionTemplate.executeWithoutResult(status -> replaceRestOilPrices(items));
+        transactionTemplate.executeWithoutResult(status -> saveRestOilPrices(items, allPagesFetched));
 
         return items.size();
     }
 
-    private List<RestOilPriceItem> fetchRestOilPrices() {
-        List<RestOilPriceItem> items = new ArrayList<>();
+    private boolean fetchRestOilPrices(List<RestOilPriceItem> items) {
+        boolean allPagesFetched = true;
         for (int pageNo = FIRST_PAGE; pageNo <= LAST_PAGE; pageNo++) {
-            addItems(items, exApiClient.getCurStateStation(pageNo));
+            RestOilPriceResponse response = fetchPageSafely(pageNo);
+            if (response == null) {
+                allPagesFetched = false;
+                continue;
+            }
+            addItems(items, response);
         }
 
-        return items;
+        return allPagesFetched;
+    }
+
+    private RestOilPriceResponse fetchPageSafely(int pageNo) {
+        try {
+            return exApiClient.getCurStateStation(pageNo);
+        } catch (RuntimeException e) {
+            log.warn("Rest oil price page fetch failed. pageNo={}, cause={}", pageNo, e.getMessage(), e);
+            return null;
+        }
     }
 
     private void addItems(List<RestOilPriceItem> items, RestOilPriceResponse response) {
@@ -58,11 +78,32 @@ public class RestOilPriceSyncService {
         items.addAll(response.getList());
     }
 
-    private void replaceRestOilPrices(List<RestOilPriceItem> items) {
+    private void saveRestOilPrices(List<RestOilPriceItem> items, boolean allPagesFetched) {
+        if (!allPagesFetched) {
+            upsertRestOilPrices(items);
+            return;
+        }
+
         restOilPriceRepository.deleteAllInBatch();
         LocalDateTime refreshedAt = LocalDateTime.now(clock);
         restOilPriceRepository.saveAll(items.stream()
                 .map(item -> RestOilPriceEntity.from(item, refreshedAt))
                 .toList());
+    }
+
+    private void upsertRestOilPrices(List<RestOilPriceItem> items) {
+        LocalDateTime refreshedAt = LocalDateTime.now(clock);
+        restOilPriceRepository.saveAll(
+                items.stream().map(item -> upsertOne(item, refreshedAt)).toList());
+    }
+
+    private RestOilPriceEntity upsertOne(RestOilPriceItem item, LocalDateTime refreshedAt) {
+        return restOilPriceRepository
+                .findByServiceAreaCode2(item.getServiceAreaCode2())
+                .map(existing -> {
+                    existing.updateFrom(item, refreshedAt);
+                    return existing;
+                })
+                .orElseGet(() -> RestOilPriceEntity.from(item, refreshedAt));
     }
 }

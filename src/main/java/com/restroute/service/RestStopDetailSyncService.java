@@ -10,9 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RestStopDetailSyncService {
@@ -40,20 +42,32 @@ public class RestStopDetailSyncService {
     }
 
     private List<RestStopDetailItem> fetchAllRestStopDetails() {
-        RestStopDetailResponse firstPage = fetchPage(FIRST_PAGE);
+        RestStopDetailResponse firstPage = fetchPageSafely(FIRST_PAGE);
+        if (firstPage == null) {
+            return List.of();
+        }
+
         List<RestStopDetailItem> items = new ArrayList<>();
         addItems(items, firstPage);
 
         int totalPageCount = firstPage.getTotalPageCount();
         for (int pageNo = FIRST_PAGE + 1; pageNo <= totalPageCount; pageNo++) {
-            addItems(items, fetchPage(pageNo));
+            RestStopDetailResponse response = fetchPageSafely(pageNo);
+            if (response != null) {
+                addItems(items, response);
+            }
         }
 
         return items;
     }
 
-    private RestStopDetailResponse fetchPage(int pageNo) {
-        return exApiClient.getConvenienceServiceArea(pageNo);
+    private RestStopDetailResponse fetchPageSafely(int pageNo) {
+        try {
+            return exApiClient.getConvenienceServiceArea(pageNo);
+        } catch (RuntimeException e) {
+            log.warn("Rest stop detail page fetch failed. pageNo={}, cause={}", pageNo, e.getMessage(), e);
+            return null;
+        }
     }
 
     private void addItems(List<RestStopDetailItem> items, RestStopDetailResponse response) {
@@ -64,7 +78,8 @@ public class RestStopDetailSyncService {
 
     private void upsertRestStopDetails(List<RestStopDetailItem> items) {
         Map<String, RestStopDetailEntity> existingByKey = restStopDetailRepository.findAll().stream()
-                .collect(Collectors.toMap(RestStopDetailEntity::getServiceAreaCode, entity -> entity, (first, second) -> first));
+                .collect(Collectors.toMap(
+                        RestStopDetailEntity::getServiceAreaCode, entity -> entity, (first, second) -> first));
 
         List<RestStopDetailEntity> toSave = new ArrayList<>();
         for (RestStopDetailItem item : items) {

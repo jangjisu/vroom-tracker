@@ -3,7 +3,6 @@ package com.restroute.service;
 import static com.restroute.support.RestStopTestFixtures.restStopDetailItem;
 import static com.restroute.support.RestStopTestFixtures.restStopDetailResponse;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
@@ -128,8 +127,7 @@ class RestStopDetailSyncServiceTest {
     void refreshRestStopDetails_mergesDuplicateServiceAreaCodesWithinSameBatch() {
         runTransactionCallback();
         when(restStopDetailRepository.findAll()).thenReturn(List.of());
-        when(exApiClient.getConvenienceServiceArea(1))
-                .thenReturn(duplicateServiceAreaCodeResponse());
+        when(exApiClient.getConvenienceServiceArea(1)).thenReturn(duplicateServiceAreaCodeResponse());
 
         int savedCount = restStopDetailSyncService.refreshRestStopDetails();
 
@@ -162,17 +160,40 @@ class RestStopDetailSyncServiceTest {
     }
 
     @Test
-    @DisplayName("상세 API 호출이 실패하면 DB를 조회하거나 저장하지 않는다")
-    void refreshRestStopDetails_doesNotUpsertRowsWhenApiFails() {
+    @DisplayName("첫 페이지 상세 API 호출이 실패하면 예외를 전파하지 않고 DB를 조회하거나 저장하지 않는다")
+    void refreshRestStopDetails_doesNotUpsertRowsWhenFirstPageFails() {
         ExApiException exception = new ExApiException(
                 "https://data.ex.co.kr/openapi/business/conveniServiceArea?key=<redacted>", "failed");
         when(exApiClient.getConvenienceServiceArea(1)).thenThrow(exception);
 
-        assertThatThrownBy(() -> restStopDetailSyncService.refreshRestStopDetails())
-                .isSameAs(exception);
+        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
 
+        assertThat(savedCount).isZero();
         verify(restStopDetailRepository, never()).findAll();
         verify(restStopDetailRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("중간 페이지 상세 API 호출이 실패해도 성공한 페이지의 상세 목록을 저장한다")
+    void refreshRestStopDetails_upsertsSuccessfulPagesWhenMiddlePageFails() {
+        runTransactionCallback();
+        when(restStopDetailRepository.findAll()).thenReturn(List.of());
+        RestStopDetailItem first = restStopDetailItem("A00078", "건천(부산)휴게소");
+        RestStopDetailItem third = restStopDetailItem("A00315", "처인휴게소");
+        when(exApiClient.getConvenienceServiceArea(1))
+                .thenReturn(restStopDetailResponse("SUCCESS", "3", List.of(first)));
+        when(exApiClient.getConvenienceServiceArea(2))
+                .thenThrow(new ExApiException(
+                        "https://data.ex.co.kr/openapi/business/conveniServiceArea?pageNo=2", "failed"));
+        when(exApiClient.getConvenienceServiceArea(3))
+                .thenReturn(restStopDetailResponse("SUCCESS", "3", List.of(third)));
+
+        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
+
+        assertThat(savedCount).isEqualTo(2);
+        assertThat(captureSavedEntities())
+                .extracting(RestStopDetailEntity::getServiceAreaCode)
+                .containsExactly("A00078", "A00315");
     }
 
     @Test

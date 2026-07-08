@@ -10,9 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RestFoodSyncService {
@@ -41,15 +43,31 @@ public class RestFoodSyncService {
 
     private List<RestBestfoodItem> fetchRestFoods() {
         List<RestBestfoodItem> items = new ArrayList<>();
-        RestBestfoodResponse firstPage = exApiClient.getRestBestfoodList(FIRST_PAGE);
+        RestBestfoodResponse firstPage = fetchPageSafely(FIRST_PAGE);
+        if (firstPage == null) {
+            return List.of();
+        }
+
         addItems(items, firstPage);
 
         int totalPages = firstPage.getPageSize();
         for (int pageNo = FIRST_PAGE + 1; pageNo <= totalPages; pageNo++) {
-            addItems(items, exApiClient.getRestBestfoodList(pageNo));
+            RestBestfoodResponse response = fetchPageSafely(pageNo);
+            if (response != null) {
+                addItems(items, response);
+            }
         }
 
         return items;
+    }
+
+    private RestBestfoodResponse fetchPageSafely(int pageNo) {
+        try {
+            return exApiClient.getRestBestfoodList(pageNo);
+        } catch (RuntimeException e) {
+            log.warn("Rest food page fetch failed. pageNo={}, cause={}", pageNo, e.getMessage(), e);
+            return null;
+        }
     }
 
     private void addItems(List<RestBestfoodItem> items, RestBestfoodResponse response) {
@@ -61,9 +79,9 @@ public class RestFoodSyncService {
     }
 
     private void upsertRestFoods(List<RestBestfoodItem> items) {
-        Map<FoodKey, RestFoodEntity> existingByKey = restFoodRepository.findAll().stream()
+        Map<String, RestFoodEntity> existingByKey = restFoodRepository.findAll().stream()
                 .collect(Collectors.toMap(
-                        entity -> new FoodKey(entity.getStdRestCd(), entity.getSeq()),
+                        entity -> foodKey(entity.getStdRestCd(), entity.getSeq()),
                         entity -> entity,
                         (first, second) -> first));
 
@@ -75,8 +93,8 @@ public class RestFoodSyncService {
         restFoodRepository.saveAll(toSave);
     }
 
-    private RestFoodEntity upsertOne(RestBestfoodItem item, Map<FoodKey, RestFoodEntity> existingByKey) {
-        FoodKey key = new FoodKey(item.getStdRestCd(), item.getSeq());
+    private RestFoodEntity upsertOne(RestBestfoodItem item, Map<String, RestFoodEntity> existingByKey) {
+        String key = foodKey(item.getStdRestCd(), item.getSeq());
         RestFoodEntity existing = existingByKey.get(key);
 
         if (existing == null) {
@@ -89,6 +107,7 @@ public class RestFoodSyncService {
         return existing;
     }
 
-    private record FoodKey(String stdRestCd, String seq) {}
+    private String foodKey(String stdRestCd, String seq) {
+        return stdRestCd + "\n" + seq;
+    }
 }
-
