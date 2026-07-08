@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restroute.client.ExApiClient;
-import com.restroute.client.ExApiException;
+import com.restroute.client.exception.ExApiException;
 import com.restroute.client.response.RestBestfoodResponse;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.repository.RestFoodRepository;

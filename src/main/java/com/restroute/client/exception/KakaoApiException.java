@@ -1,4 +1,4 @@
-package com.restroute.client;
+package com.restroute.client.exception;
 
 public class KakaoApiException extends RuntimeException {
 

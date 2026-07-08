@@ -13,7 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.restroute.client.ExApiClient;
-import com.restroute.client.ExApiException;
+import com.restroute.client.exception.ExApiException;
 import com.restroute.client.response.RestStopItem;
 import com.restroute.client.response.RestStopResponse;
 import com.restroute.domain.RestStopEntity;

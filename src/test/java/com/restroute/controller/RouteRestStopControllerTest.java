@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.restroute.client.KakaoApiException;
+import com.restroute.client.exception.KakaoApiException;
 import com.restroute.common.GlobalExceptionHandler;
 import com.restroute.controller.response.RouteRestStopResponse;
 import com.restroute.controller.response.RouteRestStopResponse.Destination;
