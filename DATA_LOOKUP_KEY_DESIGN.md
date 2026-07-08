@@ -197,6 +197,99 @@ REST_OIL_PRICE.service_area_code2
 
 추후 실측으로 특정 테이블의 전체 매칭이 보장되면 그 테이블만 `not null` 전환을 검토한다.
 
+## 운영 DB backfill 마이그레이션
+
+`rest_stop_service_area_code` 컬럼 추가는 신규 동기화 데이터만 위한 작업이 아니다. 현재 운영/로컬
+DB에 이미 저장된 row도 새 조회 키를 가져야 조회 서비스 전환 후 기존 데이터가 비지 않는다.
+
+따라서 후속 구현은 다음 순서를 지켜야 한다.
+
+1. nullable 컬럼 추가
+   - 대상 테이블에 `rest_stop_service_area_code`를 nullable로 추가한다.
+   - 기존 row가 있으므로 처음부터 `not null` 제약을 걸지 않는다.
+
+2. 기존 데이터 backfill
+   - 기존 row에 대해 현재 검증된 연결 규칙으로 `rest_stop_service_area_code`를 채운다.
+   - 매핑되지 않는 row는 삭제하지 않고 `null`로 남긴다.
+
+3. 신규 동기화 로직 수정
+   - 앞으로 수집되는 row에도 같은 매핑 규칙으로 `rest_stop_service_area_code`를 채운다.
+
+4. 조회 서비스 전환
+   - backfill 결과와 신규 동기화 로직이 모두 준비된 뒤 repository 조회 기준을 전환한다.
+
+backfill 순서는 다음과 같다.
+
+| 순서 | 테이블 | backfill 기준 |
+|---:|---|---|
+| 1 | `REST_STOP_DETAIL` | `REST_STOP_DETAIL.service_area_code = REST_STOP.service_area_code` |
+| 2 | `HIGHWAY_SERVICE_AREA_INFO` | `HIGHWAY_SERVICE_AREA_INFO.business_facility_code = REST_STOP.service_area_code` |
+| 3 | `REST_FOOD` | `REST_FOOD.std_rest_cd = REST_STOP.std_rest_cd` |
+| 4 | `REST_OIL` | `REST_OIL.route_code = REST_STOP.route_no` + `REST_OIL.normalized_station_name`과 정규화된 `REST_STOP.unit_name` 일치 |
+| 5 | `REST_OIL_PRICE` | `REST_OIL_PRICE.service_area_code2 = REST_OIL.standard_rest_code`로 찾은 `REST_OIL.rest_stop_service_area_code` 전파 |
+
+`REST_OIL_PRICE`는 반드시 `REST_OIL` backfill 이후에 처리한다. 가격 row 자체에는 휴게소명이나
+`REST_STOP`과 직접 연결할 충분한 정보가 없고, `REST_OIL.rest_stop_service_area_code` 매핑 결과에
+의존하기 때문이다.
+
+### backfill 후 검증
+
+backfill 후에는 테이블별 전체 row 수, 매핑 row 수, 미매핑 row 수를 확인한다.
+
+```sql
+select
+    'REST_FOOD' as table_name,
+    count(*) as total_count,
+    count(rest_stop_service_area_code) as mapped_count,
+    count(*) - count(rest_stop_service_area_code) as unmapped_count
+from rest_food;
+```
+
+테이블별로 같은 형태의 쿼리를 실행하고, 미매핑 row는 샘플을 확인한다.
+
+```sql
+select *
+from rest_oil
+where rest_stop_service_area_code is null
+limit 20;
+```
+
+조회 서비스 전환 전에는 기존 조회 방식과 새 조회 방식의 결과 수를 비교한다. 예를 들어 음식 조회는
+다음처럼 비교한다.
+
+```sql
+with old_counts as (
+    select
+        rs.service_area_code,
+        count(rf.id) as old_count
+    from rest_stop rs
+    left join rest_food rf
+      on rf.std_rest_cd = rs.std_rest_cd
+    group by rs.service_area_code
+),
+new_counts as (
+    select
+        rs.service_area_code,
+        count(rf.id) as new_count
+    from rest_stop rs
+    left join rest_food rf
+      on rf.rest_stop_service_area_code = rs.service_area_code
+    group by rs.service_area_code
+)
+select
+    old_counts.service_area_code,
+    old_counts.old_count,
+    new_counts.new_count
+from old_counts
+join new_counts
+  on new_counts.service_area_code = old_counts.service_area_code
+where old_counts.old_count <> new_counts.new_count;
+```
+
+주유 가격은 `REST_OIL` 매핑을 거친 기존 조회 방식과 `REST_OIL_PRICE.rest_stop_service_area_code`
+기준 새 조회 방식의 결과를 비교한다. 차이가 있으면 조회 서비스를 전환하기 전에 매핑 규칙 또는
+데이터 보정 필요 여부를 먼저 판단한다.
+
 ## 조회 서비스 전환
 
 `RestStopRelatedInfoQueryService`의 목표 형태는 다음과 같다.
@@ -227,25 +320,30 @@ Controller path는 이미 기능별 API에서 `/api/rest-stops/{serviceAreaCode}
    - 각 Entity에 필드와 getter 추가
    - 인덱스 추가
 
-2. SyncService 매핑 추가
+2. 운영/로컬 DB backfill
+   - 기존 row에 `rest_stop_service_area_code`를 채운다.
+   - 순서는 `REST_STOP_DETAIL`, `HIGHWAY_SERVICE_AREA_INFO`, `REST_FOOD`, `REST_OIL`, `REST_OIL_PRICE`를 따른다.
+   - backfill 후 매핑률과 기존 조회 방식 대비 결과 차이를 검증한다.
+
+3. SyncService 매핑 추가
    - `REST_STOP` 목록을 기준 맵으로 만든다.
    - 상세, 시설, 음식, 주유, 가격 동기화에서 `rest_stop_service_area_code`를 채운다.
    - 매핑 실패는 저장 유지 + warn 로그로 처리한다.
 
-3. Repository 조회 메서드 추가
+4. Repository 조회 메서드 추가
    - 기존 원본 키 조회 메서드는 바로 삭제하지 않는다.
    - 새 `find...ByRestStopServiceAreaCode...` 메서드를 추가한다.
 
-4. 조회 Service 전환
+5. 조회 Service 전환
    - `RestStopRelatedInfoQueryService`를 새 조회 키 기준으로 전환한다.
    - `RestOilPriceRefreshService`의 단건 갱신 저장도 `rest_stop_service_area_code`를 채우도록 맞춘다.
 
-5. Controller/Service 명명 정리
+6. Controller/Service 명명 정리
    - 외부 API 코드가 아닌 앱 휴게소 조회 기준은 전부 `serviceAreaCode`로 표현한다.
    - `stdRestCd`, `restCd`, `serviceAreaCode2`가 Controller 경계 밖으로 드러나는지 확인한다.
    - 내부에서 원본 코드가 필요한 경우 변수명에 `oilServiceAreaCode2`, `stdRestCd`처럼 원본 의미를 유지한다.
 
-6. 기존 조인 fallback 제거 검토
+7. 기존 조인 fallback 제거 검토
    - 새 컬럼이 충분히 채워진 뒤, 조회 시점의 정규화 매칭 fallback을 제거한다.
    - 운영/로컬 데이터 보정이 끝나기 전에는 fallback을 임시 유지할 수 있다.
 
@@ -270,14 +368,17 @@ Controller path는 이미 기능별 API에서 `/api/rest-stops/{serviceAreaCode}
 - `REST_OIL_PRICE` 부분 페이지 성공 upsert에서 기존 데이터 삭제 없이 `rest_stop_service_area_code`가 유지/갱신되는지 확인한다.
 - `RestStopRelatedInfoQueryService`가 원본 키 대신 `rest_stop_service_area_code` repository 메서드를 사용하는지 확인한다.
 - 기존 route/detail/food/oil/facility API 응답 구조가 바뀌지 않는지 확인한다.
+- 운영/로컬 DB backfill 후 기존 조회 방식과 새 조회 방식의 결과 수가 일치하는지 검증한다.
+- 미매핑 row가 삭제되지 않고 `rest_stop_service_area_code = null`로 보존되는지 확인한다.
 
 ## 후속 작업 제안
 
 이 설계는 한 번에 구현하지 않고 다음 단위로 나누는 것이 좋다.
 
 1. 마이그레이션/Entity/Repository 필드 추가
-2. SyncService별 `rest_stop_service_area_code` 매핑 저장
-3. `RestStopRelatedInfoQueryService` 조회 기준 전환
-4. `RestOilPriceRefreshService` 단건 갱신 전환
-5. Controller/Service 메서드명과 테스트명 정리
-6. 기존 원본 키 기반 조회 fallback 제거 여부 검토
+2. 운영/로컬 DB backfill 마이그레이션과 매핑률 검증
+3. SyncService별 `rest_stop_service_area_code` 매핑 저장
+4. `RestStopRelatedInfoQueryService` 조회 기준 전환
+5. `RestOilPriceRefreshService` 단건 갱신 전환
+6. Controller/Service 메서드명과 테스트명 정리
+7. 기존 원본 키 기반 조회 fallback 제거 여부 검토
