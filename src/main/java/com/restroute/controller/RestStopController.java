@@ -6,6 +6,7 @@ import com.restroute.controller.response.OilInfoResponse;
 import com.restroute.controller.response.RestStopDetailViewResponse;
 import com.restroute.controller.response.RestStopItemResponse;
 import com.restroute.service.RestOilPriceRefreshService;
+import com.restroute.service.RestStopOilInfoQueryService;
 import com.restroute.service.RestStopQueryService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class RestStopController {
 
     private final RestStopQueryService restStopQueryService;
     private final RestOilPriceRefreshService restOilPriceRefreshService;
+    private final RestStopOilInfoQueryService restStopOilInfoQueryService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<RestStopItemResponse>>> getRestStops() {
@@ -39,6 +41,15 @@ public class RestStopController {
         return restStopQueryService
                 .findDetailByServiceAreaCode(serviceAreaCode)
                 .map(restStop -> ResponseEntity.ok(ApiResponse.success(restStop)))
+                .orElseGet(() -> ResponseEntity.status(ResponseCode.NOT_FOUND.getHttpStatus())
+                        .body(ApiResponse.error(ResponseCode.NOT_FOUND)));
+    }
+
+    @GetMapping("/{serviceAreaCode}/oil-info")
+    public ResponseEntity<ApiResponse<OilInfoResponse>> getRestStopOilInfo(@PathVariable String serviceAreaCode) {
+        return restStopOilInfoQueryService
+                .findByServiceAreaCode(serviceAreaCode)
+                .map(oilInfo -> ResponseEntity.ok(ApiResponse.success(oilInfo)))
                 .orElseGet(() -> ResponseEntity.status(ResponseCode.NOT_FOUND.getHttpStatus())
                         .body(ApiResponse.error(ResponseCode.NOT_FOUND)));
     }
