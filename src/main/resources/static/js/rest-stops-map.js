@@ -536,6 +536,10 @@ function renderDetailState(state) {
     panel.setAttribute('aria-busy', state.status === 'loading' ? 'true' : 'false');
 
     if (state.status === 'success') {
+        if (state.externalUnavailable) {
+            showApiUnavailableAlert();
+        }
+
         status.textContent = '';
         status.classList.add('d-none');
         content.classList.remove('d-none');
