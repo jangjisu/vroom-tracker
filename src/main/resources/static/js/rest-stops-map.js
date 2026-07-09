@@ -547,7 +547,7 @@ function renderDetailState(state) {
         content.classList.remove('d-none');
         renderDetail(state.data);
         updateSelectedPopup(
-            { unitName: state.data.restStopName || selectedRestStopName, routeName: state.data.routeName },
+            { unitName: state.data.unitName || selectedRestStopName, routeName: state.data.routeName },
             { status: 'success', tags: availableDataTags(state.data) }
         );
         return;
@@ -585,7 +585,7 @@ function detailStatusMessage(status) {
 
 function renderDetail(detail) {
     currentDetail = detail;
-    setDetailName(detail.restStopName, selectedRestStopName);
+    setDetailName(detail.unitName, selectedRestStopName);
     setDetailValue('restStopDetailRoute', detail.routeName, '노선 정보 없음');
     setDetailValue('restStopDetailDirection', detail.direction, '방향 정보 없음');
     setDetailValue('restStopDetailAddress', detail.address, '주소 정보 없음');

@@ -61,6 +61,7 @@ class RouteRestStopControllerTest {
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.destination.name").value("부산역"))
                 .andExpect(jsonPath("$.data.route.distanceMeters").value(100))
+                .andExpect(jsonPath("$.data.nationalOilPriceSummary").doesNotExist())
                 .andExpect(jsonPath("$.data.restStops[0].serviceAreaCode").value("A"))
                 .andExpect(
                         jsonPath("$.data.restStops[0].hasDirectionAlternative").value(false))

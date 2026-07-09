@@ -190,7 +190,7 @@ test('404 with SUCCESS emits the error state', async () => {
         fetchImpl: async () => response({
             ok: false,
             status: 404,
-            body: { code: 'SUCCESS', data: { restStopName: '휴게소' } }
+            body: { code: 'SUCCESS', data: { unitName: '휴게소' } }
         }),
         onState: (state) => states.push(state)
     });
