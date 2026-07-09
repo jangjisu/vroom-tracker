@@ -47,9 +47,9 @@ public class RestOilSyncService {
     }
 
     private void upsertRestOils(List<RestOilItem> items) {
-        Map<OilKey, RestOilEntity> existingByKey = restOilRepository.findAll().stream()
+        Map<String, RestOilEntity> existingByKey = restOilRepository.findAll().stream()
                 .collect(Collectors.toMap(
-                        entity -> new OilKey(entity.getStandardRestCode(), entity.getConvenienceCode()),
+                        entity -> oilKey(entity.getStandardRestCode(), entity.getConvenienceCode()),
                         entity -> entity,
                         (first, second) -> first));
 
@@ -61,8 +61,8 @@ public class RestOilSyncService {
         restOilRepository.saveAll(toSave);
     }
 
-    private RestOilEntity upsertOne(RestOilItem item, Map<OilKey, RestOilEntity> existingByKey) {
-        OilKey key = new OilKey(item.getStandardRestCode(), item.getConvenienceCode());
+    private RestOilEntity upsertOne(RestOilItem item, Map<String, RestOilEntity> existingByKey) {
+        String key = oilKey(item.getStandardRestCode(), item.getConvenienceCode());
         RestOilEntity existing = existingByKey.get(key);
 
         if (existing == null) {
@@ -75,5 +75,7 @@ public class RestOilSyncService {
         return existing;
     }
 
-    private record OilKey(String standardRestCode, String convenienceCode) {}
+    private String oilKey(String standardRestCode, String convenienceCode) {
+        return standardRestCode + "\n" + convenienceCode;
+    }
 }

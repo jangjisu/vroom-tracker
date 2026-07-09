@@ -6,6 +6,7 @@ import static com.restroute.support.RestStopTestFixtures.restOilPriceItem;
 import static com.restroute.support.RestStopTestFixtures.restStopDetailItem;
 import static com.restroute.support.RestStopTestFixtures.restStopItem;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,7 +65,7 @@ class RestStopRelatedInfoQueryServiceTest {
     }
 
     @Test
-    @DisplayName("rest_stop 기준 연결 키로 상세, 영업시설, 주유, 가격, 음식 정보를 조회한다")
+    @DisplayName("rest_stop_service_area_code 기준으로 상세, 영업시설, 주유, 가격, 음식 정보를 우선 조회한다")
     void findByRestStop_returnsRelatedInfo() throws Exception {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
         RestStopDetailEntity detail = RestStopDetailEntity.from(restStopDetailItem("A00001", "서울만남(부산)휴게소"));
@@ -73,14 +74,21 @@ class RestStopRelatedInfoQueryServiceTest {
         RestOilEntity oilConvenience = RestOilEntity.from(restOilItem("000002", "서울만남(부산)주유소"));
         RestOilPriceEntity oilPrice = RestOilPriceEntity.from(restOilPriceItem("000002", "서울만남(부산)주유소"));
         RestFoodEntity food = foodEntity("농심어묵우동");
+        detail.updateRestStopServiceAreaCode("A00001");
+        info.updateRestStopServiceAreaCode("A00001");
+        oilConvenience.updateRestStopServiceAreaCode("A00001");
+        oilPrice.updateRestStopServiceAreaCode("A00001");
+        food.updateRestStopServiceAreaCode("A00001");
 
-        when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(detail));
-        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A00001"))
+        when(restStopDetailRepository.findByRestStopServiceAreaCode("A00001")).thenReturn(Optional.of(detail));
+        when(highwayServiceAreaInfoRepository.findAllByRestStopServiceAreaCode("A00001"))
                 .thenReturn(List.of(info));
-        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+        when(restOilRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc("A00001"))
                 .thenReturn(List.of(oilConvenience));
-        when(restOilPriceRepository.findByServiceAreaCode2("000002")).thenReturn(Optional.of(oilPrice));
-        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("000001")).thenReturn(List.of(food));
+        when(restOilPriceRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc("A00001"))
+                .thenReturn(List.of(oilPrice));
+        when(restFoodRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc("A00001"))
+                .thenReturn(List.of(food));
 
         RestStopRelatedInfo relatedInfo = service.findByRestStop(restStop);
 
@@ -90,6 +98,40 @@ class RestStopRelatedInfoQueryServiceTest {
         assertThat(relatedInfo.oilServiceAreaCode2()).contains("000002");
         assertThat(relatedInfo.oilPrice()).contains(oilPrice);
         assertThat(relatedInfo.foods()).containsExactly(food);
+        verify(restStopDetailRepository, never()).findByServiceAreaCode(anyString());
+        verify(highwayServiceAreaInfoRepository, never()).findAllByBusinessFacilityCode(anyString());
+        verify(restOilRepository, never())
+                .findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc(anyString(), anyString());
+        verify(restOilPriceRepository, never()).findByServiceAreaCode2(anyString());
+        verify(restFoodRepository, never()).findAllByStdRestCdOrderByIdAsc(anyString());
+    }
+
+    @Test
+    @DisplayName("새 조회 키 결과가 없으면 기존 원본 키로 fallback하지 않고 빈 관련 정보를 반환한다")
+    void findByRestStop_doesNotFallBackToOriginalKeysWhenLookupKeyRowsMissing() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+
+        when(restStopDetailRepository.findByRestStopServiceAreaCode("A00001")).thenReturn(Optional.empty());
+        when(highwayServiceAreaInfoRepository.findAllByRestStopServiceAreaCode("A00001"))
+                .thenReturn(List.of());
+        when(restOilRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc("A00001"))
+                .thenReturn(List.of());
+        when(restFoodRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc("A00001"))
+                .thenReturn(List.of());
+
+        RestStopRelatedInfo relatedInfo = service.findByRestStop(restStop);
+
+        assertThat(relatedInfo.detail()).isEmpty();
+        assertThat(relatedInfo.highwayServiceAreaInfos()).isEmpty();
+        assertThat(relatedInfo.oilStationConveniences()).isEmpty();
+        assertThat(relatedInfo.oilPrice()).isEmpty();
+        assertThat(relatedInfo.foods()).isEmpty();
+        verify(restStopDetailRepository, never()).findByServiceAreaCode(anyString());
+        verify(highwayServiceAreaInfoRepository, never()).findAllByBusinessFacilityCode(anyString());
+        verify(restOilRepository, never())
+                .findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc(anyString(), anyString());
+        verify(restOilPriceRepository, never()).findByServiceAreaCode2(anyString());
+        verify(restFoodRepository, never()).findAllByStdRestCdOrderByIdAsc(anyString());
     }
 
     @Test
@@ -97,12 +139,13 @@ class RestStopRelatedInfoQueryServiceTest {
     void findByRestStop_skipsOilPriceWhenOilMappingMissing() {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
 
-        when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.empty());
-        when(highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode("A00001"))
+        when(restStopDetailRepository.findByRestStopServiceAreaCode("A00001")).thenReturn(Optional.empty());
+        when(highwayServiceAreaInfoRepository.findAllByRestStopServiceAreaCode("A00001"))
                 .thenReturn(List.of());
-        when(restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc("0010", "서울만남(부산)"))
+        when(restOilRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc("A00001"))
                 .thenReturn(List.of());
-        when(restFoodRepository.findAllByStdRestCdOrderByIdAsc("000001")).thenReturn(List.of());
+        when(restFoodRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc("A00001"))
+                .thenReturn(List.of());
 
         RestStopRelatedInfo relatedInfo = service.findByRestStop(restStop);
 
@@ -112,7 +155,12 @@ class RestStopRelatedInfoQueryServiceTest {
         assertThat(relatedInfo.oilServiceAreaCode2()).isEmpty();
         assertThat(relatedInfo.oilPrice()).isEmpty();
         assertThat(relatedInfo.foods()).isEmpty();
+        verify(restStopDetailRepository, never()).findByServiceAreaCode(anyString());
+        verify(highwayServiceAreaInfoRepository, never()).findAllByBusinessFacilityCode(anyString());
+        verify(restOilRepository, never())
+                .findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc(anyString(), anyString());
         verify(restOilPriceRepository, never()).findByServiceAreaCode2(org.mockito.ArgumentMatchers.anyString());
+        verify(restFoodRepository, never()).findAllByStdRestCdOrderByIdAsc(anyString());
     }
 
     private RestFoodEntity foodEntity(String foodName) throws Exception {

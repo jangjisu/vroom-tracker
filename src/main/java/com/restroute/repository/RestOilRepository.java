@@ -8,4 +8,6 @@ public interface RestOilRepository extends JpaRepository<RestOilEntity, Long> {
 
     List<RestOilEntity> findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc(
             String routeCode, String normalizedStationName);
+
+    List<RestOilEntity> findAllByRestStopServiceAreaCodeOrderByIdAsc(String restStopServiceAreaCode);
 }

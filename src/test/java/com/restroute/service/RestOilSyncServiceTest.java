@@ -61,9 +61,7 @@ class RestOilSyncServiceTest {
 
         assertThat(savedCount).isEqualTo(1);
         List<RestOilEntity> savedEntities = captureSavedEntities();
-        assertThat(savedEntities)
-                .extracting(RestOilEntity::getStandardRestName)
-                .containsExactly("서울만남(부산)주유소");
+        assertThat(savedEntities).extracting(RestOilEntity::getStandardRestName).containsExactly("서울만남(부산)주유소");
     }
 
     @Test
@@ -91,9 +89,7 @@ class RestOilSyncServiceTest {
         assertThat(savedCount).isEqualTo(2);
         List<RestOilEntity> saved = captureSavedEntities();
         assertThat(saved).hasSize(2);
-        assertThat(saved)
-                .extracting(RestOilEntity::getNormalizedStationName)
-                .containsExactly("서울만남(부산)", "서울만남(부산)");
+        assertThat(saved).extracting(RestOilEntity::getNormalizedStationName).containsExactly("서울만남(부산)", "서울만남(부산)");
     }
 
     @Test

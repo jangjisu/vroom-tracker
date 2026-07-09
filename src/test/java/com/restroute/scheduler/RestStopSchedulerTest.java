@@ -2,6 +2,7 @@ package com.restroute.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -10,10 +11,12 @@ import com.restroute.service.RestFoodSyncService;
 import com.restroute.service.RestOilPriceSyncService;
 import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
+import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,6 +44,9 @@ class RestStopSchedulerTest {
     @Mock
     private RestFoodSyncService restFoodSyncService;
 
+    @Mock
+    private RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
+
     @InjectMocks
     private RestStopScheduler restStopScheduler;
 
@@ -60,6 +66,19 @@ class RestStopSchedulerTest {
         verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         verify(restOilSyncService).refreshRestOils();
         verify(restFoodSyncService).refreshRestFoods();
+        InOrder inOrder = inOrder(
+                restStopSyncService,
+                restStopDetailSyncService,
+                highwayServiceAreaInfoSyncService,
+                restOilSyncService,
+                restFoodSyncService,
+                restStopServiceAreaCodeBackfillService);
+        inOrder.verify(restStopSyncService).refreshRestStops();
+        inOrder.verify(restStopDetailSyncService).refreshRestStopDetails();
+        inOrder.verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
+        inOrder.verify(restOilSyncService).refreshRestOils();
+        inOrder.verify(restFoodSyncService).refreshRestFoods();
+        inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
     @Test
@@ -139,16 +158,19 @@ class RestStopSchedulerTest {
         assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
 
         assertThat(output).contains("Scheduled rest food sync failed.").contains("rest food API failed");
+        verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
     @Test
-    @DisplayName("3시간마다 주유소 가격 동기화를 service에 위임한다")
+    @DisplayName("3시간마다 주유소 가격 동기화 후 조회 키 backfill을 실행한다")
     void syncRestOilPricesEveryThreeHours_delegatesToService() {
         when(restOilPriceSyncService.refreshRestOilPrices()).thenReturn(226);
 
         restStopScheduler.syncRestOilPricesEveryThreeHours();
 
-        verify(restOilPriceSyncService).refreshRestOilPrices();
+        InOrder inOrder = inOrder(restOilPriceSyncService, restStopServiceAreaCodeBackfillService);
+        inOrder.verify(restOilPriceSyncService).refreshRestOilPrices();
+        inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
     @Test
@@ -160,5 +182,18 @@ class RestStopSchedulerTest {
         assertThatCode(restStopScheduler::syncRestOilPricesEveryThreeHours).doesNotThrowAnyException();
 
         assertThat(output).contains("Scheduled rest oil price sync failed.").contains("oil price API failed");
+        verify(restStopServiceAreaCodeBackfillService).backfill();
+    }
+
+    @Test
+    @DisplayName("조회 키 backfill 실패를 로그로 기록하고 전파하지 않는다")
+    void syncRestStopsDaily_doesNotPropagateBackfillFailure(CapturedOutput output) {
+        when(restStopServiceAreaCodeBackfillService.backfill()).thenThrow(new IllegalStateException("backfill failed"));
+
+        assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
+
+        assertThat(output)
+                .contains("Scheduled rest stop service area code backfill failed.")
+                .contains("backfill failed");
     }
 }

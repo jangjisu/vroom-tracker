@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -12,7 +13,13 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "highway_service_area_info")
+@Table(
+        name = "highway_service_area_info",
+        indexes = {
+            @Index(
+                    name = "idx_highway_service_area_info_rest_stop_service_area_code",
+                    columnList = "rest_stop_service_area_code")
+        })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class HighwayServiceAreaInfoEntity {
 
@@ -39,6 +46,7 @@ public class HighwayServiceAreaInfoEntity {
     private String disabledParkingCount;
     private String businessFacilityCode;
     private String representativeTelNo;
+    private String restStopServiceAreaCode;
 
     private HighwayServiceAreaInfoEntity(HighwayServiceAreaInfoItem item) {
         this.serviceAreaCode = item.getServiceAreaCode();
@@ -81,6 +89,10 @@ public class HighwayServiceAreaInfoEntity {
         this.disabledParkingCount = item.getDisabledParkingCount();
         this.businessFacilityCode = item.getBusinessFacilityCode();
         this.representativeTelNo = item.getRepresentativeTelNo();
+    }
+
+    public void updateRestStopServiceAreaCode(String restStopServiceAreaCode) {
+        this.restStopServiceAreaCode = restStopServiceAreaCode;
     }
 
     public static HighwayServiceAreaInfoEntity from(HighwayServiceAreaInfoItem item) {

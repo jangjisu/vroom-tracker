@@ -16,7 +16,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "rest_food",
-        indexes = {@Index(name = "idx_rest_food_std_rest_cd", columnList = "std_rest_cd")})
+        indexes = {
+            @Index(name = "idx_rest_food_std_rest_cd", columnList = "std_rest_cd"),
+            @Index(name = "idx_rest_food_rest_stop_service_area_code", columnList = "rest_stop_service_area_code")
+        })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RestFoodEntity {
 
@@ -45,6 +48,7 @@ public class RestFoodEntity {
     private String premiumYn;
     private String seasonMenu;
     private String appExposeYn;
+    private String restStopServiceAreaCode;
 
     private RestFoodEntity(RestBestfoodItem item) {
         this.stdRestCd = item.getStdRestCd();
@@ -80,6 +84,10 @@ public class RestFoodEntity {
         this.premiumYn = item.getPremiumyn();
         this.seasonMenu = item.getSeasonMenu();
         this.appExposeYn = item.getApp();
+    }
+
+    public void updateRestStopServiceAreaCode(String restStopServiceAreaCode) {
+        this.restStopServiceAreaCode = restStopServiceAreaCode;
     }
 
     public static RestFoodEntity from(RestBestfoodItem item) {

@@ -2,6 +2,7 @@ package com.restroute.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -9,10 +10,13 @@ import com.restroute.service.RestFoodSyncService;
 import com.restroute.service.RestOilPriceSyncService;
 import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
+import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,6 +43,9 @@ class RestStopStartupInitializerTest {
     private RestFoodSyncService restFoodSyncService;
 
     @Mock
+    private RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
+
+    @Mock
     private ApplicationArguments applicationArguments;
 
     @InjectMocks
@@ -52,6 +59,18 @@ class RestStopStartupInitializerTest {
         when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(429);
         when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(226);
         when(restFoodSyncService.initializeRestFoodsIfEmpty()).thenReturn(7214);
+        when(restStopServiceAreaCodeBackfillService.backfill())
+                .thenReturn(Map.of(
+                        RestStopServiceAreaCodeBackfillService.REST_STOP_DETAIL_MAPPED_COUNT,
+                        203,
+                        RestStopServiceAreaCodeBackfillService.HIGHWAY_SERVICE_AREA_INFO_MAPPED_COUNT,
+                        203,
+                        RestStopServiceAreaCodeBackfillService.REST_FOOD_MAPPED_COUNT,
+                        7214,
+                        RestStopServiceAreaCodeBackfillService.REST_OIL_MAPPED_COUNT,
+                        317,
+                        RestStopServiceAreaCodeBackfillService.REST_OIL_PRICE_MAPPED_COUNT,
+                        164));
 
         restStopStartupInitializer.run(applicationArguments);
 
@@ -60,6 +79,20 @@ class RestStopStartupInitializerTest {
         verify(restOilSyncService).initializeRestOilsIfEmpty();
         verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
         verify(restFoodSyncService).initializeRestFoodsIfEmpty();
+        verify(restStopServiceAreaCodeBackfillService).backfill();
+        InOrder inOrder = inOrder(
+                restStopSyncService,
+                restStopDetailSyncService,
+                restOilSyncService,
+                restOilPriceSyncService,
+                restFoodSyncService,
+                restStopServiceAreaCodeBackfillService);
+        inOrder.verify(restStopSyncService).initializeRestStopsIfEmpty();
+        inOrder.verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
+        inOrder.verify(restOilSyncService).initializeRestOilsIfEmpty();
+        inOrder.verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
+        inOrder.verify(restFoodSyncService).initializeRestFoodsIfEmpty();
+        inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
     @Test
@@ -159,5 +192,23 @@ class RestStopStartupInitializerTest {
                 .doesNotThrowAnyException();
 
         assertThat(output).contains("Initial rest food sync failed.").contains("rest food API failed");
+    }
+
+    @Test
+    @DisplayName("조회 키 backfill 실패가 앱 시작으로 전파되지 않는다")
+    void run_doesNotPropagateRestStopServiceAreaCodeBackfillFailure(CapturedOutput output) {
+        when(restStopSyncService.initializeRestStopsIfEmpty()).thenReturn(203);
+        when(restStopDetailSyncService.initializeRestStopDetailsIfEmpty()).thenReturn(215);
+        when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(429);
+        when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(226);
+        when(restFoodSyncService.initializeRestFoodsIfEmpty()).thenReturn(7214);
+        when(restStopServiceAreaCodeBackfillService.backfill()).thenThrow(new IllegalStateException("backfill failed"));
+
+        assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
+                .doesNotThrowAnyException();
+
+        assertThat(output)
+                .contains("Rest stop service area code backfill failed.")
+                .contains("backfill failed");
     }
 }

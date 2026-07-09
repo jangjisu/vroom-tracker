@@ -94,14 +94,14 @@ class HighwayServiceAreaInfoSyncServiceTest {
     void refreshHighwayServiceAreaInfos_mergesDuplicateServiceAreaCodesWithinSameBatch() {
         runTransactionCallback();
         when(highwayServiceAreaInfoRepository.findAll()).thenReturn(List.of());
-        when(exApiClient.getHighwayServiceAreaInfoList())
-                .thenReturn(duplicateServiceAreaCodeResponse());
+        when(exApiClient.getHighwayServiceAreaInfoList()).thenReturn(duplicateServiceAreaCodeResponse());
 
         int savedCount = highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos();
 
         assertThat(savedCount).isEqualTo(2);
         List<HighwayServiceAreaInfoEntity> saved = captureSavedEntities();
-        List<HighwayServiceAreaInfoEntity> distinctRows = saved.stream().distinct().toList();
+        List<HighwayServiceAreaInfoEntity> distinctRows =
+                saved.stream().distinct().toList();
         assertThat(distinctRows).hasSize(1);
         assertThat(distinctRows.get(0).getServiceAreaName()).isEqualTo("이름이바뀐졸음쉼터");
     }
