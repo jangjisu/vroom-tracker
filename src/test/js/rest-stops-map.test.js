@@ -9,6 +9,7 @@ import {
     formatOilPriceComparison,
     formatRouteComparisonSummary,
     isRouteGlobalLoadingState,
+    renderOilInfo,
     routeMapSelectionMessage,
     routePointLabel,
     routeRecommendationLabels,
@@ -16,6 +17,61 @@ import {
     shouldShowRouteResultBackButton,
     shouldShowRouteSearchInline
 } from '../../main/resources/static/js/rest-stops-map.js';
+
+function createFakeElement(classNames = []) {
+    const classes = new Set(classNames);
+    return {
+        children: [],
+        textContent: '',
+        classList: {
+            add: (className) => classes.add(className),
+            remove: (className) => classes.delete(className),
+            contains: (className) => classes.has(className),
+            toggle: (className, force) => {
+                const shouldAdd = force === undefined ? !classes.has(className) : force;
+                if (shouldAdd) {
+                    classes.add(className);
+                    return true;
+                }
+                classes.delete(className);
+                return false;
+            }
+        },
+        appendChild(child) {
+            this.children.push(child);
+        },
+        replaceChildren(...children) {
+            this.children = children;
+        }
+    };
+}
+
+function withFakeOilInfoDocument(callback) {
+    const previousDocument = globalThis.document;
+    const elements = new Map([
+        ['restStopOilSection', createFakeElement(['d-none'])],
+        ['restStopOilGasolinePrice', createFakeElement()],
+        ['restStopOilDieselPrice', createFakeElement()],
+        ['restStopOilLpgPrice', createFakeElement()],
+        ['restStopOilCompany', createFakeElement()],
+        ['restStopOilTelNo', createFakeElement()],
+        ['restStopOilRefreshStatus', createFakeElement()],
+        ['restStopOilConvenienceTags', createFakeElement()],
+        ['restStopOilConvenienceFallback', createFakeElement(['d-none'])],
+        ['restStopOilConvenienceDetails', createFakeElement()]
+    ]);
+
+    globalThis.document = {
+        createElement: () => createFakeElement(),
+        getElementById: (id) => elements.get(id) ?? null
+    };
+
+    try {
+        return callback(elements);
+    } finally {
+        globalThis.document = previousDocument;
+    }
+}
 
 test('createPopupContent renders rest stop popup as a small summary card', () => {
     const content = createPopupContent({
@@ -209,4 +265,20 @@ test('formatNationalOilPriceSummary renders gasoline diesel and lpg averages', (
     });
 
     assert.equal(formatNationalOilPriceSummary(null), null);
+});
+
+test('renderOilInfo keeps the oil section visible with empty state when oil info is missing', () => {
+    withFakeOilInfoDocument((elements) => {
+        renderOilInfo(null);
+
+        assert.equal(elements.get('restStopOilSection').classList.contains('d-none'), false);
+        assert.equal(elements.get('restStopOilGasolinePrice').textContent, '정보 없음');
+        assert.equal(elements.get('restStopOilDieselPrice').textContent, '정보 없음');
+        assert.equal(elements.get('restStopOilLpgPrice').textContent, '정보 없음');
+        assert.equal(elements.get('restStopOilCompany').textContent, '정보 없음');
+        assert.equal(elements.get('restStopOilTelNo').textContent, '정보 없음');
+        assert.equal(elements.get('restStopOilRefreshStatus').textContent, '최근 갱신: 갱신 정보 없음');
+        assert.equal(elements.get('restStopOilConvenienceFallback').textContent, '주유소 편의시설 정보 없음');
+        assert.equal(elements.get('restStopOilConvenienceFallback').classList.contains('d-none'), false);
+    });
 });

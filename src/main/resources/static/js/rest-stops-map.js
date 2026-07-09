@@ -13,7 +13,6 @@ import {
     formatText,
     hasFoodMenu,
     hasFoodSections,
-    hasOilInfo,
     isMissingValue,
     orderFoodMenus,
     parseConvenience
@@ -895,17 +894,13 @@ function oilRefreshStatusMessage(status) {
     return '요금 정보를 갱신하지 못했습니다.';
 }
 
-function renderOilInfo(oilInfo = {}) {
+export function renderOilInfo(oilInfo = {}) {
     const section = document.getElementById('restStopOilSection');
     if (!section) {
         return;
     }
 
-    const shouldShowOilInfo = hasOilInfo(oilInfo);
-    section.classList.toggle('d-none', !shouldShowOilInfo);
-    if (!shouldShowOilInfo) {
-        return;
-    }
+    section.classList.remove('d-none');
 
     setDetailValue('restStopOilGasolinePrice', oilInfo?.gasolinePrice, '정보 없음', formatOilPrice);
     setDetailValue('restStopOilDieselPrice', oilInfo?.dieselPrice, '정보 없음', formatOilPrice);
