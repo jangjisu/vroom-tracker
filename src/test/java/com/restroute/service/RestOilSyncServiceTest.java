@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,7 +17,6 @@ import com.restroute.domain.RestOilEntity;
 import com.restroute.repository.RestOilRepository;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,20 +39,13 @@ class RestOilSyncServiceTest {
     private RestOilRepository restOilRepository;
 
     @Mock
-    private RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
-
-    @Mock
     private TransactionTemplate transactionTemplate;
 
     private RestOilSyncService restOilSyncService;
 
     @BeforeEach
     void setUp() {
-        lenient()
-                .when(restStopServiceAreaCodeMappingService.mapByOilRestStopKey())
-                .thenReturn(Map.of(RestStopServiceAreaCodeMappingService.oilRestStopKey("0010", "서울만남(부산)"), "A00001"));
-        restOilSyncService = new RestOilSyncService(
-                exApiClient, restOilRepository, restStopServiceAreaCodeMappingService, transactionTemplate);
+        restOilSyncService = new RestOilSyncService(exApiClient, restOilRepository, transactionTemplate);
     }
 
     @Test
@@ -99,24 +90,6 @@ class RestOilSyncServiceTest {
         List<RestOilEntity> saved = captureSavedEntities();
         assertThat(saved).hasSize(2);
         assertThat(saved).extracting(RestOilEntity::getNormalizedStationName).containsExactly("서울만남(부산)", "서울만남(부산)");
-        assertThat(saved).extracting(RestOilEntity::getRestStopServiceAreaCode).containsExactly("A00001", "A00001");
-    }
-
-    @Test
-    @DisplayName("주유소 편의시설 저장 시 매핑되지 않은 row는 restStopServiceAreaCode를 null로 유지한다")
-    void refreshRestOils_keepsRestStopServiceAreaCodeNullWhenUnmapped() {
-        runTransactionCallback();
-        when(restStopServiceAreaCodeMappingService.mapByOilRestStopKey()).thenReturn(Map.of());
-        when(restOilRepository.findAll()).thenReturn(List.of());
-        RestOilItem item = restOilItem("999999", "미매핑주유소", "07");
-        when(exApiClient.getRestOilList()).thenReturn(restOilResponse("SUCCESS", List.of(item)));
-
-        int savedCount = restOilSyncService.refreshRestOils();
-
-        assertThat(savedCount).isEqualTo(1);
-        assertThat(captureSavedEntities())
-                .extracting(RestOilEntity::getRestStopServiceAreaCode)
-                .containsExactly((String) null);
     }
 
     @Test

@@ -23,7 +23,6 @@ public class RestStopDetailSyncService {
 
     private final ExApiClient exApiClient;
     private final RestStopDetailRepository restStopDetailRepository;
-    private final RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
     private final TransactionTemplate transactionTemplate;
 
     public int initializeRestStopDetailsIfEmpty() {
@@ -78,36 +77,28 @@ public class RestStopDetailSyncService {
     }
 
     private void upsertRestStopDetails(List<RestStopDetailItem> items) {
-        Map<String, String> restStopServiceAreaCodeByServiceAreaCode =
-                restStopServiceAreaCodeMappingService.mapByServiceAreaCode();
         Map<String, RestStopDetailEntity> existingByKey = restStopDetailRepository.findAll().stream()
                 .collect(Collectors.toMap(
                         RestStopDetailEntity::getServiceAreaCode, entity -> entity, (first, second) -> first));
 
         List<RestStopDetailEntity> toSave = new ArrayList<>();
         for (RestStopDetailItem item : items) {
-            toSave.add(upsertOne(item, existingByKey, restStopServiceAreaCodeByServiceAreaCode));
+            toSave.add(upsertOne(item, existingByKey));
         }
 
         restStopDetailRepository.saveAll(toSave);
     }
 
-    private RestStopDetailEntity upsertOne(
-            RestStopDetailItem item,
-            Map<String, RestStopDetailEntity> existingByKey,
-            Map<String, String> restStopServiceAreaCodeByServiceAreaCode) {
+    private RestStopDetailEntity upsertOne(RestStopDetailItem item, Map<String, RestStopDetailEntity> existingByKey) {
         RestStopDetailEntity existing = existingByKey.get(item.getServiceAreaCode());
-        String restStopServiceAreaCode = restStopServiceAreaCodeByServiceAreaCode.get(item.getServiceAreaCode());
 
         if (existing == null) {
             RestStopDetailEntity created = RestStopDetailEntity.from(item);
-            created.updateRestStopServiceAreaCode(restStopServiceAreaCode);
             existingByKey.put(item.getServiceAreaCode(), created);
             return created;
         }
 
         existing.updateFrom(item);
-        existing.updateRestStopServiceAreaCode(restStopServiceAreaCode);
         return existing;
     }
 }

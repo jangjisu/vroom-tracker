@@ -19,7 +19,6 @@ public class RestOilSyncService {
 
     private final ExApiClient exApiClient;
     private final RestOilRepository restOilRepository;
-    private final RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
     private final TransactionTemplate transactionTemplate;
 
     public int initializeRestOilsIfEmpty() {
@@ -48,8 +47,6 @@ public class RestOilSyncService {
     }
 
     private void upsertRestOils(List<RestOilItem> items) {
-        Map<String, String> restStopServiceAreaCodeByOilKey =
-                restStopServiceAreaCodeMappingService.mapByOilRestStopKey();
         Map<String, RestOilEntity> existingByKey = restOilRepository.findAll().stream()
                 .collect(Collectors.toMap(
                         entity -> oilKey(entity.getStandardRestCode(), entity.getConvenienceCode()),
@@ -58,31 +55,23 @@ public class RestOilSyncService {
 
         List<RestOilEntity> toSave = new ArrayList<>();
         for (RestOilItem item : items) {
-            toSave.add(upsertOne(item, existingByKey, restStopServiceAreaCodeByOilKey));
+            toSave.add(upsertOne(item, existingByKey));
         }
 
         restOilRepository.saveAll(toSave);
     }
 
-    private RestOilEntity upsertOne(
-            RestOilItem item,
-            Map<String, RestOilEntity> existingByKey,
-            Map<String, String> restStopServiceAreaCodeByOilKey) {
+    private RestOilEntity upsertOne(RestOilItem item, Map<String, RestOilEntity> existingByKey) {
         String key = oilKey(item.getStandardRestCode(), item.getConvenienceCode());
         RestOilEntity existing = existingByKey.get(key);
-        String restStopServiceAreaCode =
-                restStopServiceAreaCodeByOilKey.get(RestStopServiceAreaCodeMappingService.oilRestStopKey(
-                        item.getRouteCode(), RestOilEntity.normalizeStationName(item.getStandardRestName())));
 
         if (existing == null) {
             RestOilEntity created = RestOilEntity.from(item);
-            created.updateRestStopServiceAreaCode(restStopServiceAreaCode);
             existingByKey.put(key, created);
             return created;
         }
 
         existing.updateFrom(item);
-        existing.updateRestStopServiceAreaCode(restStopServiceAreaCode);
         return existing;
     }
 

@@ -5,7 +5,6 @@ import static com.restroute.support.RestStopTestFixtures.restOilPriceResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,7 +20,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,9 +42,6 @@ class RestOilPriceSyncServiceTest {
     private RestOilPriceRepository restOilPriceRepository;
 
     @Mock
-    private RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
-
-    @Mock
     private TransactionTemplate transactionTemplate;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-06-15T22:30:00Z"), ZoneId.of("Asia/Seoul"));
@@ -55,11 +50,8 @@ class RestOilPriceSyncServiceTest {
 
     @BeforeEach
     void setUp() {
-        lenient()
-                .when(restStopServiceAreaCodeMappingService.mapByOilStandardRestCode())
-                .thenReturn(Map.of("000002", "A00001", "000006", "A00002", "000010", "A00003"));
-        restOilPriceSyncService = new RestOilPriceSyncService(
-                exApiClient, restOilPriceRepository, restStopServiceAreaCodeMappingService, transactionTemplate, clock);
+        restOilPriceSyncService =
+                new RestOilPriceSyncService(exApiClient, restOilPriceRepository, transactionTemplate, clock);
     }
 
     @Test
@@ -113,9 +105,6 @@ class RestOilPriceSyncServiceTest {
         assertThat(savedEntities)
                 .extracting(RestOilPriceEntity::getLastRefreshedAt)
                 .containsOnly(LocalDateTime.of(2026, 6, 16, 7, 30));
-        assertThat(savedEntities)
-                .extracting(RestOilPriceEntity::getRestStopServiceAreaCode)
-                .containsExactly("A00001", "A00002", "A00003");
     }
 
     @Test
@@ -143,27 +132,6 @@ class RestOilPriceSyncServiceTest {
                 .containsExactly("000002", "000010");
         assertThat(savedEntities.get(0)).isSameAs(existing);
         assertThat(savedEntities.get(0).getServiceAreaName()).isEqualTo("서울만남(부산)주유소");
-        assertThat(savedEntities)
-                .extracting(RestOilPriceEntity::getRestStopServiceAreaCode)
-                .containsExactly("A00001", "A00003");
-    }
-
-    @Test
-    @DisplayName("주유소 가격 저장 시 매핑되지 않은 row는 restStopServiceAreaCode를 null로 유지한다")
-    void refreshRestOilPrices_keepsRestStopServiceAreaCodeNullWhenUnmapped() {
-        runTransactionCallback();
-        when(restStopServiceAreaCodeMappingService.mapByOilStandardRestCode()).thenReturn(Map.of());
-        RestOilPriceItem item = restOilPriceItem("999999", "미매핑주유소");
-        when(exApiClient.getCurStateStation(1)).thenReturn(restOilPriceResponse("SUCCESS", List.of(item)));
-        when(exApiClient.getCurStateStation(2)).thenReturn(restOilPriceResponse("SUCCESS", List.of()));
-        when(exApiClient.getCurStateStation(3)).thenReturn(restOilPriceResponse("SUCCESS", List.of()));
-
-        int savedCount = restOilPriceSyncService.refreshRestOilPrices();
-
-        assertThat(savedCount).isEqualTo(1);
-        assertThat(captureSavedEntities())
-                .extracting(RestOilPriceEntity::getRestStopServiceAreaCode)
-                .containsExactly((String) null);
     }
 
     @Test

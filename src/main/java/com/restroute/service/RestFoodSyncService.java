@@ -23,7 +23,6 @@ public class RestFoodSyncService {
 
     private final ExApiClient exApiClient;
     private final RestFoodRepository restFoodRepository;
-    private final RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
     private final TransactionTemplate transactionTemplate;
 
     public int initializeRestFoodsIfEmpty() {
@@ -80,7 +79,6 @@ public class RestFoodSyncService {
     }
 
     private void upsertRestFoods(List<RestBestfoodItem> items) {
-        Map<String, String> restStopServiceAreaCodeByStdRestCd = restStopServiceAreaCodeMappingService.mapByStdRestCd();
         Map<String, RestFoodEntity> existingByKey = restFoodRepository.findAll().stream()
                 .collect(Collectors.toMap(
                         entity -> foodKey(entity.getStdRestCd(), entity.getSeq()),
@@ -89,29 +87,23 @@ public class RestFoodSyncService {
 
         List<RestFoodEntity> toSave = new ArrayList<>();
         for (RestBestfoodItem item : items) {
-            toSave.add(upsertOne(item, existingByKey, restStopServiceAreaCodeByStdRestCd));
+            toSave.add(upsertOne(item, existingByKey));
         }
 
         restFoodRepository.saveAll(toSave);
     }
 
-    private RestFoodEntity upsertOne(
-            RestBestfoodItem item,
-            Map<String, RestFoodEntity> existingByKey,
-            Map<String, String> restStopServiceAreaCodeByStdRestCd) {
+    private RestFoodEntity upsertOne(RestBestfoodItem item, Map<String, RestFoodEntity> existingByKey) {
         String key = foodKey(item.getStdRestCd(), item.getSeq());
         RestFoodEntity existing = existingByKey.get(key);
-        String restStopServiceAreaCode = restStopServiceAreaCodeByStdRestCd.get(item.getStdRestCd());
 
         if (existing == null) {
             RestFoodEntity created = RestFoodEntity.from(item);
-            created.updateRestStopServiceAreaCode(restStopServiceAreaCode);
             existingByKey.put(key, created);
             return created;
         }
 
         existing.updateFrom(item);
-        existing.updateRestStopServiceAreaCode(restStopServiceAreaCode);
         return existing;
     }
 

@@ -2,6 +2,7 @@ package com.restroute.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +16,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -78,6 +80,19 @@ class RestStopStartupInitializerTest {
         verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
         verify(restFoodSyncService).initializeRestFoodsIfEmpty();
         verify(restStopServiceAreaCodeBackfillService).backfill();
+        InOrder inOrder = inOrder(
+                restStopSyncService,
+                restStopDetailSyncService,
+                restOilSyncService,
+                restOilPriceSyncService,
+                restFoodSyncService,
+                restStopServiceAreaCodeBackfillService);
+        inOrder.verify(restStopSyncService).initializeRestStopsIfEmpty();
+        inOrder.verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
+        inOrder.verify(restOilSyncService).initializeRestOilsIfEmpty();
+        inOrder.verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
+        inOrder.verify(restFoodSyncService).initializeRestFoodsIfEmpty();
+        inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
     @Test

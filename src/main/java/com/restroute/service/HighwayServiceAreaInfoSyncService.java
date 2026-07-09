@@ -19,7 +19,6 @@ public class HighwayServiceAreaInfoSyncService {
 
     private final ExApiClient exApiClient;
     private final HighwayServiceAreaInfoRepository highwayServiceAreaInfoRepository;
-    private final RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
     private final TransactionTemplate transactionTemplate;
 
     public int refreshHighwayServiceAreaInfos() {
@@ -41,36 +40,29 @@ public class HighwayServiceAreaInfoSyncService {
     }
 
     private void upsertHighwayServiceAreaInfos(List<HighwayServiceAreaInfoItem> items) {
-        Map<String, String> restStopServiceAreaCodeByServiceAreaCode =
-                restStopServiceAreaCodeMappingService.mapByServiceAreaCode();
         Map<String, HighwayServiceAreaInfoEntity> existingByKey = highwayServiceAreaInfoRepository.findAll().stream()
                 .collect(Collectors.toMap(
                         HighwayServiceAreaInfoEntity::getServiceAreaCode, entity -> entity, (first, second) -> first));
 
         List<HighwayServiceAreaInfoEntity> toSave = new ArrayList<>();
         for (HighwayServiceAreaInfoItem item : items) {
-            toSave.add(upsertOne(item, existingByKey, restStopServiceAreaCodeByServiceAreaCode));
+            toSave.add(upsertOne(item, existingByKey));
         }
 
         highwayServiceAreaInfoRepository.saveAll(toSave);
     }
 
     private HighwayServiceAreaInfoEntity upsertOne(
-            HighwayServiceAreaInfoItem item,
-            Map<String, HighwayServiceAreaInfoEntity> existingByKey,
-            Map<String, String> restStopServiceAreaCodeByServiceAreaCode) {
+            HighwayServiceAreaInfoItem item, Map<String, HighwayServiceAreaInfoEntity> existingByKey) {
         HighwayServiceAreaInfoEntity existing = existingByKey.get(item.getServiceAreaCode());
-        String restStopServiceAreaCode = restStopServiceAreaCodeByServiceAreaCode.get(item.getBusinessFacilityCode());
 
         if (existing == null) {
             HighwayServiceAreaInfoEntity created = HighwayServiceAreaInfoEntity.from(item);
-            created.updateRestStopServiceAreaCode(restStopServiceAreaCode);
             existingByKey.put(item.getServiceAreaCode(), created);
             return created;
         }
 
         existing.updateFrom(item);
-        existing.updateRestStopServiceAreaCode(restStopServiceAreaCode);
         return existing;
     }
 }

@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,7 +19,6 @@ import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.repository.RestStopDetailRepository;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,20 +40,14 @@ class RestStopDetailSyncServiceTest {
     private RestStopDetailRepository restStopDetailRepository;
 
     @Mock
-    private RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
-
-    @Mock
     private TransactionTemplate transactionTemplate;
 
     private RestStopDetailSyncService restStopDetailSyncService;
 
     @BeforeEach
     void setUp() {
-        lenient()
-                .when(restStopServiceAreaCodeMappingService.mapByServiceAreaCode())
-                .thenReturn(Map.of("A00078", "A00078", "A00315", "A00315"));
-        restStopDetailSyncService = new RestStopDetailSyncService(
-                exApiClient, restStopDetailRepository, restStopServiceAreaCodeMappingService, transactionTemplate);
+        restStopDetailSyncService =
+                new RestStopDetailSyncService(exApiClient, restStopDetailRepository, transactionTemplate);
     }
 
     @Test
@@ -108,27 +100,6 @@ class RestStopDetailSyncServiceTest {
         assertThat(savedEntities)
                 .extracting(RestStopDetailEntity::getServiceAreaCode)
                 .containsExactly("A00078", "A00315");
-        assertThat(savedEntities)
-                .extracting(RestStopDetailEntity::getRestStopServiceAreaCode)
-                .containsExactly("A00078", "A00315");
-    }
-
-    @Test
-    @DisplayName("휴게소 상세 저장 시 매핑되지 않은 row는 restStopServiceAreaCode를 null로 유지한다")
-    void refreshRestStopDetails_keepsRestStopServiceAreaCodeNullWhenUnmapped() {
-        runTransactionCallback();
-        when(restStopServiceAreaCodeMappingService.mapByServiceAreaCode()).thenReturn(Map.of());
-        when(restStopDetailRepository.findAll()).thenReturn(List.of());
-        RestStopDetailItem detail = restStopDetailItem("A99999", "미매핑휴게소");
-        when(exApiClient.getConvenienceServiceArea(1))
-                .thenReturn(restStopDetailResponse("SUCCESS", "1", List.of(detail)));
-
-        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
-
-        assertThat(savedCount).isEqualTo(1);
-        assertThat(captureSavedEntities())
-                .extracting(RestStopDetailEntity::getRestStopServiceAreaCode)
-                .containsExactly((String) null);
     }
 
     @Test

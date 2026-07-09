@@ -5,7 +5,9 @@ import com.restroute.service.RestFoodSyncService;
 import com.restroute.service.RestOilPriceSyncService;
 import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
+import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +24,7 @@ public class RestStopScheduler {
     private final RestOilSyncService restOilSyncService;
     private final RestOilPriceSyncService restOilPriceSyncService;
     private final RestFoodSyncService restFoodSyncService;
+    private final RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void syncRestStopsDaily() {
@@ -30,11 +33,13 @@ public class RestStopScheduler {
         refreshHighwayServiceAreaInfos();
         refreshRestOils();
         refreshRestFoods();
+        backfillRestStopServiceAreaCodes();
     }
 
     @Scheduled(cron = "0 0 */3 * * *", zone = "Asia/Seoul")
     public void syncRestOilPricesEveryThreeHours() {
         refreshRestOilPrices();
+        backfillRestStopServiceAreaCodes();
     }
 
     private void refreshRestStops() {
@@ -88,6 +93,15 @@ public class RestStopScheduler {
             log.info("Scheduled rest food sync completed. savedCount={}", savedCount);
         } catch (RuntimeException e) {
             log.error("Scheduled rest food sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void backfillRestStopServiceAreaCodes() {
+        try {
+            Map<String, Integer> result = restStopServiceAreaCodeBackfillService.backfill();
+            log.info("Scheduled rest stop service area code backfill completed. result={}", result);
+        } catch (RuntimeException e) {
+            log.error("Scheduled rest stop service area code backfill failed. cause={}", e.getMessage(), e);
         }
     }
 }

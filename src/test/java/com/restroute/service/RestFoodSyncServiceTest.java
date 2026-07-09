@@ -3,7 +3,6 @@ package com.restroute.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,7 +16,6 @@ import com.restroute.domain.RestFoodEntity;
 import com.restroute.repository.RestFoodRepository;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,18 +38,13 @@ class RestFoodSyncServiceTest {
     private RestFoodRepository restFoodRepository;
 
     @Mock
-    private RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
-
-    @Mock
     private TransactionTemplate transactionTemplate;
 
     private RestFoodSyncService restFoodSyncService;
 
     @BeforeEach
     void setUp() {
-        lenient().when(restStopServiceAreaCodeMappingService.mapByStdRestCd()).thenReturn(Map.of("000001", "A00001"));
-        restFoodSyncService = new RestFoodSyncService(
-                exApiClient, restFoodRepository, restStopServiceAreaCodeMappingService, transactionTemplate);
+        restFoodSyncService = new RestFoodSyncService(exApiClient, restFoodRepository, transactionTemplate);
     }
 
     @Test
@@ -97,25 +90,6 @@ class RestFoodSyncServiceTest {
         assertThat(captureSavedEntities())
                 .extracting(RestFoodEntity::getFoodName)
                 .containsExactly("농심어묵우동", "한우국밥", "육개장");
-        assertThat(captureSavedEntities())
-                .extracting(RestFoodEntity::getRestStopServiceAreaCode)
-                .containsExactly("A00001", "A00001", "A00001");
-    }
-
-    @Test
-    @DisplayName("음식 메뉴 저장 시 매핑되지 않은 row는 restStopServiceAreaCode를 null로 유지한다")
-    void refreshRestFoods_keepsRestStopServiceAreaCodeNullWhenUnmapped() throws Exception {
-        runTransactionCallback();
-        when(restStopServiceAreaCodeMappingService.mapByStdRestCd()).thenReturn(Map.of());
-        when(restFoodRepository.findAll()).thenReturn(List.of());
-        when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(1, "농심어묵우동"));
-
-        int savedCount = restFoodSyncService.refreshRestFoods();
-
-        assertThat(savedCount).isEqualTo(1);
-        assertThat(captureSavedEntities())
-                .extracting(RestFoodEntity::getRestStopServiceAreaCode)
-                .containsExactly((String) null);
     }
 
     @Test
