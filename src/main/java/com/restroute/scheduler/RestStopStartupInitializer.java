@@ -4,7 +4,9 @@ import com.restroute.service.RestFoodSyncService;
 import com.restroute.service.RestOilPriceSyncService;
 import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
+import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -23,6 +25,7 @@ public class RestStopStartupInitializer implements ApplicationRunner {
     private final RestOilSyncService restOilSyncService;
     private final RestOilPriceSyncService restOilPriceSyncService;
     private final RestFoodSyncService restFoodSyncService;
+    private final RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -31,6 +34,7 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         initializeRestOils();
         initializeRestOilPrices();
         initializeRestFoods();
+        backfillRestStopServiceAreaCodes();
     }
 
     private void initializeRestStops() {
@@ -100,6 +104,15 @@ public class RestStopStartupInitializer implements ApplicationRunner {
             log.info("Initial rest food sync skipped because rest_food table already has data.");
         } catch (RuntimeException e) {
             log.error("Initial rest food sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void backfillRestStopServiceAreaCodes() {
+        try {
+            Map<String, Integer> result = restStopServiceAreaCodeBackfillService.backfill();
+            log.info("Rest stop service area code backfill completed. result={}", result);
+        } catch (RuntimeException e) {
+            log.error("Rest stop service area code backfill failed. cause={}", e.getMessage(), e);
         }
     }
 }

@@ -17,7 +17,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "rest_oil",
-        indexes = {@Index(name = "idx_rest_oil_route_station", columnList = "route_code, normalized_station_name")})
+        indexes = {
+            @Index(name = "idx_rest_oil_route_station", columnList = "route_code, normalized_station_name"),
+            @Index(name = "idx_rest_oil_rest_stop_service_area_code", columnList = "rest_stop_service_area_code")
+        })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RestOilEntity {
 
@@ -47,6 +50,8 @@ public class RestOilEntity {
 
     @Column(name = "normalized_station_name")
     private String normalizedStationName;
+
+    private String restStopServiceAreaCode;
 
     private RestOilEntity(RestOilItem item) {
         this.standardRestCode = item.getStandardRestCode();
@@ -80,6 +85,10 @@ public class RestOilEntity {
         this.convenienceName = item.getConvenienceName();
         this.convenienceDescription = item.getConvenienceDescription();
         this.normalizedStationName = normalizeStationName(item.getStandardRestName());
+    }
+
+    public void updateRestStopServiceAreaCode(String restStopServiceAreaCode) {
+        this.restStopServiceAreaCode = restStopServiceAreaCode;
     }
 
     public static RestOilEntity from(RestOilItem item) {

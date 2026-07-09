@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface HighwayServiceAreaInfoRepository extends JpaRepository<HighwayServiceAreaInfoEntity, Long> {
 
     List<HighwayServiceAreaInfoEntity> findAllByBusinessFacilityCode(String businessFacilityCode);
+
+    List<HighwayServiceAreaInfoEntity> findAllByRestStopServiceAreaCode(String restStopServiceAreaCode);
 }

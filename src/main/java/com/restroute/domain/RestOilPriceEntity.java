@@ -17,7 +17,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "rest_oil_price",
-        indexes = {@Index(name = "idx_rest_oil_price_service_area_code2", columnList = "service_area_code2")})
+        indexes = {
+            @Index(name = "idx_rest_oil_price_service_area_code2", columnList = "service_area_code2"),
+            @Index(name = "idx_rest_oil_price_rest_stop_service_area_code", columnList = "rest_stop_service_area_code")
+        })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RestOilPriceEntity {
 
@@ -44,6 +47,7 @@ public class RestOilPriceEntity {
 
     private String serviceAreaAddress;
     private LocalDateTime lastRefreshedAt;
+    private String restStopServiceAreaCode;
 
     private RestOilPriceEntity(RestOilPriceItem item) {
         apply(item);
@@ -69,6 +73,10 @@ public class RestOilPriceEntity {
     public void updateFrom(RestOilPriceItem item, LocalDateTime refreshedAt) {
         apply(item);
         this.lastRefreshedAt = refreshedAt;
+    }
+
+    public void updateRestStopServiceAreaCode(String restStopServiceAreaCode) {
+        this.restStopServiceAreaCode = restStopServiceAreaCode;
     }
 
     private void apply(RestOilPriceItem item) {
