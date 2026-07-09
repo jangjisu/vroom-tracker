@@ -19,6 +19,7 @@ import {
 } from './rest-stop-detail-formatters.js';
 import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
 import { createRouteRestStopRequest } from './route-rest-stop-request.js';
+import { createNationalOilPriceRequest } from './national-oil-price-request.js';
 import { createPlaceSearchRequest } from './place-search-request.js';
 import {
     ROUTE_POINT_TARGET,
@@ -66,6 +67,7 @@ let originMarker;
 let destinationMarker;
 let currentRouteRestStops = [];
 let currentNationalOilPriceSummary;
+let nationalOilPriceRequest;
 let detailOpenedFromRouteResult = false;
 let routePointSelection = createRoutePointSelection();
 let routeMapClickListener;
@@ -88,6 +90,7 @@ export async function initRestStopMap() {
     detailPanelEventController = new globalThis.AbortController();
     detailRequest = createRestStopDetailRequest({ onState: renderDetailState });
     routeRequest = createRouteRestStopRequest({ onState: renderRouteState });
+    nationalOilPriceRequest = createNationalOilPriceRequest({ onState: renderNationalOilPriceState });
     placeSearchRequest = createPlaceSearchRequest({ onState: renderPlaceSearchState });
     bindDetailPanelEvents();
     bindDetailSheetPresentation();
@@ -1606,7 +1609,7 @@ function renderRoute(data) {
     renderEndpointMarkers(data?.destination);
 
     const restStops = Array.isArray(data?.restStops) ? data.restStops : [];
-    currentNationalOilPriceSummary = data?.nationalOilPriceSummary ?? null;
+    currentNationalOilPriceSummary = null;
     restStops.forEach((restStop) => {
         const position = new naverMaps.LatLng(restStop.latitude, restStop.longitude);
         const marker = new naverMaps.Marker({
@@ -1631,6 +1634,7 @@ function renderRoute(data) {
 
     currentRouteRestStops = restStops;
     renderRouteList(restStops, currentNationalOilPriceSummary);
+    nationalOilPriceRequest?.load();
     const destinationName = data?.destination?.name ?? '목적지';
     setRouteStatus(`${destinationName}까지 경로상 휴게소 ${restStops.length}곳`);
 
@@ -1818,6 +1822,21 @@ function formatNationalOilDailyDiff(value) {
         return { dailyDiff: `↑ ${absoluteDiff}원`, dailyDiffTone: 'unfavorable' };
     }
     return { dailyDiff: '0원', dailyDiffTone: 'same' };
+}
+
+export function renderNationalOilPriceState(state) {
+    if (state.status === 'success') {
+        currentNationalOilPriceSummary = state.data;
+        renderNationalOilPriceSummary(state.data);
+        return;
+    }
+
+    if (state.status === 'external-unavailable') {
+        showApiUnavailableAlert();
+    }
+
+    currentNationalOilPriceSummary = null;
+    renderNationalOilPriceSummary(null);
 }
 
 function renderNationalOilPriceSummary(summary) {
@@ -2042,6 +2061,8 @@ function selectRouteRestStop(restStop) {
 }
 
 function clearRouteOverlays() {
+    nationalOilPriceRequest?.invalidate();
+
     if (routePolyline) {
         routePolyline.setMap(null);
         routePolyline = undefined;

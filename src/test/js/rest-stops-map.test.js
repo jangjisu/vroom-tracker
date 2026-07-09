@@ -9,6 +9,7 @@ import {
     formatOilPriceComparison,
     formatRouteComparisonSummary,
     isRouteGlobalLoadingState,
+    renderNationalOilPriceState,
     renderOilInfo,
     routeMapSelectionMessage,
     routePointLabel,
@@ -265,6 +266,35 @@ test('formatNationalOilPriceSummary renders gasoline diesel and lpg averages', (
     });
 
     assert.equal(formatNationalOilPriceSummary(null), null);
+});
+
+test('renderNationalOilPriceState renders summary success and hides summary failures independently', () => {
+    const previousDocument = globalThis.document;
+    const container = createFakeElement(['d-none']);
+    globalThis.document = {
+        createElement: () => createFakeElement(),
+        getElementById: (id) => (id === 'routeNationalOilPriceSummary' ? container : null)
+    };
+
+    try {
+        renderNationalOilPriceState({
+            status: 'success',
+            data: {
+                tradeDate: '2026.07.09',
+                gasoline: { price: '1,700원', dailyDiff: '-2' }
+            }
+        });
+
+        assert.equal(container.classList.contains('d-none'), false);
+        assert.equal(container.children.length > 0, true);
+
+        renderNationalOilPriceState({ status: 'error' });
+
+        assert.equal(container.classList.contains('d-none'), true);
+        assert.equal(container.children.length, 0);
+    } finally {
+        globalThis.document = previousDocument;
+    }
 });
 
 test('renderOilInfo keeps the oil section visible with empty state when oil info is missing', () => {
