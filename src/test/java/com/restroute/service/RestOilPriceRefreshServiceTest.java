@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -91,6 +92,7 @@ class RestOilPriceRefreshServiceTest {
         assertThat(result.get().gasolinePrice()).isEqualTo("1,888원");
         assertThat(result.get().oilStationConveniences()).hasSize(1);
         assertThat(existing.getLastRefreshedAt()).isEqualTo(LocalDateTime.of(2026, 6, 16, 7, 30));
+        assertThat(existing.getRestStopServiceAreaCode()).isEqualTo("A00001");
         verify(restOilPriceRepository, never()).save(any());
     }
 
@@ -132,7 +134,9 @@ class RestOilPriceRefreshServiceTest {
 
         assertThat(result).isPresent();
         assertThat(result.get().gasolinePrice()).isEqualTo("1,999원");
-        verify(restOilPriceRepository).save(any(RestOilPriceEntity.class));
+        ArgumentCaptor<RestOilPriceEntity> oilPriceCaptor = ArgumentCaptor.forClass(RestOilPriceEntity.class);
+        verify(restOilPriceRepository).save(oilPriceCaptor.capture());
+        assertThat(oilPriceCaptor.getValue().getRestStopServiceAreaCode()).isEqualTo("A00001");
     }
 
     @Test

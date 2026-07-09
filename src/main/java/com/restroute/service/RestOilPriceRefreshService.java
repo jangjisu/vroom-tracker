@@ -53,7 +53,8 @@ public class RestOilPriceRefreshService {
             return Optional.empty();
         }
 
-        RestOilPriceEntity oilPrice = upsertOilPrice(serviceAreaCode2.get(), fetchedItem.get());
+        RestOilPriceEntity oilPrice =
+                upsertOilPrice(restStop.getServiceAreaCode(), serviceAreaCode2.get(), fetchedItem.get());
         return Optional.of(OilInfoResponse.from(Optional.of(oilPrice), conveniences));
     }
 
@@ -66,18 +67,31 @@ public class RestOilPriceRefreshService {
         return response.getList().stream().findFirst();
     }
 
-    private RestOilPriceEntity upsertOilPrice(String serviceAreaCode2, RestOilPriceItem item) {
+    private RestOilPriceEntity upsertOilPrice(
+            String restStopServiceAreaCode, String serviceAreaCode2, RestOilPriceItem item) {
         LocalDateTime refreshedAt = LocalDateTime.now(clock);
         return transactionTemplate.execute(status -> restOilPriceRepository
                 .findByServiceAreaCode2(serviceAreaCode2)
-                .map(entity -> updateOilPrice(entity, item, refreshedAt))
-                .orElseGet(() -> restOilPriceRepository.save(RestOilPriceEntity.from(item, refreshedAt))));
+                .map(entity -> updateOilPrice(entity, item, refreshedAt, restStopServiceAreaCode))
+                .orElseGet(
+                        () -> restOilPriceRepository.save(createOilPrice(item, refreshedAt, restStopServiceAreaCode))));
     }
 
     private RestOilPriceEntity updateOilPrice(
-            RestOilPriceEntity entity, RestOilPriceItem item, LocalDateTime refreshedAt) {
+            RestOilPriceEntity entity,
+            RestOilPriceItem item,
+            LocalDateTime refreshedAt,
+            String restStopServiceAreaCode) {
         entity.updateFrom(item, refreshedAt);
+        entity.updateRestStopServiceAreaCode(restStopServiceAreaCode);
         return entity;
+    }
+
+    private RestOilPriceEntity createOilPrice(
+            RestOilPriceItem item, LocalDateTime refreshedAt, String restStopServiceAreaCode) {
+        RestOilPriceEntity oilPrice = RestOilPriceEntity.from(item, refreshedAt);
+        oilPrice.updateRestStopServiceAreaCode(restStopServiceAreaCode);
+        return oilPrice;
     }
 
     private boolean isFresh(RestOilPriceEntity oilPrice) {
