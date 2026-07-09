@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class RestOilPriceSyncService {
 
     private final ExApiClient exApiClient;
     private final RestOilPriceRepository restOilPriceRepository;
+    private final RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
 
@@ -79,31 +81,50 @@ public class RestOilPriceSyncService {
     }
 
     private void saveRestOilPrices(List<RestOilPriceItem> items, boolean allPagesFetched) {
+        Map<String, String> restStopServiceAreaCodeByOilStandardRestCode =
+                restStopServiceAreaCodeMappingService.mapByOilStandardRestCode();
         if (!allPagesFetched) {
-            upsertRestOilPrices(items);
+            upsertRestOilPrices(items, restStopServiceAreaCodeByOilStandardRestCode);
             return;
         }
 
         restOilPriceRepository.deleteAllInBatch();
         LocalDateTime refreshedAt = LocalDateTime.now(clock);
         restOilPriceRepository.saveAll(items.stream()
-                .map(item -> RestOilPriceEntity.from(item, refreshedAt))
+                .map(item -> createOilPrice(item, refreshedAt, restStopServiceAreaCodeByOilStandardRestCode))
                 .toList());
     }
 
-    private void upsertRestOilPrices(List<RestOilPriceItem> items) {
+    private void upsertRestOilPrices(
+            List<RestOilPriceItem> items, Map<String, String> restStopServiceAreaCodeByOilStandardRestCode) {
         LocalDateTime refreshedAt = LocalDateTime.now(clock);
-        restOilPriceRepository.saveAll(
-                items.stream().map(item -> upsertOne(item, refreshedAt)).toList());
+        restOilPriceRepository.saveAll(items.stream()
+                .map(item -> upsertOne(item, refreshedAt, restStopServiceAreaCodeByOilStandardRestCode))
+                .toList());
     }
 
-    private RestOilPriceEntity upsertOne(RestOilPriceItem item, LocalDateTime refreshedAt) {
+    private RestOilPriceEntity upsertOne(
+            RestOilPriceItem item,
+            LocalDateTime refreshedAt,
+            Map<String, String> restStopServiceAreaCodeByOilStandardRestCode) {
+        String restStopServiceAreaCode = restStopServiceAreaCodeByOilStandardRestCode.get(item.getServiceAreaCode2());
         return restOilPriceRepository
                 .findByServiceAreaCode2(item.getServiceAreaCode2())
                 .map(existing -> {
                     existing.updateFrom(item, refreshedAt);
+                    existing.updateRestStopServiceAreaCode(restStopServiceAreaCode);
                     return existing;
                 })
-                .orElseGet(() -> RestOilPriceEntity.from(item, refreshedAt));
+                .orElseGet(() -> createOilPrice(item, refreshedAt, restStopServiceAreaCodeByOilStandardRestCode));
+    }
+
+    private RestOilPriceEntity createOilPrice(
+            RestOilPriceItem item,
+            LocalDateTime refreshedAt,
+            Map<String, String> restStopServiceAreaCodeByOilStandardRestCode) {
+        RestOilPriceEntity oilPrice = RestOilPriceEntity.from(item, refreshedAt);
+        oilPrice.updateRestStopServiceAreaCode(
+                restStopServiceAreaCodeByOilStandardRestCode.get(item.getServiceAreaCode2()));
+        return oilPrice;
     }
 }

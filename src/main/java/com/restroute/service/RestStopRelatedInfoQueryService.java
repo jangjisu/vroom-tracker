@@ -31,46 +31,22 @@ public class RestStopRelatedInfoQueryService {
     @Transactional(readOnly = true)
     public RestStopRelatedInfo findByRestStop(RestStopEntity restStop) {
         String serviceAreaCode = restStop.getServiceAreaCode();
-        Optional<RestStopDetailEntity> detail = findDetail(restStop);
+        Optional<RestStopDetailEntity> detail = restStopDetailRepository.findByRestStopServiceAreaCode(serviceAreaCode);
         List<HighwayServiceAreaInfoEntity> infos = findHighwayServiceAreaInfos(serviceAreaCode);
-        List<RestOilEntity> oilConveniences = findOilStationConveniences(restStop);
+        List<RestOilEntity> oilConveniences = findOilStationConveniences(serviceAreaCode);
         Optional<String> oilServiceAreaCode2 = firstOilServiceAreaCode2(oilConveniences);
         Optional<RestOilPriceEntity> oilPrice = findOilPrice(serviceAreaCode, oilServiceAreaCode2);
-        List<RestFoodEntity> foods = findFoods(restStop);
+        List<RestFoodEntity> foods = findFoods(serviceAreaCode);
 
         return RestStopRelatedInfo.of(detail, infos, oilConveniences, oilServiceAreaCode2, oilPrice, foods);
     }
 
-    private Optional<RestStopDetailEntity> findDetail(RestStopEntity restStop) {
-        Optional<RestStopDetailEntity> detail =
-                restStopDetailRepository.findByRestStopServiceAreaCode(restStop.getServiceAreaCode());
-        if (detail.isPresent()) {
-            return detail;
-        }
-
-        return restStopDetailRepository.findByServiceAreaCode(restStop.getServiceAreaCode());
-    }
-
     private List<HighwayServiceAreaInfoEntity> findHighwayServiceAreaInfos(String serviceAreaCode) {
-        List<HighwayServiceAreaInfoEntity> infos =
-                highwayServiceAreaInfoRepository.findAllByRestStopServiceAreaCode(serviceAreaCode);
-        if (!infos.isEmpty()) {
-            return infos;
-        }
-
-        return highwayServiceAreaInfoRepository.findAllByBusinessFacilityCode(serviceAreaCode);
+        return highwayServiceAreaInfoRepository.findAllByRestStopServiceAreaCode(serviceAreaCode);
     }
 
-    private List<RestOilEntity> findOilStationConveniences(RestStopEntity restStop) {
-        List<RestOilEntity> oilConveniences =
-                restOilRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc(restStop.getServiceAreaCode());
-        if (!oilConveniences.isEmpty()) {
-            return oilConveniences;
-        }
-
-        String normalizedStationName = RestOilEntity.normalizeStationName(restStop.getUnitName());
-        return restOilRepository.findAllByRouteCodeAndNormalizedStationNameOrderByIdAsc(
-                restStop.getRouteNo(), normalizedStationName);
+    private List<RestOilEntity> findOilStationConveniences(String serviceAreaCode) {
+        return restOilRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc(serviceAreaCode);
     }
 
     private Optional<RestOilPriceEntity> findOilPrice(String serviceAreaCode, Optional<String> oilServiceAreaCode2) {
@@ -78,24 +54,12 @@ public class RestStopRelatedInfoQueryService {
             return Optional.empty();
         }
 
-        Optional<RestOilPriceEntity> oilPrice =
-                restOilPriceRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc(serviceAreaCode).stream()
-                        .findFirst();
-        if (oilPrice.isPresent()) {
-            return oilPrice;
-        }
-
-        return oilServiceAreaCode2.flatMap(restOilPriceRepository::findByServiceAreaCode2);
+        return restOilPriceRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc(serviceAreaCode).stream()
+                .findFirst();
     }
 
-    private List<RestFoodEntity> findFoods(RestStopEntity restStop) {
-        List<RestFoodEntity> foods =
-                restFoodRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc(restStop.getServiceAreaCode());
-        if (!foods.isEmpty()) {
-            return foods;
-        }
-
-        return restFoodRepository.findAllByStdRestCdOrderByIdAsc(restStop.getStdRestCd());
+    private List<RestFoodEntity> findFoods(String serviceAreaCode) {
+        return restFoodRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc(serviceAreaCode);
     }
 
     private Optional<String> firstOilServiceAreaCode2(List<RestOilEntity> oilConveniences) {

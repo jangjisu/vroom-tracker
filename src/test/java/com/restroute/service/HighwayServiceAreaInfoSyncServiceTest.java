@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,7 @@ import com.restroute.domain.HighwayServiceAreaInfoEntity;
 import com.restroute.repository.HighwayServiceAreaInfoRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,14 +42,23 @@ class HighwayServiceAreaInfoSyncServiceTest {
     private HighwayServiceAreaInfoRepository highwayServiceAreaInfoRepository;
 
     @Mock
+    private RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
+
+    @Mock
     private TransactionTemplate transactionTemplate;
 
     private HighwayServiceAreaInfoSyncService highwayServiceAreaInfoSyncService;
 
     @BeforeEach
     void setUp() {
+        lenient()
+                .when(restStopServiceAreaCodeMappingService.mapByServiceAreaCode())
+                .thenReturn(Map.of("A00282", "A00282"));
         highwayServiceAreaInfoSyncService = new HighwayServiceAreaInfoSyncService(
-                exApiClient, highwayServiceAreaInfoRepository, transactionTemplate);
+                exApiClient,
+                highwayServiceAreaInfoRepository,
+                restStopServiceAreaCodeMappingService,
+                transactionTemplate);
     }
 
     @Test
@@ -67,6 +78,27 @@ class HighwayServiceAreaInfoSyncServiceTest {
         assertThat(savedEntities)
                 .extracting(HighwayServiceAreaInfoEntity::getServiceAreaCode)
                 .containsExactly("000561", "000616");
+        assertThat(savedEntities)
+                .extracting(HighwayServiceAreaInfoEntity::getRestStopServiceAreaCode)
+                .containsExactly("A00282", "A00282");
+    }
+
+    @Test
+    @DisplayName("고속도로 휴게소 정보 저장 시 매핑되지 않은 row는 restStopServiceAreaCode를 null로 유지한다")
+    void refreshHighwayServiceAreaInfos_keepsRestStopServiceAreaCodeNullWhenUnmapped() {
+        runTransactionCallback();
+        when(restStopServiceAreaCodeMappingService.mapByServiceAreaCode()).thenReturn(Map.of());
+        when(highwayServiceAreaInfoRepository.findAll()).thenReturn(List.of());
+        HighwayServiceAreaInfoItem item = highwayServiceAreaInfoItem("000561", "북대전(논산)졸음쉼터");
+        when(exApiClient.getHighwayServiceAreaInfoList())
+                .thenReturn(highwayServiceAreaInfoResponse("SUCCESS", List.of(item)));
+
+        int savedCount = highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos();
+
+        assertThat(savedCount).isEqualTo(1);
+        assertThat(captureSavedEntities())
+                .extracting(HighwayServiceAreaInfoEntity::getRestStopServiceAreaCode)
+                .containsExactly((String) null);
     }
 
     @Test
@@ -94,14 +126,14 @@ class HighwayServiceAreaInfoSyncServiceTest {
     void refreshHighwayServiceAreaInfos_mergesDuplicateServiceAreaCodesWithinSameBatch() {
         runTransactionCallback();
         when(highwayServiceAreaInfoRepository.findAll()).thenReturn(List.of());
-        when(exApiClient.getHighwayServiceAreaInfoList())
-                .thenReturn(duplicateServiceAreaCodeResponse());
+        when(exApiClient.getHighwayServiceAreaInfoList()).thenReturn(duplicateServiceAreaCodeResponse());
 
         int savedCount = highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos();
 
         assertThat(savedCount).isEqualTo(2);
         List<HighwayServiceAreaInfoEntity> saved = captureSavedEntities();
-        List<HighwayServiceAreaInfoEntity> distinctRows = saved.stream().distinct().toList();
+        List<HighwayServiceAreaInfoEntity> distinctRows =
+                saved.stream().distinct().toList();
         assertThat(distinctRows).hasSize(1);
         assertThat(distinctRows.get(0).getServiceAreaName()).isEqualTo("이름이바뀐졸음쉼터");
     }

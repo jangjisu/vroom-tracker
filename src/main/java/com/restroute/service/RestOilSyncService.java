@@ -19,6 +19,7 @@ public class RestOilSyncService {
 
     private final ExApiClient exApiClient;
     private final RestOilRepository restOilRepository;
+    private final RestStopServiceAreaCodeMappingService restStopServiceAreaCodeMappingService;
     private final TransactionTemplate transactionTemplate;
 
     public int initializeRestOilsIfEmpty() {
@@ -47,33 +48,45 @@ public class RestOilSyncService {
     }
 
     private void upsertRestOils(List<RestOilItem> items) {
-        Map<OilKey, RestOilEntity> existingByKey = restOilRepository.findAll().stream()
+        Map<String, String> restStopServiceAreaCodeByOilKey =
+                restStopServiceAreaCodeMappingService.mapByOilRestStopKey();
+        Map<String, RestOilEntity> existingByKey = restOilRepository.findAll().stream()
                 .collect(Collectors.toMap(
-                        entity -> new OilKey(entity.getStandardRestCode(), entity.getConvenienceCode()),
+                        entity -> oilKey(entity.getStandardRestCode(), entity.getConvenienceCode()),
                         entity -> entity,
                         (first, second) -> first));
 
         List<RestOilEntity> toSave = new ArrayList<>();
         for (RestOilItem item : items) {
-            toSave.add(upsertOne(item, existingByKey));
+            toSave.add(upsertOne(item, existingByKey, restStopServiceAreaCodeByOilKey));
         }
 
         restOilRepository.saveAll(toSave);
     }
 
-    private RestOilEntity upsertOne(RestOilItem item, Map<OilKey, RestOilEntity> existingByKey) {
-        OilKey key = new OilKey(item.getStandardRestCode(), item.getConvenienceCode());
+    private RestOilEntity upsertOne(
+            RestOilItem item,
+            Map<String, RestOilEntity> existingByKey,
+            Map<String, String> restStopServiceAreaCodeByOilKey) {
+        String key = oilKey(item.getStandardRestCode(), item.getConvenienceCode());
         RestOilEntity existing = existingByKey.get(key);
+        String restStopServiceAreaCode =
+                restStopServiceAreaCodeByOilKey.get(RestStopServiceAreaCodeMappingService.oilRestStopKey(
+                        item.getRouteCode(), RestOilEntity.normalizeStationName(item.getStandardRestName())));
 
         if (existing == null) {
             RestOilEntity created = RestOilEntity.from(item);
+            created.updateRestStopServiceAreaCode(restStopServiceAreaCode);
             existingByKey.put(key, created);
             return created;
         }
 
         existing.updateFrom(item);
+        existing.updateRestStopServiceAreaCode(restStopServiceAreaCode);
         return existing;
     }
 
-    private record OilKey(String standardRestCode, String convenienceCode) {}
+    private String oilKey(String standardRestCode, String convenienceCode) {
+        return standardRestCode + "\n" + convenienceCode;
+    }
 }
