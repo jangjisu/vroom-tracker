@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restroute.client.exception.ExApiException;
 import com.restroute.client.response.HighwayServiceAreaInfoResponse;
+import com.restroute.client.response.RepresentativeFoodResponse;
 import com.restroute.client.response.RestBestfoodResponse;
 import com.restroute.client.response.RestOilPriceResponse;
 import com.restroute.client.response.RestOilResponse;
@@ -121,6 +122,33 @@ class ExApiClientTest {
         RestBestfoodResponse result = exApiClient.getRestBestfoodList(2);
 
         assertThat(result).isSameAs(response);
+    }
+
+    @Test
+    @DisplayName("대표 음식 API 호출 시 공통 인증키와 페이지 파라미터를 적용한다")
+    void getRepresentativeFoodServiceArea_appliesDefaultParameters() throws Exception {
+        RepresentativeFoodResponse response =
+                new ObjectMapper().readValue("{\"code\":\"SUCCESS\"}", RepresentativeFoodResponse.class);
+        when(exApiFeignClient.getRepresentativeFoodServiceArea("test-key", "json", "99", "2"))
+                .thenReturn(response);
+
+        RepresentativeFoodResponse result = exApiClient.getRepresentativeFoodServiceArea(2);
+
+        assertThat(result).isSameAs(response);
+    }
+
+    @Test
+    @DisplayName("대표 음식 API 실패에 실제 요청 URL과 오류 메시지를 포함한다")
+    void getRepresentativeFoodServiceArea_includesRequestUrlWhenApiFails() throws Exception {
+        RepresentativeFoodResponse response = new ObjectMapper()
+                .readValue("{\"code\":\"ERROR\",\"message\":\"인증키가 유효하지 않습니다.\"}", RepresentativeFoodResponse.class);
+        when(exApiFeignClient.getRepresentativeFoodServiceArea("test-key", "json", "99", "2"))
+                .thenReturn(response);
+
+        assertThatThrownBy(() -> exApiClient.getRepresentativeFoodServiceArea(2))
+                .isInstanceOf(ExApiException.class)
+                .hasMessage(
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/representFoodServiceArea?key=<redacted>&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
     }
 
     @Test
