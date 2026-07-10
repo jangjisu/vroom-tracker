@@ -48,9 +48,15 @@
 가격 데이터는 상세 조회마다 외부 API를 호출하지 않고 3시간마다 `curStateStation` 1~3페이지를
 동기화해 저장한다.
 
-휴게소 상세 응답은 `rest_oil`에서 조회한 첫 번째 `standard_rest_code`로 `rest_oil_price`를
-조회해 `oilInfo`에 가격 정보를 포함한다. `oilInfo.oilStationConveniences`는 같은 `rest_oil`
-조회 결과를 변환하며, 가격 데이터가 없어도 `oilInfo`와 편의시설 배열은 유지한다.
+휴게소 상세 화면은 하나의 통합 응답에 모든 데이터를 넣지 않는다. 기본 정보는 `rest_stop`과
+`rest_stop_detail`을 조합한 `basic-info` 응답으로 제공하고, 영업시설·주차 정보는
+`facilities` 응답으로 제공한다. 주유 정보는 `rest_oil`에서 조회한 첫 번째
+`standard_rest_code`로 `rest_oil_price`를 조회해 `oil-info` 응답으로 제공한다.
+`oilInfo.oilStationConveniences`는 같은 `rest_oil` 조회 결과를 변환하며, 가격 데이터가 없어도
+`oil-info` 응답과 편의시설 배열은 유지한다. 먹거리 정보는 `rest_food`를 `foods` 응답으로
+변환한다. 프론트엔드는 이 feature 응답들을 병렬로 조회하며, 기본 정보가 있어야 상세 화면을
+표시하고 나머지 응답이 없거나 외부 API를 사용할 수 없을 때는 해당 영역만 빈 상태로 처리한다.
+
 단건 가격 갱신 API도 같은 연결 키를 사용하며, upstream에서 단건 결과가 내려오면
 `rest_oil_price.service_area_code2` 기준으로 update 또는 insert한다.
 `rest_oil_price.last_refreshed_at`은 가격 row가 마지막으로 갱신된 시각이다. 단건 가격 갱신 API는
@@ -60,8 +66,10 @@
 연결 키는 `trade_date + product_code`이며, 같은 거래일의 데이터는 재조회 시 교체 저장한다.
 경로 결과 조회에서 오늘 평균가가 없으면 오피넷 `avgAllPrice.do`를 호출하고, 필수 유종
 휘발유(`B027`), 자동차용경유(`D047`), 자동차용부탄(`K015`)이 모두 있을 때만
-`nationalOilPriceSummary`와 휴게소별 평균 대비 차이값을 응답에 포함한다.
-오피넷 평균가는 휴게소 상세 응답에는 연결하지 않는다.
+`/api/national-oil-prices/summary`에서 전국 평균 유가 요약을 제공한다. 경로 응답은
+`destination`, `route`, `restStops`를 반환하며, `restStops`의 `comparisonSummary`에는
+전국 평균 대비 휴게소별 차이값이 포함될 수 있다. 전국 평균 유가 요약 자체는 경로 응답의
+최상위 필드로 포함하지 않는다. 오피넷 평균가는 휴게소 상세 응답에도 연결하지 않는다.
 
 휴게소 음식 메뉴(`restBestfoodList`) 연결은 2026-06-16 실측에서 `restBestfoodList.stdRestCd`가
 `rest_stop.std_rest_cd`와 직접 일치함을 확인했다. 서울만남(부산)휴게소가 양쪽 모두 `000001`이며,
