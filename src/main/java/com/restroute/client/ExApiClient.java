@@ -7,6 +7,7 @@ import static com.restroute.client.ExApiFeignClient.KEY_PARAMETER;
 import static com.restroute.client.ExApiFeignClient.LOCATION_INFO_REST_PATH;
 import static com.restroute.client.ExApiFeignClient.NUM_OF_ROWS_PARAMETER;
 import static com.restroute.client.ExApiFeignClient.PAGE_NO_PARAMETER;
+import static com.restroute.client.ExApiFeignClient.REPRESENTATIVE_FOOD_SERVICE_AREA_PATH;
 import static com.restroute.client.ExApiFeignClient.REST_BESTFOOD_LIST_PATH;
 import static com.restroute.client.ExApiFeignClient.REST_OIL_LIST_PATH;
 import static com.restroute.client.ExApiFeignClient.REST_STOP_NUM_OF_ROWS;
@@ -16,6 +17,7 @@ import static com.restroute.client.ExApiFeignClient.TYPE_PARAMETER;
 import com.restroute.client.exception.ExApiException;
 import com.restroute.client.response.ExApiResponse;
 import com.restroute.client.response.HighwayServiceAreaInfoResponse;
+import com.restroute.client.response.RepresentativeFoodResponse;
 import com.restroute.client.response.RestBestfoodResponse;
 import com.restroute.client.response.RestOilPriceResponse;
 import com.restroute.client.response.RestOilResponse;
@@ -134,6 +136,21 @@ public class ExApiClient {
         return fetch(
                 requestUrl,
                 () -> exApiFeignClient.getRestBestfoodList(
+                        apiKey, ExApiResponseFormat.JSON.value(), REST_STOP_NUM_OF_ROWS, pageNumber));
+    }
+
+    public RepresentativeFoodResponse getRepresentativeFoodServiceArea(int pageNo) {
+        String pageNumber = String.valueOf(pageNo);
+        String requestUrl = requestUrl(REPRESENTATIVE_FOOD_SERVICE_AREA_PATH)
+                .queryParam(NUM_OF_ROWS_PARAMETER, REST_STOP_NUM_OF_ROWS)
+                .queryParam(PAGE_NO_PARAMETER, pageNumber)
+                .build()
+                .encode()
+                .toUriString();
+
+        return fetch(
+                requestUrl,
+                () -> exApiFeignClient.getRepresentativeFoodServiceArea(
                         apiKey, ExApiResponseFormat.JSON.value(), REST_STOP_NUM_OF_ROWS, pageNumber));
     }
 

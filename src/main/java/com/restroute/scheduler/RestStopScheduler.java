@@ -1,6 +1,7 @@
 package com.restroute.scheduler;
 
 import com.restroute.service.HighwayServiceAreaInfoSyncService;
+import com.restroute.service.RepresentativeFoodSyncService;
 import com.restroute.service.RestFoodSyncService;
 import com.restroute.service.RestOilPriceSyncService;
 import com.restroute.service.RestOilSyncService;
@@ -24,6 +25,7 @@ public class RestStopScheduler {
     private final RestOilSyncService restOilSyncService;
     private final RestOilPriceSyncService restOilPriceSyncService;
     private final RestFoodSyncService restFoodSyncService;
+    private final RepresentativeFoodSyncService representativeFoodSyncService;
     private final RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
@@ -33,6 +35,7 @@ public class RestStopScheduler {
         refreshHighwayServiceAreaInfos();
         refreshRestOils();
         refreshRestFoods();
+        refreshRepresentativeFoods();
         backfillRestStopServiceAreaCodes();
     }
 
@@ -93,6 +96,15 @@ public class RestStopScheduler {
             log.info("Scheduled rest food sync completed. savedCount={}", savedCount);
         } catch (RuntimeException e) {
             log.error("Scheduled rest food sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void refreshRepresentativeFoods() {
+        try {
+            int savedCount = representativeFoodSyncService.refreshRepresentativeFoods();
+            log.info("Scheduled representative food sync completed. savedCount={}", savedCount);
+        } catch (RuntimeException e) {
+            log.error("Scheduled representative food sync failed. cause={}", e.getMessage(), e);
         }
     }
 

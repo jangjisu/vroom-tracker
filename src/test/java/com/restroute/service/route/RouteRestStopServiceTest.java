@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,11 +23,13 @@ import com.restroute.controller.response.RouteRestStopResponse;
 import com.restroute.controller.response.RouteRestStopResponse.AverageOilPrice;
 import com.restroute.controller.response.RouteRestStopResponse.NationalOilPriceSummary;
 import com.restroute.domain.HighwayServiceAreaInfoEntity;
+import com.restroute.domain.RepresentativeFoodEntity;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.RepresentativeFoodRepository;
 import com.restroute.repository.RestStopRepository;
 import com.restroute.service.NationalOilPriceService;
 import com.restroute.service.RestStopRelatedInfo;
@@ -61,6 +64,9 @@ class RouteRestStopServiceTest {
     @Mock
     private NationalOilPriceService nationalOilPriceService;
 
+    @Mock
+    private RepresentativeFoodRepository representativeFoodRepository;
+
     private RouteRestStopService service;
 
     @BeforeEach
@@ -77,7 +83,8 @@ class RouteRestStopServiceTest {
                 restStopRepository,
                 routeRestStopComparisonSummaryService,
                 routeRestStopRecommendationTagService,
-                nationalOilPriceService);
+                nationalOilPriceService,
+                representativeFoodRepository);
     }
 
     private KakaoLocalSearchResponse searchResult(String x, String y, String placeName, String addressName) {
@@ -213,10 +220,23 @@ class RouteRestStopServiceTest {
 
         RestStopEntity near0 = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
         RestStopEntity near1 = restStop("B", "B휴게소", "경부선", "127.5001", "37.5001");
+        RestStopEntity near2 = restStop("C", "C휴게소", "경부선", "128.0001", "38.0001");
         RestStopEntity far = restStop("C", "C휴게소", "중부선", "130.0", "40.0");
         RestStopEntity blank = restStop("D", "D", "x", "127.0", "   ");
         RestStopEntity nonNumeric = restStop("E", "E", "x", "127.0", "abc");
-        when(restStopRepository.findAll()).thenReturn(List.of(near1, near0, far, blank, nonNumeric));
+        when(restStopRepository.findAll()).thenReturn(List.of(near1, near0, near2, far, blank, nonNumeric));
+        RepresentativeFoodEntity representativeFood = mock(RepresentativeFoodEntity.class);
+        when(representativeFood.getServiceAreaCode()).thenReturn("A");
+        when(representativeFood.getBatchMenu()).thenReturn("말죽거리소고기국밥");
+        when(representativeFood.getSalePrice()).thenReturn("￦6,000");
+        RepresentativeFoodEntity emptyRepresentativeFood = mock(RepresentativeFoodEntity.class);
+        when(emptyRepresentativeFood.getServiceAreaCode()).thenReturn("B");
+        when(emptyRepresentativeFood.getSalePrice()).thenReturn("￦5,000");
+        RepresentativeFoodEntity noValueRepresentativeFood = mock(RepresentativeFoodEntity.class);
+        when(noValueRepresentativeFood.getServiceAreaCode()).thenReturn("C");
+        when(representativeFoodRepository.findAllByServiceAreaCodeIn(any()))
+                .thenReturn(List.of(
+                        representativeFood, representativeFood, emptyRepresentativeFood, noValueRepresentativeFood));
 
         RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
 
@@ -227,8 +247,30 @@ class RouteRestStopServiceTest {
         assertThat(response.route().path()).hasSize(3);
         assertThat(response.restStops())
                 .extracting(RouteRestStopResponse.RouteRestStopItem::serviceAreaCode)
-                .containsExactly("A", "B");
+                .containsExactly("A", "B", "C");
         assertThat(response.restStops().get(0).distanceFromRouteMeters()).isLessThan(50L);
+        assertThat(response.restStops().get(0).representativeFood().name()).isEqualTo("말죽거리소고기국밥");
+        assertThat(response.restStops().get(0).representativeFood().price()).isEqualTo("￦6,000");
+        assertThat(response.restStops().get(1).representativeFood().name()).isNull();
+        assertThat(response.restStops().get(1).representativeFood().price()).isEqualTo("￦5,000");
+        assertThat(response.restStops().get(2).representativeFood()).isNull();
+        verify(representativeFoodRepository, times(1)).findAllByServiceAreaCodeIn(any());
+    }
+
+    @Test
+    @DisplayName("경로 후보가 없으면 대표 음식 일괄 조회를 생략한다")
+    void success_skipsRepresentativeFoodQueryWhenNoCandidate() {
+        when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
+        when(kakaoMapClient.getDirections(anyString(), anyString()))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+        RestStopEntity nullCode = restStop(null, "null", "경부선", "127.0001", "37.0001");
+        RestStopEntity blankCode = restStop("   ", "blank", "경부선", "127.0002", "37.0002");
+        when(restStopRepository.findAll()).thenReturn(List.of(nullCode, blankCode));
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
+
+        assertThat(response.restStops()).hasSize(2);
+        verify(representativeFoodRepository, never()).findAllByServiceAreaCodeIn(any());
     }
 
     @Test

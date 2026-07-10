@@ -8,7 +8,9 @@ import com.restroute.controller.response.RouteRestStopResponse.Destination;
 import com.restroute.controller.response.RouteRestStopResponse.NationalOilPriceSummary;
 import com.restroute.controller.response.RouteRestStopResponse.RouteRestStopItem;
 import com.restroute.controller.response.RouteRestStopResponse.RouteSummary;
+import com.restroute.domain.RepresentativeFoodEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.RepresentativeFoodRepository;
 import com.restroute.repository.RestStopRepository;
 import com.restroute.service.NationalOilPriceService;
 import java.util.ArrayList;
@@ -32,6 +34,7 @@ public class RouteRestStopService {
     private final RouteRestStopComparisonSummaryService routeRestStopComparisonSummaryService;
     private final RouteRestStopRecommendationTagService routeRestStopRecommendationTagService;
     private final NationalOilPriceService nationalOilPriceService;
+    private final RepresentativeFoodRepository representativeFoodRepository;
 
     public RouteRestStopResponse findRouteRestStops(
             double originLatitude,
@@ -126,6 +129,7 @@ public class RouteRestStopService {
                 .filter(RouteRestStopCandidate::hasDirectionGroup)
                 .map(RouteRestStopCandidate::groupKey)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        Map<String, RepresentativeFoodEntity> representativeFoods = representativeFoodsByServiceAreaCode(candidates);
         List<RouteRestStopComparison> comparisons = candidates.stream()
                 .map(candidate -> RouteRestStopComparison.of(
                         candidate,
@@ -143,8 +147,41 @@ public class RouteRestStopService {
                                 groupCounts.getOrDefault(comparison.candidate().groupKey(), 0L) > 1)
                         .withComparison(
                                 comparison.summary(),
-                                routeRestStopRecommendationTagService.create(comparison, recommendationStandards)))
+                                routeRestStopRecommendationTagService.create(comparison, recommendationStandards))
+                        .withRepresentativeFood(
+                                representativeFood(comparison.candidate().restStop(), representativeFoods)))
                 .toList();
+    }
+
+    private Map<String, RepresentativeFoodEntity> representativeFoodsByServiceAreaCode(
+            List<RouteRestStopCandidate> candidates) {
+        List<String> serviceAreaCodes = candidates.stream()
+                .map(candidate -> candidate.restStop().getServiceAreaCode())
+                .filter(code -> code != null && !code.isBlank())
+                .distinct()
+                .toList();
+        if (serviceAreaCodes.isEmpty()) {
+            return Map.of();
+        }
+
+        return representativeFoodRepository.findAllByServiceAreaCodeIn(serviceAreaCodes).stream()
+                .collect(Collectors.toMap(
+                        RepresentativeFoodEntity::getServiceAreaCode, Function.identity(), (first, second) -> first));
+    }
+
+    private RouteRestStopResponse.RepresentativeFood representativeFood(
+            RestStopEntity restStop, Map<String, RepresentativeFoodEntity> representativeFoods) {
+        String serviceAreaCode = restStop.getServiceAreaCode();
+        if (serviceAreaCode == null || serviceAreaCode.isBlank()) {
+            return null;
+        }
+
+        RepresentativeFoodEntity food = representativeFoods.get(serviceAreaCode);
+        if (food == null || (food.getBatchMenu() == null && food.getSalePrice() == null)) {
+            return null;
+        }
+
+        return RouteRestStopResponse.RepresentativeFood.of(food.getBatchMenu(), food.getSalePrice());
     }
 
     private RouteSummary routeSummary(KakaoDirectionsResponse.Route route, RoutePolyline polyline) {

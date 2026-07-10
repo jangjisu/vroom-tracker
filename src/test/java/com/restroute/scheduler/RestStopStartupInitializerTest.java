@@ -6,6 +6,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.restroute.service.RepresentativeFoodSyncService;
 import com.restroute.service.RestFoodSyncService;
 import com.restroute.service.RestOilPriceSyncService;
 import com.restroute.service.RestOilSyncService;
@@ -43,6 +44,9 @@ class RestStopStartupInitializerTest {
     private RestFoodSyncService restFoodSyncService;
 
     @Mock
+    private RepresentativeFoodSyncService representativeFoodSyncService;
+
+    @Mock
     private RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
 
     @Mock
@@ -59,6 +63,8 @@ class RestStopStartupInitializerTest {
         when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(429);
         when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(226);
         when(restFoodSyncService.initializeRestFoodsIfEmpty()).thenReturn(7214);
+        when(representativeFoodSyncService.initializeRepresentativeFoodsIfEmpty())
+                .thenReturn(221);
         when(restStopServiceAreaCodeBackfillService.backfill())
                 .thenReturn(Map.of(
                         RestStopServiceAreaCodeBackfillService.REST_STOP_DETAIL_MAPPED_COUNT,
@@ -79,6 +85,7 @@ class RestStopStartupInitializerTest {
         verify(restOilSyncService).initializeRestOilsIfEmpty();
         verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
         verify(restFoodSyncService).initializeRestFoodsIfEmpty();
+        verify(representativeFoodSyncService).initializeRepresentativeFoodsIfEmpty();
         verify(restStopServiceAreaCodeBackfillService).backfill();
         InOrder inOrder = inOrder(
                 restStopSyncService,
@@ -86,12 +93,14 @@ class RestStopStartupInitializerTest {
                 restOilSyncService,
                 restOilPriceSyncService,
                 restFoodSyncService,
+                representativeFoodSyncService,
                 restStopServiceAreaCodeBackfillService);
         inOrder.verify(restStopSyncService).initializeRestStopsIfEmpty();
         inOrder.verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
         inOrder.verify(restOilSyncService).initializeRestOilsIfEmpty();
         inOrder.verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
         inOrder.verify(restFoodSyncService).initializeRestFoodsIfEmpty();
+        inOrder.verify(representativeFoodSyncService).initializeRepresentativeFoodsIfEmpty();
         inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
@@ -192,6 +201,20 @@ class RestStopStartupInitializerTest {
                 .doesNotThrowAnyException();
 
         assertThat(output).contains("Initial rest food sync failed.").contains("rest food API failed");
+    }
+
+    @Test
+    @DisplayName("대표 음식 초기 동기화 실패가 앱 시작으로 전파되지 않는다")
+    void run_doesNotPropagateRepresentativeFoodSyncFailure(CapturedOutput output) {
+        when(representativeFoodSyncService.initializeRepresentativeFoodsIfEmpty())
+                .thenThrow(new IllegalStateException("representative food API failed"));
+
+        assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
+                .doesNotThrowAnyException();
+
+        assertThat(output)
+                .contains("Initial representative food sync failed.")
+                .contains("representative food API failed");
     }
 
     @Test
