@@ -178,10 +178,17 @@ GitHub Actions로 테스트와 배포를 분리해서 운영합니다.
 |---|---|---|
 | `GET` | `/api/map-config` | 네이버 지도 클라이언트 키 설정 조회 |
 | `GET` | `/api/rest-stops` | 저장된 휴게소 목록 조회 |
-| `GET` | `/api/rest-stops/{serviceAreaCode}` | 휴게소 상세·주유·먹거리 조회 |
+| `GET` | `/api/rest-stops/{serviceAreaCode}` | 휴게소 기본 식별·위치 정보 조회 |
+| `GET` | `/api/rest-stops/{serviceAreaCode}/basic-info` | 휴게소 기본 정보와 주소·전화번호·브랜드 조회 |
+| `GET` | `/api/rest-stops/{serviceAreaCode}/facilities` | 편의시설과 주차 정보 조회 |
+| `GET` | `/api/rest-stops/{serviceAreaCode}/oil-info` | 주유 가격·정유사·전화번호·주유소 편의시설 조회 |
+| `GET` | `/api/rest-stops/{serviceAreaCode}/foods` | 대표 먹거리와 전체 메뉴 조회 |
 | `POST` | `/api/rest-stops/{serviceAreaCode}/oil-price/refresh` | 휴게소 주유 가격 단건 갱신 |
+| `GET` | `/api/national-oil-prices/summary` | 전국 평균 유가 요약 조회 |
 | `GET` | `/api/place-search?query=...` | 목적지 후보 목록 조회 |
-| `GET` | `/api/route-rest-stops` | 경로와 경로상 휴게소 조회 |
+| `GET` | `/api/route-rest-stops` | 경로와 경로상 휴게소의 비교 정보 조회 |
+
+휴게소 상세 화면은 기본 정보 조회를 기준으로 시설·주유·먹거리 정보를 각 feature API에서 함께 조회합니다. 전국 평균 유가 요약은 경로 응답에 포함되지 않으며 `/api/national-oil-prices/summary`에서 별도로 조회합니다.
 
 요청과 응답, 외부 API 연결 상세는 `API.md`를 참고합니다.
 
