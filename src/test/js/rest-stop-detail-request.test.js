@@ -25,6 +25,34 @@ function response({ ok = true, status = 200, body, jsonError } = {}) {
     };
 }
 
+function successSectionResponse(data = {}) {
+    return response({ body: { code: 'SUCCESS', data } });
+}
+
+function sectionResponseFor(url, sections = {}) {
+    if (url.endsWith('/basic-info')) {
+        return sections.basicInfo ?? successSectionResponse({ unitName: '휴게소' });
+    }
+
+    if (url.endsWith('/facilities')) {
+        return sections.facilities ?? successSectionResponse({});
+    }
+
+    if (url.endsWith('/oil-info')) {
+        return sections.oilInfo ?? successSectionResponse({});
+    }
+
+    if (url.endsWith('/foods')) {
+        return sections.foodMenu ?? successSectionResponse({ menus: [], sections: [] });
+    }
+
+    return response({
+        ok: false,
+        status: 404,
+        body: { code: 'NOT_FOUND', data: null }
+    });
+}
+
 test('a later selection ignores an earlier successful response', async () => {
     const first = deferred();
     const second = deferred();
@@ -32,33 +60,54 @@ test('a later selection ignores an earlier successful response', async () => {
     const signals = [];
     const fetchImpl = (url, { signal }) => {
         signals.push(signal);
-        return url.endsWith('/FIRST') ? first.promise : second.promise;
+        if (url.includes('/FIRST/basic-info')) {
+            return first.promise;
+        }
+
+        if (url.includes('/SECOND/basic-info')) {
+            return second.promise;
+        }
+
+        return Promise.resolve(sectionResponseFor(url));
     };
     const request = createRestStopDetailRequest({ fetchImpl, onState: (state) => states.push(state) });
 
     const firstLoad = request.load('FIRST');
     const secondLoad = request.load('SECOND');
-    second.resolve(response({ body: { code: 'SUCCESS', data: { unitName: '두 번째 상세' } } }));
+    second.resolve(successSectionResponse({ unitName: '두 번째 상세' }));
     await secondLoad;
-    first.resolve(response({ body: { code: 'SUCCESS', data: { unitName: '첫 번째 상세' } } }));
+    first.resolve(successSectionResponse({ unitName: '첫 번째 상세' }));
     await firstLoad;
 
     assert.deepEqual(states, [
         { status: 'loading' },
         { status: 'loading' },
-        { status: 'success', data: { unitName: '두 번째 상세' } }
+        {
+            status: 'success',
+            data: {
+                unitName: '두 번째 상세',
+                oilInfo: {},
+                foodMenu: { menus: [], sections: [] }
+            }
+        }
     ]);
-    assert.equal(signals[0].aborted, true);
-    assert.equal(signals[1].aborted, false);
+    assert.equal(signals.slice(0, 4).every((signal) => signal.aborted), true);
+    assert.equal(signals.slice(4).every((signal) => !signal.aborted), true);
 });
 
 test('a later selection ignores an earlier request error', async () => {
     const first = deferred();
     const states = [];
     const request = createRestStopDetailRequest({
-        fetchImpl: (url) => url.endsWith('/FIRST')
-            ? first.promise
-            : Promise.resolve(response({ body: { code: 'SUCCESS', data: { unitName: '두 번째 상세' } } })),
+        fetchImpl: (url) => {
+            if (url.includes('/FIRST/basic-info')) {
+                return first.promise;
+            }
+
+            return Promise.resolve(sectionResponseFor(url, {
+                basicInfo: successSectionResponse({ unitName: '두 번째 상세' })
+            }));
+        },
         onState: (state) => states.push(state)
     });
 
@@ -69,7 +118,11 @@ test('a later selection ignores an earlier request error', async () => {
 
     assert.deepEqual(states.at(-1), {
         status: 'success',
-        data: { unitName: '두 번째 상세' }
+        data: {
+            unitName: '두 번째 상세',
+            oilInfo: {},
+            foodMenu: { menus: [], sections: [] }
+        }
     });
     assert.equal(states.some((state) => state.status === 'error'), false);
 });
@@ -80,15 +133,19 @@ test('invalidate ignores a response that completes after the panel closes', asyn
     let requestSignal;
     const request = createRestStopDetailRequest({
         fetchImpl: (url, { signal }) => {
-            requestSignal = signal;
-            return pending.promise;
+            if (url.endsWith('/basic-info')) {
+                requestSignal = signal;
+                return pending.promise;
+            }
+
+            return Promise.resolve(sectionResponseFor(url));
         },
         onState: (state) => states.push(state)
     });
 
     const load = request.load('A00001');
     request.invalidate();
-    pending.resolve(response({ body: { code: 'SUCCESS', data: { unitName: '상세' } } }));
+    pending.resolve(successSectionResponse({ unitName: '상세' }));
     await load;
 
     assert.deepEqual(states, [
@@ -133,7 +190,7 @@ test('404 with SUCCESS emits the error state', async () => {
         fetchImpl: async () => response({
             ok: false,
             status: 404,
-            body: { code: 'SUCCESS', data: { restStopName: '휴게소' } }
+            body: { code: 'SUCCESS', data: { unitName: '휴게소' } }
         }),
         onState: (state) => states.push(state)
     });
@@ -246,18 +303,118 @@ test('an empty serviceAreaCode does not fetch and emits the error state', async 
     assert.deepEqual(states, [{ status: 'error' }]);
 });
 
-test('serviceAreaCode is trimmed before building the request URL', async () => {
-    let requestedUrl;
+test('load fetches feature detail APIs with a trimmed serviceAreaCode', async () => {
+    const requestedUrls = [];
+    const states = [];
     const request = createRestStopDetailRequest({
         fetchImpl: async (url) => {
-            requestedUrl = url;
-            return response({ body: { code: 'SUCCESS', data: { restStopName: '휴게소' } } });
-        }
+            requestedUrls.push(url);
+            return sectionResponseFor(url, {
+                basicInfo: successSectionResponse({
+                    unitName: '휴게소',
+                    routeName: '경부선',
+                    address: '주소'
+                }),
+                facilities: successSectionResponse({
+                    direction: '부산',
+                    compactCarParkingCount: 3
+                }),
+                oilInfo: successSectionResponse({
+                    gasolinePrice: '1,699원'
+                }),
+                foodMenu: successSectionResponse({
+                    menus: [{ foodName: '돈가스' }],
+                    sections: []
+                })
+            });
+        },
+        onState: (state) => states.push(state)
     });
 
     await request.load('  A00001  ');
 
-    assert.equal(requestedUrl, '/api/rest-stops/A00001');
+    assert.deepEqual(requestedUrls, [
+        '/api/rest-stops/A00001/basic-info',
+        '/api/rest-stops/A00001/facilities',
+        '/api/rest-stops/A00001/oil-info',
+        '/api/rest-stops/A00001/foods'
+    ]);
+    assert.deepEqual(states.at(-1), {
+        status: 'success',
+        data: {
+            unitName: '휴게소',
+            routeName: '경부선',
+            address: '주소',
+            direction: '부산',
+            compactCarParkingCount: 3,
+            oilInfo: {
+                gasolinePrice: '1,699원'
+            },
+            foodMenu: {
+                menus: [{ foodName: '돈가스' }],
+                sections: []
+            }
+        }
+    });
+});
+
+test('optional feature API failures keep the basic detail response visible', async () => {
+    const states = [];
+    const request = createRestStopDetailRequest({
+        fetchImpl: async (url) => sectionResponseFor(url, {
+            basicInfo: successSectionResponse({ unitName: '휴게소' }),
+            facilities: response({
+                ok: false,
+                status: 500,
+                body: { code: 'INTERNAL_SERVER_ERROR', data: null }
+            }),
+            oilInfo: response({
+                ok: false,
+                status: 404,
+                body: { code: 'NOT_FOUND', data: null }
+            }),
+            foodMenu: response({ jsonError: new SyntaxError('invalid JSON') })
+        }),
+        onState: (state) => states.push(state)
+    });
+
+    await request.load('A00001');
+
+    assert.deepEqual(states.at(-1), {
+        status: 'success',
+        data: {
+            unitName: '휴게소',
+            oilInfo: null,
+            foodMenu: { menus: [], sections: [] }
+        }
+    });
+});
+
+test('optional EXTERNAL_API_UNAVAILABLE is reported with the successful detail response', async () => {
+    const states = [];
+    const request = createRestStopDetailRequest({
+        fetchImpl: async (url) => sectionResponseFor(url, {
+            basicInfo: successSectionResponse({ unitName: '휴게소' }),
+            oilInfo: response({
+                ok: false,
+                status: 503,
+                body: { code: 'EXTERNAL_API_UNAVAILABLE', data: null }
+            })
+        }),
+        onState: (state) => states.push(state)
+    });
+
+    await request.load('A00001');
+
+    assert.deepEqual(states.at(-1), {
+        status: 'success',
+        externalUnavailable: true,
+        data: {
+            unitName: '휴게소',
+            oilInfo: null,
+            foodMenu: { menus: [], sections: [] }
+        }
+    });
 });
 
 test('refreshOilPrice posts to the refresh endpoint and returns oil info', async () => {

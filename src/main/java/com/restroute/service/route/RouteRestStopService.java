@@ -61,8 +61,7 @@ public class RouteRestStopService {
 
         Optional<NationalOilPriceSummary> nationalOilPriceSummary = nationalOilPriceService.getTodaySummary();
         List<RouteRestStopItem> restStops = restStopsOnRoute(polyline, radiusMeters, nationalOilPriceSummary);
-        return RouteRestStopResponse.of(
-                destination, routeSummary(route, polyline), nationalOilPriceSummary.orElse(null), restStops);
+        return RouteRestStopResponse.of(destination, routeSummary(route, polyline), restStops);
     }
 
     private String routeFailureMessage(Integer resultCode) {
