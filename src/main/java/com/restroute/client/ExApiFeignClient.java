@@ -1,7 +1,6 @@
 package com.restroute.client;
 
 import com.restroute.client.response.HighwayServiceAreaInfoResponse;
-import com.restroute.client.response.RepresentativeFoodResponse;
 import com.restroute.client.response.RestBestfoodResponse;
 import com.restroute.client.response.RestOilPriceResponse;
 import com.restroute.client.response.RestOilResponse;
@@ -23,7 +22,6 @@ public interface ExApiFeignClient {
     String REST_OIL_LIST_PATH = "/openapi/restinfo/restOilList";
     String CUR_STATE_STATION_PATH = "/openapi/business/curStateStation";
     String REST_BESTFOOD_LIST_PATH = "/openapi/restinfo/restBestfoodList";
-    String REPRESENTATIVE_FOOD_SERVICE_AREA_PATH = "/openapi/business/representFoodServiceArea";
 
     String KEY_PARAMETER = "key";
     String TYPE_PARAMETER = "type";
@@ -71,13 +69,6 @@ public interface ExApiFeignClient {
 
     @GetMapping(REST_BESTFOOD_LIST_PATH)
     RestBestfoodResponse getRestBestfoodList(
-            @RequestParam(KEY_PARAMETER) String key,
-            @RequestParam(TYPE_PARAMETER) String type,
-            @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,
-            @RequestParam(value = PAGE_NO_PARAMETER, required = false) String pageNo);
-
-    @GetMapping(REPRESENTATIVE_FOOD_SERVICE_AREA_PATH)
-    RepresentativeFoodResponse getRepresentativeFoodServiceArea(
             @RequestParam(KEY_PARAMETER) String key,
             @RequestParam(TYPE_PARAMETER) String type,
             @RequestParam(value = NUM_OF_ROWS_PARAMETER, required = false) String numOfRows,

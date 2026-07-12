@@ -1,6 +1,5 @@
 package com.restroute.scheduler;
 
-import com.restroute.service.RepresentativeFoodSyncService;
 import com.restroute.service.RestFoodSyncService;
 import com.restroute.service.RestOilPriceSyncService;
 import com.restroute.service.RestOilSyncService;
@@ -26,7 +25,6 @@ public class RestStopStartupInitializer implements ApplicationRunner {
     private final RestOilSyncService restOilSyncService;
     private final RestOilPriceSyncService restOilPriceSyncService;
     private final RestFoodSyncService restFoodSyncService;
-    private final RepresentativeFoodSyncService representativeFoodSyncService;
     private final RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
 
     @Override
@@ -36,7 +34,6 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         initializeRestOils();
         initializeRestOilPrices();
         initializeRestFoods();
-        initializeRepresentativeFoods();
         backfillRestStopServiceAreaCodes();
     }
 
@@ -107,21 +104,6 @@ public class RestStopStartupInitializer implements ApplicationRunner {
             log.info("Initial rest food sync skipped because rest_food table already has data.");
         } catch (RuntimeException e) {
             log.error("Initial rest food sync failed. cause={}", e.getMessage(), e);
-        }
-    }
-
-    private void initializeRepresentativeFoods() {
-        try {
-            int savedCount = representativeFoodSyncService.initializeRepresentativeFoodsIfEmpty();
-            if (savedCount > 0) {
-                log.info("Initial representative food sync completed. savedCount={}", savedCount);
-                return;
-            }
-
-            log.info(
-                    "Initial representative food sync skipped because rest_representative_food table already has data.");
-        } catch (RuntimeException e) {
-            log.error("Initial representative food sync failed. cause={}", e.getMessage(), e);
         }
     }
 

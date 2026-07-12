@@ -32,8 +32,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
             boolean hasDirectionAlternative,
             long distanceFromRouteMeters,
             ComparisonSummary comparisonSummary,
-            List<RecommendationTag> recommendationTags,
-            RepresentativeFood representativeFood) {
+            List<RecommendationTag> recommendationTags) {
 
         public RouteRestStopItem(
                 String serviceAreaCode,
@@ -51,8 +50,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     false,
                     distanceFromRouteMeters,
                     ComparisonSummary.empty(),
-                    List.of(),
-                    null);
+                    List.of());
         }
 
         public static RouteRestStopItem of(
@@ -71,8 +69,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     false,
                     distanceFromRouteMeters,
                     ComparisonSummary.empty(),
-                    List.of(),
-                    null);
+                    List.of());
         }
 
         public RouteRestStopItem withDirectionAlternative(boolean hasDirectionAlternative) {
@@ -85,8 +82,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     hasDirectionAlternative,
                     distanceFromRouteMeters,
                     comparisonSummary,
-                    recommendationTags,
-                    representativeFood);
+                    recommendationTags);
         }
 
         public RouteRestStopItem withComparison(
@@ -100,29 +96,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     hasDirectionAlternative,
                     distanceFromRouteMeters,
                     comparisonSummary,
-                    List.copyOf(recommendationTags),
-                    representativeFood);
-        }
-
-        public RouteRestStopItem withRepresentativeFood(RepresentativeFood representativeFood) {
-            return new RouteRestStopItem(
-                    serviceAreaCode,
-                    unitName,
-                    routeName,
-                    latitude,
-                    longitude,
-                    hasDirectionAlternative,
-                    distanceFromRouteMeters,
-                    comparisonSummary,
-                    recommendationTags,
-                    representativeFood);
-        }
-    }
-
-    public record RepresentativeFood(String name, String price) {
-
-        public static RepresentativeFood of(String name, String price) {
-            return new RepresentativeFood(name, price);
+                    List.copyOf(recommendationTags));
         }
     }
 
