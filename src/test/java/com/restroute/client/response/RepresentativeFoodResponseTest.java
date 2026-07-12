@@ -38,6 +38,7 @@ class RepresentativeFoodResponseTest {
 
         assertThat(response.isSuccess()).isTrue();
         assertThat(response.getCount()).isEqualTo(221);
+        assertThat(response.getTotalCount()).isEqualTo(221);
         assertThat(response.getPageNo()).isEqualTo(1);
         assertThat(response.getNumOfRows()).isEqualTo(99);
         assertThat(response.getPageSize()).isEqualTo(3);
@@ -70,6 +71,7 @@ class RepresentativeFoodResponseTest {
         assertThat(response.getList().get(0).getDirection()).isNull();
         assertThat(response.getList().get(0).getBatchMenu()).isNull();
         assertThat(response.getList().get(0).getSalePrice()).isNull();
+        assertThat(response.getTotalCount()).isZero();
         assertThat(response.getTotalPageCount()).isEqualTo(1);
     }
 

@@ -127,14 +127,13 @@ class ExApiClientTest {
     @Test
     @DisplayName("대표 음식 API 호출 시 공통 인증키와 페이지 파라미터를 적용한다")
     void getRepresentativeFoodServiceArea_appliesDefaultParameters() throws Exception {
-        RepresentativeFoodResponse response =
-                new ObjectMapper().readValue("{\"code\":\"SUCCESS\"}", RepresentativeFoodResponse.class);
-        when(exApiFeignClient.getRepresentativeFoodServiceArea("test-key", "json", "99", "2"))
+        RepresentativeFoodResponse response = new ObjectMapper()
+                .readValue("{\"code\":\"SUCCESS\",\"message\":\"ok\"}", RepresentativeFoodResponse.class);
+        when(exApiFeignClient.getRepresentativeFoodServiceArea("test-key", "json", "99", "3"))
                 .thenReturn(response);
 
-        RepresentativeFoodResponse result = exApiClient.getRepresentativeFoodServiceArea(2);
-
-        assertThat(result).isSameAs(response);
+        assertThat(exApiClient.getRepresentativeFoodServiceArea(3)).isSameAs(response);
+        assertThat(response.getErrorMessage()).isEqualTo("ok");
     }
 
     @Test

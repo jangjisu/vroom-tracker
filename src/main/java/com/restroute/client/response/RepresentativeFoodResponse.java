@@ -29,6 +29,10 @@ public class RepresentativeFoodResponse implements ExApiResponse {
         return message;
     }
 
+    public int getTotalCount() {
+        return count;
+    }
+
     public int getTotalPageCount() {
         return pageSize > 0 ? pageSize : 1;
     }

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.restroute.service.HighwayServiceAreaInfoSyncService;
+import com.restroute.service.RepresentativeFoodSyncService;
 import com.restroute.service.RestFoodSyncService;
 import com.restroute.service.RestOilPriceSyncService;
 import com.restroute.service.RestOilSyncService;
@@ -45,6 +46,9 @@ class RestStopSchedulerTest {
     private RestFoodSyncService restFoodSyncService;
 
     @Mock
+    private RepresentativeFoodSyncService representativeFoodSyncService;
+
+    @Mock
     private RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
 
     @InjectMocks
@@ -58,6 +62,7 @@ class RestStopSchedulerTest {
         when(highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos()).thenReturn(581);
         when(restOilSyncService.refreshRestOils()).thenReturn(429);
         when(restFoodSyncService.refreshRestFoods()).thenReturn(7214);
+        when(representativeFoodSyncService.refreshRepresentativeFoods()).thenReturn(221);
 
         restStopScheduler.syncRestStopsDaily();
 
@@ -66,18 +71,21 @@ class RestStopSchedulerTest {
         verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         verify(restOilSyncService).refreshRestOils();
         verify(restFoodSyncService).refreshRestFoods();
+        verify(representativeFoodSyncService).refreshRepresentativeFoods();
         InOrder inOrder = inOrder(
                 restStopSyncService,
                 restStopDetailSyncService,
                 highwayServiceAreaInfoSyncService,
                 restOilSyncService,
                 restFoodSyncService,
+                representativeFoodSyncService,
                 restStopServiceAreaCodeBackfillService);
         inOrder.verify(restStopSyncService).refreshRestStops();
         inOrder.verify(restStopDetailSyncService).refreshRestStopDetails();
         inOrder.verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         inOrder.verify(restOilSyncService).refreshRestOils();
         inOrder.verify(restFoodSyncService).refreshRestFoods();
+        inOrder.verify(representativeFoodSyncService).refreshRepresentativeFoods();
         inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
@@ -158,6 +166,20 @@ class RestStopSchedulerTest {
         assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
 
         assertThat(output).contains("Scheduled rest food sync failed.").contains("rest food API failed");
+        verify(restStopServiceAreaCodeBackfillService).backfill();
+    }
+
+    @Test
+    @DisplayName("대표 음식 동기화 실패를 로그로 기록하고 다음 작업을 계속한다")
+    void syncRestStopsDaily_doesNotPropagateRepresentativeFoodFailure(CapturedOutput output) {
+        when(representativeFoodSyncService.refreshRepresentativeFoods())
+                .thenThrow(new IllegalStateException("representative food API failed"));
+
+        assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
+
+        assertThat(output)
+                .contains("Scheduled representative food sync failed.")
+                .contains("representative food API failed");
         verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
