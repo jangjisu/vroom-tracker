@@ -1923,6 +1923,18 @@ export function formatRouteComparisonSummary(restStop) {
         .map((parts) => parts.join(' · '));
 }
 
+export function formatRepresentativeFood(representativeFood) {
+    const name = formatText(representativeFood?.name, '');
+    if (name === '') {
+        return null;
+    }
+
+    return {
+        name,
+        price: formatText(representativeFood?.price, '')
+    };
+}
+
 function routeResultFuelItems(restStop) {
     const summary = restStop?.comparisonSummary;
     if (!summary || typeof summary !== 'object') {
@@ -1984,6 +1996,36 @@ function createRouteResultItem(restStop, index) {
     meta.className = 'route-result-meta';
     meta.textContent = formatText(restStop?.routeName, '노선 정보 없음');
     item.appendChild(meta);
+
+    const representativeFood = formatRepresentativeFood(restStop?.representativeFood);
+    if (representativeFood) {
+        const foodInfo = document.createElement('div');
+        foodInfo.className = 'route-result-representative-food';
+
+        const foodNameLabel = document.createElement('span');
+        foodNameLabel.className = 'route-result-representative-food-label';
+        foodNameLabel.textContent = '대표 메뉴';
+        foodInfo.appendChild(foodNameLabel);
+
+        const foodName = document.createElement('span');
+        foodName.className = 'route-result-representative-food-name';
+        foodName.textContent = representativeFood.name;
+        foodInfo.appendChild(foodName);
+
+        if (representativeFood.price !== '') {
+            const foodPriceLabel = document.createElement('span');
+            foodPriceLabel.className = 'route-result-representative-food-label';
+            foodPriceLabel.textContent = '가격';
+            foodInfo.appendChild(foodPriceLabel);
+
+            const foodPrice = document.createElement('span');
+            foodPrice.className = 'route-result-representative-food-price';
+            foodPrice.textContent = representativeFood.price;
+            foodInfo.appendChild(foodPrice);
+        }
+
+        item.appendChild(foodInfo);
+    }
 
     const fuels = routeResultFuelItems(restStop);
     if (fuels.length > 0) {

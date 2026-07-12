@@ -7,6 +7,7 @@ import {
     formatOilPriceDelta,
     formatNationalOilPriceSummary,
     formatOilPriceComparison,
+    formatRepresentativeFood,
     formatRouteComparisonSummary,
     isRouteGlobalLoadingState,
     renderNationalOilPriceState,
@@ -221,6 +222,22 @@ test('formatRouteComparisonSummary renders prices, parking, food and facility co
             facilityCount: 1
         }
     }), ['경유 1,550원', '시설 1개']);
+});
+
+test('formatRepresentativeFood preserves menu and raw price text', () => {
+    assert.deepEqual(formatRepresentativeFood({ name: '말죽거리소고기국밥', price: '￦6,000' }), {
+        name: '말죽거리소고기국밥',
+        price: '￦6,000'
+    });
+});
+
+test('formatRepresentativeFood omits missing menus and allows a missing price', () => {
+    assert.deepEqual(formatRepresentativeFood({ name: '대표 메뉴', price: null }), {
+        name: '대표 메뉴',
+        price: ''
+    });
+    assert.equal(formatRepresentativeFood(null), null);
+    assert.equal(formatRepresentativeFood({ name: '   ', price: '￦6,000' }), null);
 });
 
 test('formatOilPriceComparison renders average diff only when it exists', () => {

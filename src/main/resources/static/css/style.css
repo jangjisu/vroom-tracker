@@ -614,6 +614,41 @@ body.global-loading-open {
     font-size: 0.8rem;
 }
 
+.route-result-representative-food {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.15rem 0.5rem;
+    margin-top: 0.6rem;
+    padding: 0.5rem 0.6rem;
+    border-left: 3px solid #f59f00;
+    background-color: #fff9db;
+    color: #343a40;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.route-result-representative-food-label {
+    color: #7a5200;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.route-result-representative-food-name,
+.route-result-representative-food-price {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.route-result-representative-food-name {
+    font-weight: 700;
+}
+
+.route-result-representative-food-price {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 .route-result-tags {
     display: flex;
     flex-wrap: wrap;
