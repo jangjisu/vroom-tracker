@@ -274,8 +274,8 @@ class RouteRestStopServiceTest {
     }
 
     @Test
-    @DisplayName("경로 결과에 전국 평균가 요약과 유종별 평균 대비 차이값을 추가한다")
-    void success_addsNationalOilPriceSummaryAndPriceDiffs() {
+    @DisplayName("전국 평균가 요약은 응답 필드로 노출하지 않고 유종별 평균 대비 차이값 계산에만 사용한다")
+    void success_usesNationalOilPriceSummaryForPriceDiffsOnly() {
         when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
         when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
                 .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
@@ -296,8 +296,6 @@ class RouteRestStopServiceTest {
 
         RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
 
-        assertThat(response.nationalOilPriceSummary()).isNotNull();
-        assertThat(response.nationalOilPriceSummary().tradeDate()).isEqualTo("2026.07.07");
         RouteRestStopResponse.ComparisonSummary summary =
                 response.restStops().get(0).comparisonSummary();
         assertThat(summary.gasolinePriceDiffFromAverage()).isEqualTo(-43);

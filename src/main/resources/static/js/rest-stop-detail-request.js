@@ -1,4 +1,10 @@
 const REST_STOPS_ENDPOINT = '/api/rest-stops';
+const DETAIL_SECTION_REQUESTS = [
+    { key: 'basicInfo', path: 'basic-info', required: true },
+    { key: 'facilities', path: 'facilities', required: false },
+    { key: 'oilInfo', path: 'oil-info', required: false },
+    { key: 'foodMenu', path: 'foods', required: false }
+];
 
 export function createRestStopDetailRequest({ fetchImpl = fetch, onState = () => {} } = {}) {
     let currentRequestId = 0;
@@ -27,27 +33,35 @@ export function createRestStopDetailRequest({ fetchImpl = fetch, onState = () =>
         emitIfCurrent(requestId, { status: 'loading' });
 
         try {
-            const response = await fetchImpl(
-                `${REST_STOPS_ENDPOINT}/${encodeURIComponent(normalizedServiceAreaCode)}`,
-                { signal: activeRequestController.signal }
-            );
-            const body = await response.json();
+            const sectionResults = await Promise.all(DETAIL_SECTION_REQUESTS.map((section) => fetchDetailSection(
+                fetchImpl,
+                normalizedServiceAreaCode,
+                section,
+                activeRequestController.signal
+            )));
+            const basicInfoResult = findSectionResult(sectionResults, 'basicInfo');
 
-            if (response.status === 404 && body?.code === 'NOT_FOUND') {
+            if (basicInfoResult?.status === 'not-found') {
                 emitIfCurrent(requestId, { status: 'not-found' });
                 return;
             }
 
-            if (body?.code === 'EXTERNAL_API_UNAVAILABLE') {
+            if (basicInfoResult?.status === 'external-unavailable') {
                 emitIfCurrent(requestId, { status: 'external-unavailable' });
                 return;
             }
 
-            const hasValidData = body?.data !== null
-                && typeof body?.data === 'object'
-                && !Array.isArray(body.data);
-            if (response.ok && body?.code === 'SUCCESS' && hasValidData) {
-                emitIfCurrent(requestId, { status: 'success', data: body.data });
+            if (basicInfoResult?.status === 'success') {
+                const state = {
+                    status: 'success',
+                    data: buildDetailData(sectionResults)
+                };
+
+                if (hasExternalUnavailableSection(sectionResults)) {
+                    state.externalUnavailable = true;
+                }
+
+                emitIfCurrent(requestId, state);
                 return;
             }
 
@@ -105,4 +119,80 @@ export function createRestStopDetailRequest({ fetchImpl = fetch, onState = () =>
     }
 
     return { invalidate, load, refreshOilPrice };
+}
+
+async function fetchDetailSection(fetchImpl, serviceAreaCode, section, signal) {
+    try {
+        const response = await fetchImpl(
+            `${REST_STOPS_ENDPOINT}/${encodeURIComponent(serviceAreaCode)}/${section.path}`,
+            { signal }
+        );
+        const body = await response.json();
+
+        if (response.status === 404 && body?.code === 'NOT_FOUND') {
+            return sectionResult(section, 'not-found');
+        }
+
+        if (body?.code === 'EXTERNAL_API_UNAVAILABLE') {
+            return sectionResult(section, 'external-unavailable');
+        }
+
+        if (response.ok && body?.code === 'SUCCESS' && hasValidApiData(body)) {
+            return sectionResult(section, 'success', body.data);
+        }
+
+        return sectionResult(section, 'error');
+    } catch (error) {
+        if (error?.name === 'AbortError') {
+            throw error;
+        }
+
+        return sectionResult(section, 'error');
+    }
+}
+
+function sectionResult(section, status, data) {
+    return {
+        key: section.key,
+        required: section.required,
+        status,
+        data
+    };
+}
+
+function findSectionResult(sectionResults, key) {
+    return sectionResults.find((result) => result.key === key);
+}
+
+function buildDetailData(sectionResults) {
+    const basicInfo = findSectionResult(sectionResults, 'basicInfo')?.data ?? {};
+    const facilities = optionalSectionData(sectionResults, 'facilities', {});
+    const oilInfo = optionalSectionData(sectionResults, 'oilInfo', null);
+    const foodMenu = optionalSectionData(sectionResults, 'foodMenu', emptyFoodMenu());
+
+    return {
+        ...basicInfo,
+        ...facilities,
+        oilInfo,
+        foodMenu
+    };
+}
+
+function optionalSectionData(sectionResults, key, fallback) {
+    const result = findSectionResult(sectionResults, key);
+    return result?.status === 'success' ? result.data : fallback;
+}
+
+function emptyFoodMenu() {
+    return { menus: [], sections: [] };
+}
+
+function hasExternalUnavailableSection(sectionResults) {
+    return sectionResults.some((result) => !result.required && result.status === 'external-unavailable');
+}
+
+function hasValidApiData(body) {
+    return body?.data !== null
+        && typeof body?.data === 'object'
+        && !Array.isArray(body.data);
 }

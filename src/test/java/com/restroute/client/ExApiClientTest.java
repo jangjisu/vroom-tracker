@@ -137,6 +137,20 @@ class ExApiClientTest {
     }
 
     @Test
+    @DisplayName("대표 음식 API 실패에 실제 요청 URL과 오류 메시지를 포함한다")
+    void getRepresentativeFoodServiceArea_includesRequestUrlWhenApiFails() throws Exception {
+        RepresentativeFoodResponse response = new ObjectMapper()
+                .readValue("{\"code\":\"ERROR\",\"message\":\"인증키가 유효하지 않습니다.\"}", RepresentativeFoodResponse.class);
+        when(exApiFeignClient.getRepresentativeFoodServiceArea("test-key", "json", "99", "2"))
+                .thenReturn(response);
+
+        assertThatThrownBy(() -> exApiClient.getRepresentativeFoodServiceArea(2))
+                .isInstanceOf(ExApiException.class)
+                .hasMessage(
+                        "Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/representFoodServiceArea?key=<redacted>&type=json&numOfRows=99&pageNo=2, message=인증키가 유효하지 않습니다.");
+    }
+
+    @Test
     @DisplayName("휴게소 음식 메뉴 API 실패에 실제 요청 URL과 오류 메시지를 포함한다")
     void getRestBestfoodList_includesRequestUrlAndResponseMessageWhenApiFails() throws Exception {
         RestBestfoodResponse response = new ObjectMapper()

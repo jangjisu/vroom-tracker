@@ -2,27 +2,11 @@ package com.restroute.controller.response;
 
 import java.util.List;
 
-public record RouteRestStopResponse(
-        Destination destination,
-        RouteSummary route,
-        NationalOilPriceSummary nationalOilPriceSummary,
-        List<RouteRestStopItem> restStops) {
-
-    public RouteRestStopResponse(Destination destination, RouteSummary route, List<RouteRestStopItem> restStops) {
-        this(destination, route, null, restStops);
-    }
+public record RouteRestStopResponse(Destination destination, RouteSummary route, List<RouteRestStopItem> restStops) {
 
     public static RouteRestStopResponse of(
             Destination destination, RouteSummary route, List<RouteRestStopItem> restStops) {
-        return new RouteRestStopResponse(destination, route, null, restStops);
-    }
-
-    public static RouteRestStopResponse of(
-            Destination destination,
-            RouteSummary route,
-            NationalOilPriceSummary nationalOilPriceSummary,
-            List<RouteRestStopItem> restStops) {
-        return new RouteRestStopResponse(destination, route, nationalOilPriceSummary, restStops);
+        return new RouteRestStopResponse(destination, route, restStops);
     }
 
     public record Destination(String name, double latitude, double longitude) {
