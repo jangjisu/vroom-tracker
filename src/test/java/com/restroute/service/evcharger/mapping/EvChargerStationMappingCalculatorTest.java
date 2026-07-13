@@ -70,6 +70,19 @@ class EvChargerStationMappingCalculatorTest {
     }
 
     @Test
+    void calculate_matchesAddressFromAnyDetailBelongingToRestStop() throws Exception {
+        RestStopEntity restStop = restStop("다른 휴게소", "A00001");
+        RestStopDetailEntity firstDetail = detail("A00001", "다른 휴게소", "일치하지 않는 주소");
+        RestStopDetailEntity secondDetail = detail("A00001", "다른 휴게소", "서울특별시 서초구 양재대로 12길 73-71");
+        EvChargerEntity charger = charger("ME1", "서울만남(부산) 휴게소", "서울특별시 서초구 양재대로12길73-71", "37.4600218", "127.0420378");
+
+        assertThat(calculator.calculate(List.of(restStop), List.of(firstDetail, secondDetail), List.of(charger)))
+                .singleElement()
+                .extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .isEqualTo("A00001");
+    }
+
+    @Test
     void calculate_usesAddressToDisambiguateSameNameCandidates() throws Exception {
         RestStopEntity first = restStop("서울만남(부산)휴게소", "A00001");
         RestStopEntity second = restStop("서울만남(부산)휴게소", "A00002");
