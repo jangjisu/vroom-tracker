@@ -26,7 +26,8 @@ public class EvChargerStationMappingCalculator {
         List<EvChargerStationMappingEntity> mappings = new ArrayList<>();
 
         for (EvChargerEntity charger : distinctChargers) {
-            Optional<DistanceCandidate> matchedCandidate = findMatchedCandidate(charger, restStops, restStopDetails);
+            Optional<DistanceCandidate> matchedCandidate =
+                    findNearestMatchingRestStop(charger, restStops, restStopDetails);
             if (matchedCandidate.isEmpty()) {
                 continue;
             }
@@ -38,22 +39,22 @@ public class EvChargerStationMappingCalculator {
     private List<EvChargerEntity> distinctActiveChargers(List<EvChargerEntity> evChargers) {
         List<EvChargerEntity> distinctChargers = new ArrayList<>();
         evChargers.stream()
-                .filter(EvChargerEntity::isActiveMappingTarget)
+                .filter(EvChargerEntity::canBeMappedToRestStop)
                 .forEach(charger -> addIfNewStatId(distinctChargers, charger));
         return distinctChargers;
     }
 
     private void addIfNewStatId(List<EvChargerEntity> chargers, EvChargerEntity charger) {
-        boolean alreadyAdded = chargers.stream().anyMatch(existing -> existing.hasSameStatId(charger));
+        boolean alreadyAdded = chargers.stream().anyMatch(existing -> existing.hasSameStationId(charger));
         if (!alreadyAdded) {
             chargers.add(charger);
         }
     }
 
-    private Optional<DistanceCandidate> findMatchedCandidate(
+    private Optional<DistanceCandidate> findNearestMatchingRestStop(
             EvChargerEntity charger, List<RestStopEntity> restStops, List<RestStopDetailEntity> restStopDetails) {
         return findNearbyRestStops(charger, restStops).stream()
-                .filter(candidate -> isMatched(charger, candidate.restStop(), restStopDetails))
+                .filter(candidate -> matchesRestStop(charger, candidate.restStop(), restStopDetails))
                 .findFirst();
     }
 
@@ -88,23 +89,23 @@ public class EvChargerStationMappingCalculator {
         return Optional.of(new DistanceCandidate(restStop, distanceMeters));
     }
 
-    private boolean isMatched(
+    private boolean matchesRestStop(
             EvChargerEntity charger, RestStopEntity restStop, List<RestStopDetailEntity> restStopDetails) {
-        if (isNameMatched(charger, restStop)) {
+        if (matchesRestStopName(charger, restStop)) {
             return true;
         }
         return restStopDetails.stream()
-                .filter(detail -> belongsToRestStop(detail, restStop))
-                .anyMatch(detail -> isAddressMatched(charger, detail));
+                .filter(detail -> belongsToRestStopServiceArea(detail, restStop))
+                .anyMatch(detail -> matchesRestStopDetailAddress(charger, detail));
     }
 
-    private boolean isNameMatched(EvChargerEntity charger, RestStopEntity restStop) {
-        return sameNormalized(charger.getStatNm(), restStop.getUnitName());
+    private boolean matchesRestStopName(EvChargerEntity charger, RestStopEntity restStop) {
+        return hasSameNormalizedText(charger.getStatNm(), restStop.getUnitName());
     }
 
-    private boolean isAddressMatched(EvChargerEntity charger, RestStopDetailEntity restStopDetail) {
-        String chargerAddress = normalizedAddress(charger.getAddr());
-        String restStopAddress = normalizedAddress(restStopDetail.getSvarAddr());
+    private boolean matchesRestStopDetailAddress(EvChargerEntity charger, RestStopDetailEntity restStopDetail) {
+        String chargerAddress = normalizeAddress(charger.getAddr());
+        String restStopAddress = normalizeAddress(restStopDetail.getSvarAddr());
         return StringUtils.hasText(chargerAddress) && chargerAddress.equals(restStopAddress);
     }
 
@@ -114,7 +115,7 @@ public class EvChargerStationMappingCalculator {
         return mapping;
     }
 
-    private boolean belongsToRestStop(RestStopDetailEntity detail, RestStopEntity restStop) {
+    private boolean belongsToRestStopServiceArea(RestStopDetailEntity detail, RestStopEntity restStop) {
         if (StringUtils.hasText(detail.getRestStopServiceAreaCode())) {
             return detail.getRestStopServiceAreaCode().equals(restStop.getServiceAreaCode());
         }
@@ -134,7 +135,7 @@ public class EvChargerStationMappingCalculator {
         }
     }
 
-    private boolean sameNormalized(String first, String second) {
+    private boolean hasSameNormalizedText(String first, String second) {
         String normalizedFirst = normalizeName(first);
         String normalizedSecond = normalizeName(second);
         return StringUtils.hasText(normalizedFirst)
@@ -149,7 +150,7 @@ public class EvChargerStationMappingCalculator {
         return value.trim().replaceAll("\\s+", "").replace("휴게소", "").replaceAll("[^\\p{L}\\p{N}()]", "");
     }
 
-    private String normalizedAddress(String value) {
+    private String normalizeAddress(String value) {
         if (!StringUtils.hasText(value)) {
             return "";
         }

@@ -119,11 +119,11 @@ public class EvChargerEntity {
         this.maker = item.getMaker();
     }
 
-    public boolean isActiveMappingTarget() {
+    public boolean canBeMappedToRestStop() {
         return StringUtils.hasText(statId) && "N".equals(delYn);
     }
 
-    public boolean hasSameStatId(EvChargerEntity other) {
+    public boolean hasSameStationId(EvChargerEntity other) {
         return statId.equals(other.statId);
     }
 }

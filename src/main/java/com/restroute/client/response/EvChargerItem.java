@@ -4,11 +4,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class EvChargerItem {
+
+    private static final String HIGHWAY_REST_STOP_KIND_DETAIL = "C001";
 
     private String statNm;
     private String statId;
@@ -47,4 +50,12 @@ public class EvChargerItem {
     private String floorNum;
     private String floorType;
     private String maker;
+
+    public boolean isHighwayRestStop() {
+        return HIGHWAY_REST_STOP_KIND_DETAIL.equals(kindDetail);
+    }
+
+    public boolean hasChargerIdentity() {
+        return StringUtils.hasText(statId) && StringUtils.hasText(chgerId);
+    }
 }

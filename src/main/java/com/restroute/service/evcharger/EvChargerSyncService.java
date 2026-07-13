@@ -1,7 +1,6 @@
 package com.restroute.service.evcharger;
 
 import com.restroute.client.EvChargerApiClient;
-import com.restroute.client.EvChargerFeignClient;
 import com.restroute.client.ExternalApiRequestLog;
 import com.restroute.client.response.EvChargerItem;
 import com.restroute.client.response.EvChargerResponse;
@@ -15,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -109,22 +107,14 @@ public class EvChargerSyncService {
 
     private void addHighwayRestStopItems(List<EvChargerItem> items, EvChargerResponse response) {
         response.getList().stream()
-                .filter(this::isHighwayRestStopCharger)
-                .filter(this::hasNaturalKey)
+                .filter(EvChargerItem::isHighwayRestStop)
+                .filter(EvChargerItem::hasChargerIdentity)
                 .forEach(items::add);
-    }
-
-    private boolean isHighwayRestStopCharger(EvChargerItem item) {
-        return EvChargerFeignClient.HIGHWAY_REST_STOP_KIND_DETAIL.equals(item.getKindDetail());
-    }
-
-    private boolean hasNaturalKey(EvChargerItem item) {
-        return StringUtils.hasText(item.getStatId()) && StringUtils.hasText(item.getChgerId());
     }
 
     private long highwayRestStopItemCount(EvChargerResponse response) {
         return response.getList().stream()
-                .filter(this::isHighwayRestStopCharger)
+                .filter(EvChargerItem::isHighwayRestStop)
                 .count();
     }
 

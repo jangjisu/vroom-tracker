@@ -49,7 +49,9 @@ class EvChargerSyncServiceTest {
     void refreshEvChargers_fetchesAllPagesAndFiltersHighwayRestStops() throws Exception {
         runTransactionCallback();
         when(evChargerRepository.findAll()).thenReturn(List.of());
-        when(evChargerApiClient.getChargerInfo(1)).thenReturn(response(401, 1, charger("ME1", "01", "C001")));
+        when(evChargerApiClient.getChargerInfo(1))
+                .thenReturn(response(
+                        401, 1, charger("ME1", "01", "C001"), charger("", "01", "C001"), charger("ME4", "", "C001")));
         when(evChargerApiClient.getChargerInfo(2)).thenReturn(response(401, 2, charger("ME2", "01", "C003")));
 
         EvChargerSyncResult result = evChargerSyncService.refreshEvChargers();
