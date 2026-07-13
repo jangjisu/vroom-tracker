@@ -12,7 +12,7 @@ class ProductionEnvironmentValidatorTest {
     @DisplayName("운영 키가 모두 실제 값이면 검증을 통과한다")
     void afterPropertiesSet_withRealValues_passes() {
         ProductionEnvironmentValidator validator = new ProductionEnvironmentValidator(
-                "real-ex-key", "real-kakao-key", "real-naver-key", "real-opinet-key");
+                "real-ex-key", "real-kakao-key", "real-naver-key", "real-opinet-key", "real-ev-key");
 
         assertThatCode(validator::afterPropertiesSet).doesNotThrowAnyException();
     }
@@ -20,8 +20,8 @@ class ProductionEnvironmentValidatorTest {
     @Test
     @DisplayName("운영 키가 비어 있으면 부팅을 실패시킨다")
     void afterPropertiesSet_withBlankValue_fails() {
-        ProductionEnvironmentValidator validator =
-                new ProductionEnvironmentValidator("real-ex-key", " ", "real-naver-key", "real-opinet-key");
+        ProductionEnvironmentValidator validator = new ProductionEnvironmentValidator(
+                "real-ex-key", " ", "real-naver-key", "real-opinet-key", "real-ev-key");
 
         assertThatThrownBy(validator::afterPropertiesSet)
                 .isInstanceOf(IllegalStateException.class)
@@ -33,8 +33,8 @@ class ProductionEnvironmentValidatorTest {
     @Test
     @DisplayName("운영 키가 null이면 부팅을 실패시킨다")
     void afterPropertiesSet_withNullValue_fails() {
-        ProductionEnvironmentValidator validator =
-                new ProductionEnvironmentValidator("real-ex-key", "real-kakao-key", null, "real-opinet-key");
+        ProductionEnvironmentValidator validator = new ProductionEnvironmentValidator(
+                "real-ex-key", "real-kakao-key", null, "real-opinet-key", "real-ev-key");
 
         assertThatThrownBy(validator::afterPropertiesSet)
                 .isInstanceOf(IllegalStateException.class)
@@ -46,8 +46,8 @@ class ProductionEnvironmentValidatorTest {
     @Test
     @DisplayName("운영 키가 placeholder이면 부팅을 실패시킨다")
     void afterPropertiesSet_withPlaceholderValue_fails() {
-        ProductionEnvironmentValidator validator =
-                new ProductionEnvironmentValidator("your-api-key", "placeholder", "change-me", "your-opinet-api-key");
+        ProductionEnvironmentValidator validator = new ProductionEnvironmentValidator(
+                "your-api-key", "placeholder", "change-me", "your-opinet-api-key", "your-ev-api-key");
 
         assertThatThrownBy(validator::afterPropertiesSet)
                 .isInstanceOf(IllegalStateException.class)
@@ -64,7 +64,7 @@ class ProductionEnvironmentValidatorTest {
     @DisplayName("운영 키가 기본 placeholder이면 부팅을 실패시킨다")
     void afterPropertiesSet_withDefaultPlaceholderValue_fails() {
         ProductionEnvironmentValidator validator = new ProductionEnvironmentValidator(
-                "YOUR_API_KEY_HERE", "real-kakao-key", "real-naver-key", "real-opinet-key");
+                "YOUR_API_KEY_HERE", "real-kakao-key", "real-naver-key", "real-opinet-key", "real-ev-key");
 
         assertThatThrownBy(validator::afterPropertiesSet)
                 .isInstanceOf(IllegalStateException.class)
@@ -76,7 +76,7 @@ class ProductionEnvironmentValidatorTest {
     @DisplayName("운영 키가 replace-with-real 형태의 placeholder이면 부팅을 실패시킨다")
     void afterPropertiesSet_withReplaceWithRealPlaceholderValue_fails() {
         ProductionEnvironmentValidator validator = new ProductionEnvironmentValidator(
-                "real-ex-key", "real-kakao-key", "real-naver-key", "replace-with-real-opinet-api-key");
+                "real-ex-key", "real-kakao-key", "real-naver-key", "replace-with-real-opinet-api-key", "real-ev-key");
 
         assertThatThrownBy(validator::afterPropertiesSet)
                 .isInstanceOf(IllegalStateException.class)
@@ -88,7 +88,7 @@ class ProductionEnvironmentValidatorTest {
     @DisplayName("your로 시작하지만 api key placeholder가 아니면 검증을 통과한다")
     void afterPropertiesSet_withYourPrefixButNotApiKeyPlaceholder_passes() {
         ProductionEnvironmentValidator validator = new ProductionEnvironmentValidator(
-                "real-ex-key", "real-kakao-key", "real-naver-key", "your-real-opinet-token");
+                "real-ex-key", "real-kakao-key", "real-naver-key", "your-real-opinet-token", "real-ev-key");
 
         assertThatCode(validator::afterPropertiesSet).doesNotThrowAnyException();
     }

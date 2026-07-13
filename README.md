@@ -10,6 +10,7 @@
 - 휴게소 마커를 선택하면 노선, 방향, 주소, 편의시설, 운영 상태와 주차 정보를 보여줍니다.
 - 주유 가격, 정유사, 전화번호와 주유소 편의시설을 상세 정보에 포함합니다.
 - 대표 먹거리와 전체 메뉴를 모달에서 확인할 수 있습니다.
+- 전기차 충전소가 있는 휴게소인지 경로 결과에서 확인할 수 있고, 상세 화면에서 active 충전기 대수를 보여줍니다.
 - 주유 가격은 사용자가 단건 갱신할 수 있으며, 최근 10분 이내 갱신된 값은 외부 API를 다시 호출하지 않습니다.
 
 ### 경로상 휴게소 탐색
@@ -24,6 +25,7 @@
 - 서버 시작 시 휴게소 위치, 상세, 주유소 편의시설, 주유 가격과 먹거리 테이블이 비어 있으면 초기 데이터를 수집합니다.
 - 휴게소 위치·상세·영업시설·주유소 편의시설·먹거리는 매일 자정에 갱신합니다.
 - 주유 가격은 3시간마다 갱신합니다.
+- 전기차 충전소 정보는 서버 시작 시 비어 있으면 초기화하고 매일 자정에 갱신합니다.
 - 외부 API 호출이 실패하면 항목별 오류를 로그에 남기고 다른 동기화 작업을 계속합니다.
 
 ## 기술 스택
@@ -49,6 +51,7 @@
 export EX_API_KEY=YOUR_EX_API_KEY
 export NAVER_MAPS_NCP_KEY_ID=YOUR_NAVER_MAPS_NCP_KEY_ID
 export KAKAO_REST_API_KEY=YOUR_KAKAO_REST_API_KEY
+export EV_API_KEY=YOUR_EV_API_KEY
 ```
 
 한국도로공사 키는 Git에서 제외된 `src/main/resources/application-local.properties`에도 설정할 수 있습니다.
@@ -107,6 +110,7 @@ cp .env.example .env
 EX_API_KEY=YOUR_EX_API_KEY
 NAVER_MAPS_NCP_KEY_ID=YOUR_NAVER_MAPS_NCP_KEY_ID
 KAKAO_REST_API_KEY=YOUR_KAKAO_REST_API_KEY
+EV_API_KEY=YOUR_EV_API_KEY
 APP_DOMAIN=www.rest-route.o-r.kr
 MYSQL_DATABASE=vroom
 MYSQL_USER=vroom

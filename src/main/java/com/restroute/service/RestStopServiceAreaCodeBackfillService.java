@@ -1,17 +1,21 @@
 package com.restroute.service;
 
+import com.restroute.domain.EvChargerStationMappingEntity;
 import com.restroute.domain.HighwayServiceAreaInfoEntity;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.EvChargerRepository;
+import com.restroute.repository.EvChargerStationMappingRepository;
 import com.restroute.repository.HighwayServiceAreaInfoRepository;
 import com.restroute.repository.RestFoodRepository;
 import com.restroute.repository.RestOilPriceRepository;
 import com.restroute.repository.RestOilRepository;
 import com.restroute.repository.RestStopDetailRepository;
 import com.restroute.repository.RestStopRepository;
+import com.restroute.service.evcharger.mapping.EvChargerStationMappingCalculator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -32,6 +36,7 @@ public class RestStopServiceAreaCodeBackfillService {
     public static final String REST_FOOD_MAPPED_COUNT = "restFoodMappedCount";
     public static final String REST_OIL_MAPPED_COUNT = "restOilMappedCount";
     public static final String REST_OIL_PRICE_MAPPED_COUNT = "restOilPriceMappedCount";
+    public static final String EV_CHARGER_MAPPED_COUNT = "evChargerMappedCount";
 
     private final RestStopRepository restStopRepository;
     private final RestStopDetailRepository restStopDetailRepository;
@@ -39,6 +44,9 @@ public class RestStopServiceAreaCodeBackfillService {
     private final RestFoodRepository restFoodRepository;
     private final RestOilRepository restOilRepository;
     private final RestOilPriceRepository restOilPriceRepository;
+    private final EvChargerRepository evChargerRepository;
+    private final EvChargerStationMappingRepository evChargerStationMappingRepository;
+    private final EvChargerStationMappingCalculator evChargerStationMappingCalculator;
 
     @Transactional
     public Map<String, Integer> backfill() {
@@ -52,6 +60,7 @@ public class RestStopServiceAreaCodeBackfillService {
         int restFoodMappedCount = backfillRestFoods(serviceAreaCodeByStdRestCd);
         int restOilMappedCount = backfillRestOils(serviceAreaCodeByOilKey);
         int restOilPriceMappedCount = backfillRestOilPrices(mapByOilStandardRestCode());
+        int evChargerMappedCount = backfillEvChargerMappings(restStops);
 
         Map<String, Integer> result = Map.of(
                 REST_STOP_DETAIL_MAPPED_COUNT,
@@ -63,17 +72,28 @@ public class RestStopServiceAreaCodeBackfillService {
                 REST_OIL_MAPPED_COUNT,
                 restOilMappedCount,
                 REST_OIL_PRICE_MAPPED_COUNT,
-                restOilPriceMappedCount);
+                restOilPriceMappedCount,
+                EV_CHARGER_MAPPED_COUNT,
+                evChargerMappedCount);
         log.info(
                 "Rest stop service area code backfill completed. restStopDetailMappedCount={}, "
                         + "highwayServiceAreaInfoMappedCount={}, restFoodMappedCount={}, restOilMappedCount={}, "
-                        + "restOilPriceMappedCount={}",
+                        + "restOilPriceMappedCount={}, evChargerMappedCount={}",
                 result.get(REST_STOP_DETAIL_MAPPED_COUNT),
                 result.get(HIGHWAY_SERVICE_AREA_INFO_MAPPED_COUNT),
                 result.get(REST_FOOD_MAPPED_COUNT),
                 result.get(REST_OIL_MAPPED_COUNT),
-                result.get(REST_OIL_PRICE_MAPPED_COUNT));
+                result.get(REST_OIL_PRICE_MAPPED_COUNT),
+                result.get(EV_CHARGER_MAPPED_COUNT));
         return result;
+    }
+
+    private int backfillEvChargerMappings(List<RestStopEntity> restStops) {
+        List<EvChargerStationMappingEntity> mappingsToSave = evChargerStationMappingCalculator.calculate(
+                restStops, restStopDetailRepository.findAll(), evChargerRepository.findAllByDelYn("N"));
+        evChargerStationMappingRepository.deleteAll();
+        evChargerStationMappingRepository.saveAll(mappingsToSave);
+        return mappingsToSave.size();
     }
 
     private Map<String, String> mapServiceAreaCode(List<RestStopEntity> restStops) {

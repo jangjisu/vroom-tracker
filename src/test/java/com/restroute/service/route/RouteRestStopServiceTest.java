@@ -31,6 +31,7 @@ import com.restroute.repository.RestStopRepository;
 import com.restroute.service.NationalOilPriceService;
 import com.restroute.service.RestStopRelatedInfo;
 import com.restroute.service.RestStopRelatedInfoQueryService;
+import com.restroute.service.evcharger.EvChargerQueryService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,11 +62,15 @@ class RouteRestStopServiceTest {
     @Mock
     private NationalOilPriceService nationalOilPriceService;
 
+    @Mock
+    private EvChargerQueryService evChargerQueryService;
+
     private RouteRestStopService service;
 
     @BeforeEach
     void setUp() {
         lenient().when(nationalOilPriceService.getTodaySummary()).thenReturn(Optional.empty());
+        lenient().when(evChargerQueryService.findMappedServiceAreaCodes(any())).thenReturn(List.of());
         lenient()
                 .when(restStopRelatedInfoQueryService.findByRestStop(any(RestStopEntity.class)))
                 .thenReturn(emptyRelatedInfo());
@@ -77,7 +82,8 @@ class RouteRestStopServiceTest {
                 restStopRepository,
                 routeRestStopComparisonSummaryService,
                 routeRestStopRecommendationTagService,
-                nationalOilPriceService);
+                nationalOilPriceService,
+                evChargerQueryService);
     }
 
     private KakaoLocalSearchResponse searchResult(String x, String y, String placeName, String addressName) {
@@ -229,6 +235,24 @@ class RouteRestStopServiceTest {
                 .extracting(RouteRestStopResponse.RouteRestStopItem::serviceAreaCode)
                 .containsExactly("A", "B", "C");
         assertThat(response.restStops().get(0).distanceFromRouteMeters()).isLessThan(50L);
+    }
+
+    @Test
+    @DisplayName("경로 휴게소는 매핑된 휴게소 코드로 hasEvCharger를 반환한다")
+    void success_includesEvChargerFlagFromMappedCodes() {
+        when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+        RestStopEntity restStop = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
+        when(restStopRepository.findAll()).thenReturn(List.of(restStop));
+        when(evChargerQueryService.findMappedServiceAreaCodes(List.of("A"))).thenReturn(List.of("A"));
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
+
+        assertThat(response.restStops())
+                .singleElement()
+                .extracting(RouteRestStopResponse.RouteRestStopItem::hasEvCharger)
+                .isEqualTo(true);
     }
 
     @Test

@@ -13,6 +13,8 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerSyncResult;
+import com.restroute.service.evcharger.EvChargerSyncService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +49,9 @@ class RestStopSchedulerTest {
     @Mock
     private RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
 
+    @Mock
+    private EvChargerSyncService evChargerSyncService;
+
     @InjectMocks
     private RestStopScheduler restStopScheduler;
 
@@ -58,6 +63,7 @@ class RestStopSchedulerTest {
         when(highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos()).thenReturn(581);
         when(restOilSyncService.refreshRestOils()).thenReturn(429);
         when(restFoodSyncService.refreshRestFoods()).thenReturn(7214);
+        when(evChargerSyncService.refreshEvChargers()).thenReturn(successfulEvChargerSync());
 
         restStopScheduler.syncRestStopsDaily();
 
@@ -66,19 +72,61 @@ class RestStopSchedulerTest {
         verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         verify(restOilSyncService).refreshRestOils();
         verify(restFoodSyncService).refreshRestFoods();
+        verify(evChargerSyncService).refreshEvChargers();
         InOrder inOrder = inOrder(
                 restStopSyncService,
                 restStopDetailSyncService,
                 highwayServiceAreaInfoSyncService,
                 restOilSyncService,
                 restFoodSyncService,
-                restStopServiceAreaCodeBackfillService);
+                restStopServiceAreaCodeBackfillService,
+                evChargerSyncService);
         inOrder.verify(restStopSyncService).refreshRestStops();
         inOrder.verify(restStopDetailSyncService).refreshRestStopDetails();
         inOrder.verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         inOrder.verify(restOilSyncService).refreshRestOils();
         inOrder.verify(restFoodSyncService).refreshRestFoods();
+        inOrder.verify(evChargerSyncService).refreshEvChargers();
         inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
+    }
+
+    @Test
+    @DisplayName("EV 동기화가 완전히 실패해도 backfill을 실행한다")
+    void syncRestStopsDaily_runsBackfillWhenEvSyncFails() {
+        when(evChargerSyncService.refreshEvChargers()).thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0));
+
+        restStopScheduler.syncRestStopsDaily();
+
+        verify(restStopServiceAreaCodeBackfillService).backfill();
+    }
+
+    @Test
+    @DisplayName("EV 동기화 예외를 기록하고 EV 매핑을 보존한다")
+    void syncRestStopsDaily_preservesEvMappingsWhenEvSyncThrows(CapturedOutput output) {
+        when(evChargerSyncService.refreshEvChargers()).thenThrow(new IllegalStateException("EV API failed"));
+
+        assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
+
+        verify(restStopServiceAreaCodeBackfillService).backfill();
+        assertThat(output).contains("Scheduled EV charger sync failed.").contains("EV API failed");
+    }
+
+    @Test
+    @DisplayName("EV 매핑 backfill 실패를 기록하고 스케줄러를 중단하지 않는다")
+    void syncRestStopsDaily_doesNotPropagateEvMappingBackfillFailure(CapturedOutput output) {
+        when(evChargerSyncService.refreshEvChargers()).thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0));
+        when(restStopServiceAreaCodeBackfillService.backfill())
+                .thenThrow(new IllegalStateException("EV mapping backfill failed"));
+
+        assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
+
+        assertThat(output)
+                .contains("Scheduled rest stop service area code backfill failed.")
+                .contains("EV mapping backfill failed");
+    }
+
+    private EvChargerSyncResult successfulEvChargerSync() {
+        return new EvChargerSyncResult(13, 13, 0, 2401, 1000);
     }
 
     @Test

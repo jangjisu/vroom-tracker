@@ -8,6 +8,7 @@
 - 한국도로공사, 카카오 로컬 검색과 카카오 길찾기 호출은 제공자별 Client와 API 응답 객체가 담당한다.
 - Entity와 DTO는 정적 팩토리 메서드로 변환 책임을 가진다.
 - 스케줄러와 시작 초기화기가 API별 SyncService를 조율한다.
+- 환경공단 EV API는 `EvChargerApiClient`가 페이지 단위 조회를 담당하고, `EvChargerSyncService`가 전체 페이지 조회와 자연키 upsert를 담당한다.
 - 프론트엔드는 요청 모듈, 표시 포맷터와 지도 화면 제어를 Vanilla JavaScript 모듈로 분리한다.
 
 ## 합의된 목표
@@ -25,10 +26,14 @@
 
 - 휴게소 위치·상세·영업시설·주유소 편의시설·먹거리 동기화는 외부 API 조회를 완료한 뒤 SyncService가 트랜잭션 안에서 자연키 기준으로 upsert한다(있으면 갱신, 없으면 삽입). 외부 응답에서 사라진 행은 삭제하지 않는다(삭제 대응은 별도 후속 과제).
 - 주유 가격(3시간 주기) 동기화만 트랜잭션 안에서 기존 테이블을 전체 교체한다.
+- EV 충전기 정보는 페이지별 조회 결과 중 성공한 C001 데이터를 모아 트랜잭션 안에서 `statId + chgerId` 기준으로 upsert한다. 중간 페이지가 실패해도 다음 페이지 조회를 계속하며, 실패한 페이지의 기존 데이터는 삭제하지 않는다. 첫 페이지 실패나 성공 데이터 부재 시에는 저장하지 않는다.
+- `RestStopServiceAreaCodeBackfillService`는 저장된 휴게소·상세·EV 충전기 데이터를 기준으로 `EvChargerStationMappingCalculator`를 호출해 좌표 300m 및 이름·주소 조건을 만족하는 매핑을 갱신한다.
+- 경로 조회는 매핑된 휴게소 코드 존재 여부로 `hasEvCharger`를 만들고, 상세 조회는 매핑된 충전소의 active `chgerId` 개수를 `evChargerCount`로 반환한다.
 - 휴게소 상세 조회는 `basic-info`, `facilities`, `oil-info`, `foods` feature API가 각자 필요한 Entity를 조회하고 응답 DTO가 화면용 표현으로 변환한다. 프론트엔드의 상세 요청 모듈은 이 API들을 병렬로 호출하며, 기본 정보는 필수로 취급하고 시설·주유·먹거리는 독립적인 선택 영역으로 처리한다.
 - 전국 평균 유가 요약은 `/api/national-oil-prices/summary`가 별도로 조회·반환한다. 경로 Service는 이 요약을 휴게소별 `comparisonSummary` 계산에 사용할 수 있지만, `RouteRestStopResponse`의 최상위 응답에는 포함하지 않는다.
 - 경로 탐색은 카카오 장소 검색 후보에서 선택한 좌표로 길찾기를 호출하고, 저장된 휴게소 좌표와 경로 사이 거리를 계산한다.
 - 카카오 API 예외는 `GlobalExceptionHandler`가 공통 응답으로 변환하고, 정기 동기화 예외는 스케줄러가 항목별로 기록한다.
+- EV API 요청은 페이지 번호와 건수 중심으로 로그를 남기며 API key와 응답 payload는 로그에 남기지 않는다. EV API 전용 read timeout은 60초이고 다른 Feign client의 기본 timeout은 유지한다.
 
 ## 제어 흐름 원칙
 

@@ -30,6 +30,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
             double latitude,
             double longitude,
             boolean hasDirectionAlternative,
+            boolean hasEvCharger,
             long distanceFromRouteMeters,
             ComparisonSummary comparisonSummary,
             List<RecommendationTag> recommendationTags) {
@@ -47,6 +48,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     routeName,
                     latitude,
                     longitude,
+                    false,
                     false,
                     distanceFromRouteMeters,
                     ComparisonSummary.empty(),
@@ -67,6 +69,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     latitude,
                     longitude,
                     false,
+                    false,
                     distanceFromRouteMeters,
                     ComparisonSummary.empty(),
                     List.of());
@@ -80,6 +83,7 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     latitude,
                     longitude,
                     hasDirectionAlternative,
+                    hasEvCharger,
                     distanceFromRouteMeters,
                     comparisonSummary,
                     recommendationTags);
@@ -94,9 +98,24 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     latitude,
                     longitude,
                     hasDirectionAlternative,
+                    hasEvCharger,
                     distanceFromRouteMeters,
                     comparisonSummary,
                     List.copyOf(recommendationTags));
+        }
+
+        public RouteRestStopItem withEvCharger(boolean hasEvCharger) {
+            return new RouteRestStopItem(
+                    serviceAreaCode,
+                    unitName,
+                    routeName,
+                    latitude,
+                    longitude,
+                    hasDirectionAlternative,
+                    hasEvCharger,
+                    distanceFromRouteMeters,
+                    comparisonSummary,
+                    recommendationTags);
         }
     }
 

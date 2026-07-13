@@ -11,11 +11,13 @@ class ExternalApiRequestLogTest {
     @DisplayName("외부 API URL의 인증키 파라미터를 마스킹한다")
     void sanitizeUrl_masksSensitiveParameters() {
         String sanitized = ExternalApiRequestLog.sanitizeUrl(
-                "https://example.com/api?key=ex-key&type=json&code=opinet-key&pageNo=1");
+                "https://example.com/api?key=ex-key&serviceKey=ev-key&type=json&code=opinet-key&pageNo=1");
 
         assertThat(sanitized)
-                .isEqualTo("https://example.com/api?key=<redacted>&type=json&code=<redacted>&pageNo=1")
+                .isEqualTo(
+                        "https://example.com/api?key=<redacted>&serviceKey=<redacted>&type=json&code=<redacted>&pageNo=1")
                 .doesNotContain("ex-key")
+                .doesNotContain("ev-key")
                 .doesNotContain("opinet-key");
     }
 

@@ -7,6 +7,8 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerSyncResult;
+import com.restroute.service.evcharger.EvChargerSyncService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,7 @@ public class RestStopScheduler {
     private final RestOilPriceSyncService restOilPriceSyncService;
     private final RestFoodSyncService restFoodSyncService;
     private final RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
+    private final EvChargerSyncService evChargerSyncService;
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void syncRestStopsDaily() {
@@ -33,6 +36,7 @@ public class RestStopScheduler {
         refreshHighwayServiceAreaInfos();
         refreshRestOils();
         refreshRestFoods();
+        refreshEvChargers();
         backfillRestStopServiceAreaCodes();
     }
 
@@ -93,6 +97,17 @@ public class RestStopScheduler {
             log.info("Scheduled rest food sync completed. savedCount={}", savedCount);
         } catch (RuntimeException e) {
             log.error("Scheduled rest food sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private EvChargerSyncResult refreshEvChargers() {
+        try {
+            EvChargerSyncResult result = evChargerSyncService.refreshEvChargers();
+            log.info("Scheduled EV charger sync completed. result={}", result);
+            return result;
+        } catch (RuntimeException e) {
+            log.error("Scheduled EV charger sync failed. cause={}", e.getMessage(), e);
+            return EvChargerSyncResult.failed();
         }
     }
 

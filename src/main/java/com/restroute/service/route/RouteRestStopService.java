@@ -11,6 +11,7 @@ import com.restroute.controller.response.RouteRestStopResponse.RouteSummary;
 import com.restroute.domain.RestStopEntity;
 import com.restroute.repository.RestStopRepository;
 import com.restroute.service.NationalOilPriceService;
+import com.restroute.service.evcharger.EvChargerQueryService;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -32,6 +33,7 @@ public class RouteRestStopService {
     private final RouteRestStopComparisonSummaryService routeRestStopComparisonSummaryService;
     private final RouteRestStopRecommendationTagService routeRestStopRecommendationTagService;
     private final NationalOilPriceService nationalOilPriceService;
+    private final EvChargerQueryService evChargerQueryService;
 
     public RouteRestStopResponse findRouteRestStops(
             double originLatitude,
@@ -125,6 +127,9 @@ public class RouteRestStopService {
                 .filter(RouteRestStopCandidate::hasDirectionGroup)
                 .map(RouteRestStopCandidate::groupKey)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        List<String> mappedServiceAreaCodes = evChargerQueryService.findMappedServiceAreaCodes(candidates.stream()
+                .map(candidate -> candidate.restStop().getServiceAreaCode())
+                .toList());
         List<RouteRestStopComparison> comparisons = candidates.stream()
                 .map(candidate -> RouteRestStopComparison.of(
                         candidate,
@@ -138,6 +143,8 @@ public class RouteRestStopService {
                 .map(comparison -> comparison
                         .candidate()
                         .item()
+                        .withEvCharger(mappedServiceAreaCodes.contains(
+                                comparison.candidate().restStop().getServiceAreaCode()))
                         .withDirectionAlternative(
                                 groupCounts.getOrDefault(comparison.candidate().groupKey(), 0L) > 1)
                         .withComparison(
