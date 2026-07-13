@@ -1,12 +1,13 @@
 package com.restroute.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.restroute.domain.AdminRole;
 import com.restroute.domain.AdminUserEntity;
@@ -48,7 +49,7 @@ class SecurityConfigTest {
     @Test
     @DisplayName("비로그인 사용자는 관리자 경로에서 로그인 폼으로 이동한다")
     void anonymousAdminRequest_redirectsToLogin() throws Exception {
-        mockMvc.perform(get("/admin/anything"))
+        mockMvc.perform(get("/admin"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("**/login"));
     }
@@ -57,16 +58,24 @@ class SecurityConfigTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("ADMIN 사용자는 관리자 경로의 보안 필터를 통과한다")
     void adminRequest_passesAuthorization() throws Exception {
-        mockMvc.perform(get("/admin/anything"))
-                .andExpect(
-                        result -> assertThat(result.getResponse().getStatus()).isNotEqualTo(403));
+        mockMvc.perform(get("/admin")).andExpect(status().isOk()).andExpect(view().name("admin"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("관리자 화면은 CSRF가 포함된 로그아웃 폼을 렌더링한다")
+    void adminView_rendersLogoutForm() throws Exception {
+        mockMvc.perform(get("/admin"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("action=\"/logout\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"_csrf\"")));
     }
 
     @Test
     @WithMockUser(roles = "USER")
     @DisplayName("ADMIN이 아닌 인증 사용자는 관리자 경로에서 403을 받는다")
     void nonAdminRequest_returnsForbidden() throws Exception {
-        mockMvc.perform(get("/admin/anything")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/admin")).andExpect(status().isForbidden());
     }
 
     @Test
