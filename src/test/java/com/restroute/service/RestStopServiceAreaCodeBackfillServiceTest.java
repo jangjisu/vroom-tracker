@@ -8,14 +8,19 @@ import static com.restroute.support.RestStopTestFixtures.restStopItem;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.restroute.client.response.EvChargerItem;
 import com.restroute.client.response.RestBestfoodItem;
 import com.restroute.client.response.RestOilItem;
+import com.restroute.domain.EvChargerEntity;
+import com.restroute.domain.EvChargerStationMappingEntity;
 import com.restroute.domain.HighwayServiceAreaInfoEntity;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.EvChargerRepository;
+import com.restroute.repository.EvChargerStationMappingRepository;
 import com.restroute.repository.HighwayServiceAreaInfoRepository;
 import com.restroute.repository.RestFoodRepository;
 import com.restroute.repository.RestOilPriceRepository;
@@ -57,6 +62,12 @@ class RestStopServiceAreaCodeBackfillServiceTest {
 
     @Autowired
     private RestOilPriceRepository restOilPriceRepository;
+
+    @Autowired
+    private EvChargerRepository evChargerRepository;
+
+    @Autowired
+    private EvChargerStationMappingRepository evChargerStationMappingRepository;
 
     @Test
     @DisplayName("기존 휴게소 관련 row에 rest_stop_service_area_code를 연결 규칙 순서대로 채운다")
@@ -204,11 +215,159 @@ class RestStopServiceAreaCodeBackfillServiceTest {
                 .isEqualTo("A00001");
     }
 
+    @Test
+    @DisplayName("중앙 backfill 서비스가 active EV 충전소 매핑을 함께 생성한다")
+    void backfill_mapsActiveEvChargerToRestStop() throws Exception {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001")));
+        evChargerRepository.save(chargerEntity("ME1", "01", "서울만남(부산) 휴게소", "37.4600218", "127.0420378", "N"));
+
+        Map<String, Integer> result = backfillService.backfill();
+
+        assertThat(result.get(RestStopServiceAreaCodeBackfillService.EV_CHARGER_MAPPED_COUNT))
+                .isEqualTo(1);
+        assertThat(evChargerStationMappingRepository.findAll())
+                .singleElement()
+                .extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .isEqualTo("A00001");
+    }
+
+    @Test
+    @DisplayName("중앙 backfill 서비스는 삭제된 EV 충전기만 있는 충전소를 매핑하지 않는다")
+    void backfill_doesNotMapDeletedOnlyEvCharger() throws Exception {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001")));
+        evChargerRepository.save(chargerEntity("ME1", "01", "서울만남(부산) 휴게소", "37.4600218", "127.0420378", "Y"));
+
+        Map<String, Integer> result = backfillService.backfill();
+
+        assertThat(result.get(RestStopServiceAreaCodeBackfillService.EV_CHARGER_MAPPED_COUNT))
+                .isZero();
+        assertThat(evChargerStationMappingRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("같은 statId의 충전기는 하나의 휴게소 매핑만 생성한다")
+    void backfill_deduplicatesEvChargersByStationId() throws Exception {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001")));
+        evChargerRepository.saveAll(List.of(
+                chargerEntity("ME1", "01", "서울만남(부산) 휴게소", "37.4600218", "127.0420378", "N"),
+                chargerEntity("ME1", "02", "서울만남(부산) 휴게소", "37.4600218", "127.0420378", "N")));
+
+        Map<String, Integer> result = backfillService.backfill();
+
+        assertThat(result.get(RestStopServiceAreaCodeBackfillService.EV_CHARGER_MAPPED_COUNT))
+                .isEqualTo(1);
+        assertThat(evChargerStationMappingRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("좌표 후보가 여러 개이고 이름으로 구분되지 않으면 EV 매핑을 만들지 않는다")
+    void backfill_doesNotMapAmbiguousEvCharger() throws Exception {
+        restStopRepository.saveAll(List.of(
+                RestStopEntity.from(restStopItem("001", "A휴게소", "A00001")),
+                RestStopEntity.from(restStopItem("002", "B휴게소", "B00001"))));
+        evChargerRepository.save(chargerEntity("ME1", "01", "다른 충전소", "37.4600218", "127.0420378", "N"));
+
+        Map<String, Integer> result = backfillService.backfill();
+
+        assertThat(result.get(RestStopServiceAreaCodeBackfillService.EV_CHARGER_MAPPED_COUNT))
+                .isZero();
+        assertThat(evChargerStationMappingRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("좌표가 없거나 거리가 멀면 EV 매핑을 만들지 않는다")
+    void backfill_doesNotMapEvChargerWithoutNearbyRestStop() throws Exception {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001")));
+        evChargerRepository.saveAll(List.of(
+                chargerEntity("ME1", "01", "서울만남(부산) 휴게소", "", "127.0420378", "N"),
+                chargerEntity("ME2", "01", "서울만남(부산) 휴게소", "35.0", "129.0", "N")));
+
+        Map<String, Integer> result = backfillService.backfill();
+
+        assertThat(result.get(RestStopServiceAreaCodeBackfillService.EV_CHARGER_MAPPED_COUNT))
+                .isZero();
+        assertThat(evChargerStationMappingRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("단일 좌표 후보는 이름이 달라도 좌표 기준으로 매핑한다")
+    void backfill_mapsSingleCoordinateCandidate() throws Exception {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001")));
+        evChargerRepository.saveAll(List.of(
+                chargerEntity("ME1", "01", "다른 충전소", "37.4600218", "127.0420378", "N"),
+                chargerEntity("ME2", "01", "", "37.4600218", "127.0420378", "N")));
+
+        backfillService.backfill();
+
+        assertThat(evChargerStationMappingRepository.findAll())
+                .hasSize(2)
+                .allSatisfy(mapping -> assertThat(mapping.getMatchType()).isEqualTo("COORDINATE"));
+    }
+
+    @Test
+    @DisplayName("잘못된 EV 좌표와 휴게소 좌표는 매핑에서 제외한다")
+    void backfill_ignoresInvalidEvCoordinates() throws Exception {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001"));
+        ReflectionTestUtils.setField(restStop, "xValue", "invalid");
+        restStopRepository.save(restStop);
+        evChargerRepository.saveAll(List.of(
+                chargerEntity("ME1", "01", "서울만남(부산) 휴게소", "37.4600218", "", "N"),
+                chargerEntity("ME2", "01", "서울만남(부산) 휴게소", "invalid", "127.0420378", "N"),
+                chargerEntity("ME3", "01", "서울만남(부산) 휴게소", "37.4600218", "127.0420378", "N"),
+                chargerEntity("", "01", "서울만남(부산) 휴게소", "37.4600218", "127.0420378", "N")));
+
+        Map<String, Integer> result = backfillService.backfill();
+
+        assertThat(result.get(RestStopServiceAreaCodeBackfillService.EV_CHARGER_MAPPED_COUNT))
+                .isZero();
+        assertThat(evChargerStationMappingRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("기존 EV 매핑은 statId를 기준으로 갱신하고 stale 매핑은 제거한다")
+    void backfill_updatesExistingEvMappingAndRemovesStaleMapping() throws Exception {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001")));
+        evChargerRepository.save(chargerEntity("ME1", "01", "서울만남(부산) 휴게소", "37.4600218", "127.0420378", "N"));
+        EvChargerStationMappingEntity existing = EvChargerStationMappingEntity.of("ME1");
+        existing.updateMatch("OLD", 200.0, "COORDINATE");
+        EvChargerStationMappingEntity stale = EvChargerStationMappingEntity.of("STALE");
+        stale.updateMatch("STALE_CODE", 200.0, "COORDINATE");
+        evChargerStationMappingRepository.saveAll(List.of(existing, stale));
+        Long existingId = existing.getId();
+
+        backfillService.backfill();
+
+        assertThat(evChargerStationMappingRepository.findAll()).singleElement().satisfies(mapping -> {
+            assertThat(mapping.getId()).isEqualTo(existingId);
+            assertThat(mapping.getRestStopServiceAreaCode()).isEqualTo("A00001");
+        });
+    }
+
     private RestFoodEntity foodEntity(String stdRestCd, String foodName) throws Exception {
         String json = """
                 {"stdRestCd":"%s","foodNm":"%s","foodCost":"7000","recommendyn":"N"}
                 """.formatted(stdRestCd, foodName);
         RestBestfoodItem item = new ObjectMapper().readValue(json, RestBestfoodItem.class);
         return RestFoodEntity.from(item);
+    }
+
+    private EvChargerEntity chargerEntity(
+            String statId, String chgerId, String statName, String latitude, String longitude, String delYn)
+            throws Exception {
+        String json = "{\"statNm\":\""
+                + statName
+                + "\",\"statId\":\""
+                + statId
+                + "\",\"chgerId\":\""
+                + chgerId
+                + "\",\"lat\":\""
+                + latitude
+                + "\",\"lng\":\""
+                + longitude
+                + "\",\"delYn\":\""
+                + delYn
+                + "\"}";
+        EvChargerItem item = new ObjectMapper().readValue(json, EvChargerItem.class);
+        return EvChargerEntity.from(item);
     }
 }

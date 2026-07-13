@@ -12,8 +12,6 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
-import com.restroute.service.evcharger.EvChargerBackfillResult;
-import com.restroute.service.evcharger.EvChargerRestStopBackfillService;
 import com.restroute.service.evcharger.EvChargerSyncService;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
@@ -52,9 +50,6 @@ class RestStopStartupInitializerTest {
     private EvChargerSyncService evChargerSyncService;
 
     @Mock
-    private EvChargerRestStopBackfillService evChargerRestStopBackfillService;
-
-    @Mock
     private ApplicationArguments applicationArguments;
 
     @InjectMocks
@@ -69,7 +64,6 @@ class RestStopStartupInitializerTest {
         when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(226);
         when(restFoodSyncService.initializeRestFoodsIfEmpty()).thenReturn(7214);
         when(evChargerSyncService.initializeEvChargersIfEmpty()).thenReturn(2401);
-        when(evChargerRestStopBackfillService.backfill()).thenReturn(EvChargerBackfillResult.of(100, 90, 10));
         when(restStopServiceAreaCodeBackfillService.backfill())
                 .thenReturn(Map.of(
                         RestStopServiceAreaCodeBackfillService.REST_STOP_DETAIL_MAPPED_COUNT,
@@ -91,7 +85,6 @@ class RestStopStartupInitializerTest {
         verify(restOilPriceSyncService).initializeRestOilPricesIfEmpty();
         verify(restFoodSyncService).initializeRestFoodsIfEmpty();
         verify(evChargerSyncService).initializeEvChargersIfEmpty();
-        verify(evChargerRestStopBackfillService).backfill();
         verify(restStopServiceAreaCodeBackfillService).backfill();
         InOrder inOrder = inOrder(
                 restStopSyncService,
@@ -100,8 +93,7 @@ class RestStopStartupInitializerTest {
                 restOilPriceSyncService,
                 restFoodSyncService,
                 restStopServiceAreaCodeBackfillService,
-                evChargerSyncService,
-                evChargerRestStopBackfillService);
+                evChargerSyncService);
         inOrder.verify(restStopSyncService).initializeRestStopsIfEmpty();
         inOrder.verify(restStopDetailSyncService).initializeRestStopDetailsIfEmpty();
         inOrder.verify(restOilSyncService).initializeRestOilsIfEmpty();
@@ -109,7 +101,6 @@ class RestStopStartupInitializerTest {
         inOrder.verify(restFoodSyncService).initializeRestFoodsIfEmpty();
         inOrder.verify(evChargerSyncService).initializeEvChargersIfEmpty();
         inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
-        inOrder.verify(evChargerRestStopBackfillService).backfill();
     }
 
     @Test
@@ -194,19 +185,6 @@ class RestStopStartupInitializerTest {
                 .contains("Initial rest oil sync skipped because rest_oil table already has data.")
                 .contains("Initial rest oil price sync skipped because rest_oil_price table already has data.")
                 .contains("Initial rest food sync skipped because rest_food table already has data.");
-    }
-
-    @Test
-    @DisplayName("EV 충전소 초기 동기화가 실패해도 backfill은 독립적으로 실행한다")
-    void run_runsEvBackfillWhenEvSyncFails(CapturedOutput output) {
-        when(evChargerSyncService.initializeEvChargersIfEmpty())
-                .thenThrow(new IllegalStateException("ev charger API failed"));
-
-        assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
-                .doesNotThrowAnyException();
-
-        verify(evChargerRestStopBackfillService).backfill();
-        assertThat(output).contains("Initial EV charger sync failed.").contains("ev charger API failed");
     }
 
     @Test

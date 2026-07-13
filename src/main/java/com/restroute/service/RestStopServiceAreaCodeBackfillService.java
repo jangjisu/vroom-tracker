@@ -1,19 +1,30 @@
 package com.restroute.service;
 
+import com.restroute.domain.EvChargerEntity;
+import com.restroute.domain.EvChargerStationMappingEntity;
 import com.restroute.domain.HighwayServiceAreaInfoEntity;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.EvChargerRepository;
+import com.restroute.repository.EvChargerStationMappingRepository;
 import com.restroute.repository.HighwayServiceAreaInfoRepository;
 import com.restroute.repository.RestFoodRepository;
 import com.restroute.repository.RestOilPriceRepository;
 import com.restroute.repository.RestOilRepository;
 import com.restroute.repository.RestStopDetailRepository;
 import com.restroute.repository.RestStopRepository;
+import com.restroute.service.evcharger.CoordinateDistanceCalculator;
+import com.restroute.service.evcharger.EvChargerCoordinates;
+import com.restroute.service.evcharger.EvChargerDistanceCandidate;
+import com.restroute.service.evcharger.EvChargerMatchResult;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +43,11 @@ public class RestStopServiceAreaCodeBackfillService {
     public static final String REST_FOOD_MAPPED_COUNT = "restFoodMappedCount";
     public static final String REST_OIL_MAPPED_COUNT = "restOilMappedCount";
     public static final String REST_OIL_PRICE_MAPPED_COUNT = "restOilPriceMappedCount";
+    public static final String EV_CHARGER_MAPPED_COUNT = "evChargerMappedCount";
+
+    private static final double MAX_EV_MATCH_DISTANCE_METERS = 300;
+    private static final String EV_MATCH_COORDINATE_AND_NAME = "COORDINATE_AND_NAME";
+    private static final String EV_MATCH_COORDINATE = "COORDINATE";
 
     private final RestStopRepository restStopRepository;
     private final RestStopDetailRepository restStopDetailRepository;
@@ -39,6 +55,8 @@ public class RestStopServiceAreaCodeBackfillService {
     private final RestFoodRepository restFoodRepository;
     private final RestOilRepository restOilRepository;
     private final RestOilPriceRepository restOilPriceRepository;
+    private final EvChargerRepository evChargerRepository;
+    private final EvChargerStationMappingRepository evChargerStationMappingRepository;
 
     @Transactional
     public Map<String, Integer> backfill() {
@@ -52,6 +70,7 @@ public class RestStopServiceAreaCodeBackfillService {
         int restFoodMappedCount = backfillRestFoods(serviceAreaCodeByStdRestCd);
         int restOilMappedCount = backfillRestOils(serviceAreaCodeByOilKey);
         int restOilPriceMappedCount = backfillRestOilPrices(mapByOilStandardRestCode());
+        int evChargerMappedCount = backfillEvChargerMappings(restStops);
 
         Map<String, Integer> result = Map.of(
                 REST_STOP_DETAIL_MAPPED_COUNT,
@@ -63,17 +82,134 @@ public class RestStopServiceAreaCodeBackfillService {
                 REST_OIL_MAPPED_COUNT,
                 restOilMappedCount,
                 REST_OIL_PRICE_MAPPED_COUNT,
-                restOilPriceMappedCount);
+                restOilPriceMappedCount,
+                EV_CHARGER_MAPPED_COUNT,
+                evChargerMappedCount);
         log.info(
                 "Rest stop service area code backfill completed. restStopDetailMappedCount={}, "
                         + "highwayServiceAreaInfoMappedCount={}, restFoodMappedCount={}, restOilMappedCount={}, "
-                        + "restOilPriceMappedCount={}",
+                        + "restOilPriceMappedCount={}, evChargerMappedCount={}",
                 result.get(REST_STOP_DETAIL_MAPPED_COUNT),
                 result.get(HIGHWAY_SERVICE_AREA_INFO_MAPPED_COUNT),
                 result.get(REST_FOOD_MAPPED_COUNT),
                 result.get(REST_OIL_MAPPED_COUNT),
-                result.get(REST_OIL_PRICE_MAPPED_COUNT));
+                result.get(REST_OIL_PRICE_MAPPED_COUNT),
+                result.get(EV_CHARGER_MAPPED_COUNT));
         return result;
+    }
+
+    private int backfillEvChargerMappings(List<RestStopEntity> restStops) {
+        List<EvChargerEntity> activeStations = distinctActiveEvStations();
+        List<String> statIds =
+                activeStations.stream().map(EvChargerEntity::getStatId).toList();
+        List<EvChargerStationMappingEntity> existingMappings =
+                statIds.isEmpty() ? List.of() : evChargerStationMappingRepository.findAllByStatIdIn(statIds);
+        List<EvChargerStationMappingEntity> mappingsToSave = new ArrayList<>();
+        List<String> matchedStatIds = new ArrayList<>();
+
+        for (EvChargerEntity station : activeStations) {
+            EvChargerMatchResult match = findEvChargerMatch(station, restStops);
+            if (match.serviceAreaCode() == null) {
+                continue;
+            }
+            EvChargerStationMappingEntity mapping = existingMappings.stream()
+                    .filter(existing -> existing.getStatId().equals(station.getStatId()))
+                    .findFirst()
+                    .orElseGet(() -> EvChargerStationMappingEntity.of(station.getStatId()));
+            mapping.updateMatch(match.serviceAreaCode(), match.distanceMeters(), match.matchType());
+            mappingsToSave.add(mapping);
+            matchedStatIds.add(station.getStatId());
+        }
+
+        if (matchedStatIds.isEmpty()) {
+            evChargerStationMappingRepository.deleteAll();
+        }
+        if (!matchedStatIds.isEmpty()) {
+            evChargerStationMappingRepository.deleteAllByStatIdNotIn(matchedStatIds);
+        }
+        evChargerStationMappingRepository.saveAll(mappingsToSave);
+        return mappingsToSave.size();
+    }
+
+    private List<EvChargerEntity> distinctActiveEvStations() {
+        List<String> statIds = new ArrayList<>();
+        List<EvChargerEntity> stations = new ArrayList<>();
+        for (EvChargerEntity charger : evChargerRepository.findAll()) {
+            if (StringUtils.hasText(charger.getStatId())
+                    && "N".equals(charger.getDelYn())
+                    && !statIds.contains(charger.getStatId())) {
+                statIds.add(charger.getStatId());
+                stations.add(charger);
+            }
+        }
+        return stations;
+    }
+
+    private EvChargerMatchResult findEvChargerMatch(EvChargerEntity station, List<RestStopEntity> restStops) {
+        Optional<EvChargerCoordinates> stationCoordinates = evCoordinates(station.getLat(), station.getLng());
+        if (stationCoordinates.isEmpty()) {
+            return EvChargerMatchResult.unmatched(null);
+        }
+        List<EvChargerDistanceCandidate> candidates = restStops.stream()
+                .map(restStop -> evDistanceCandidate(restStop, stationCoordinates.get()))
+                .flatMap(Optional::stream)
+                .filter(candidate -> candidate.distanceMeters() <= MAX_EV_MATCH_DISTANCE_METERS)
+                .sorted(Comparator.comparing(EvChargerDistanceCandidate::distanceMeters))
+                .toList();
+        if (candidates.isEmpty()) {
+            return EvChargerMatchResult.unmatched(null);
+        }
+        List<EvChargerDistanceCandidate> nameMatches = candidates.stream()
+                .filter(candidate -> normalizedEvName(candidate.restStop().getUnitName())
+                        .equals(normalizedEvName(station.getStatNm())))
+                .toList();
+        if (nameMatches.size() == 1) {
+            EvChargerDistanceCandidate candidate = nameMatches.get(0);
+            return EvChargerMatchResult.matched(
+                    candidate.restStop().getServiceAreaCode(),
+                    candidate.distanceMeters(),
+                    EV_MATCH_COORDINATE_AND_NAME);
+        }
+        if (candidates.size() == 1) {
+            EvChargerDistanceCandidate candidate = candidates.get(0);
+            return EvChargerMatchResult.matched(
+                    candidate.restStop().getServiceAreaCode(), candidate.distanceMeters(), EV_MATCH_COORDINATE);
+        }
+        return EvChargerMatchResult.unmatched(null);
+    }
+
+    private Optional<EvChargerDistanceCandidate> evDistanceCandidate(
+            RestStopEntity restStop, EvChargerCoordinates stationCoordinates) {
+        Optional<EvChargerCoordinates> restStopCoordinates = evCoordinates(restStop.getYValue(), restStop.getXValue());
+        if (restStopCoordinates.isEmpty()) {
+            return Optional.empty();
+        }
+        EvChargerCoordinates coordinates = restStopCoordinates.get();
+        double distance = CoordinateDistanceCalculator.meters(
+                stationCoordinates.latitude(),
+                stationCoordinates.longitude(),
+                coordinates.latitude(),
+                coordinates.longitude());
+        return Optional.of(EvChargerDistanceCandidate.of(restStop, distance));
+    }
+
+    private Optional<EvChargerCoordinates> evCoordinates(String latitude, String longitude) {
+        if (!StringUtils.hasText(latitude) || !StringUtils.hasText(longitude)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(
+                    EvChargerCoordinates.of(Double.parseDouble(latitude.trim()), Double.parseDouble(longitude.trim())));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    private String normalizedEvName(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        return value.trim().replaceAll("\\s+", "").replace("휴게소", "").replaceAll("[^\\p{L}\\p{N}()]", "");
     }
 
     private Map<String, String> mapServiceAreaCode(List<RestStopEntity> restStops) {

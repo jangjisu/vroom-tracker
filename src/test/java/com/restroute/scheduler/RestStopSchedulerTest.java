@@ -13,8 +13,6 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
-import com.restroute.service.evcharger.EvChargerBackfillResult;
-import com.restroute.service.evcharger.EvChargerRestStopBackfillService;
 import com.restroute.service.evcharger.EvChargerSyncService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,9 +51,6 @@ class RestStopSchedulerTest {
     @Mock
     private EvChargerSyncService evChargerSyncService;
 
-    @Mock
-    private EvChargerRestStopBackfillService evChargerRestStopBackfillService;
-
     @InjectMocks
     private RestStopScheduler restStopScheduler;
 
@@ -68,7 +63,6 @@ class RestStopSchedulerTest {
         when(restOilSyncService.refreshRestOils()).thenReturn(429);
         when(restFoodSyncService.refreshRestFoods()).thenReturn(7214);
         when(evChargerSyncService.refreshEvChargers()).thenReturn(2401);
-        when(evChargerRestStopBackfillService.backfill()).thenReturn(EvChargerBackfillResult.of(100, 90, 10));
 
         restStopScheduler.syncRestStopsDaily();
 
@@ -78,7 +72,6 @@ class RestStopSchedulerTest {
         verify(restOilSyncService).refreshRestOils();
         verify(restFoodSyncService).refreshRestFoods();
         verify(evChargerSyncService).refreshEvChargers();
-        verify(evChargerRestStopBackfillService).backfill();
         InOrder inOrder = inOrder(
                 restStopSyncService,
                 restStopDetailSyncService,
@@ -86,16 +79,14 @@ class RestStopSchedulerTest {
                 restOilSyncService,
                 restFoodSyncService,
                 restStopServiceAreaCodeBackfillService,
-                evChargerSyncService,
-                evChargerRestStopBackfillService);
+                evChargerSyncService);
         inOrder.verify(restStopSyncService).refreshRestStops();
         inOrder.verify(restStopDetailSyncService).refreshRestStopDetails();
         inOrder.verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         inOrder.verify(restOilSyncService).refreshRestOils();
         inOrder.verify(restFoodSyncService).refreshRestFoods();
-        inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
         inOrder.verify(evChargerSyncService).refreshEvChargers();
-        inOrder.verify(evChargerRestStopBackfillService).backfill();
+        inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
     @Test
@@ -212,16 +203,5 @@ class RestStopSchedulerTest {
         assertThat(output)
                 .contains("Scheduled rest stop service area code backfill failed.")
                 .contains("backfill failed");
-    }
-
-    @Test
-    @DisplayName("EV 충전소 동기화가 실패해도 backfill은 독립적으로 실행한다")
-    void syncRestStopsDaily_runsEvBackfillWhenEvSyncFails(CapturedOutput output) {
-        when(evChargerSyncService.refreshEvChargers()).thenThrow(new IllegalStateException("ev charger page failed"));
-
-        assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
-
-        verify(evChargerRestStopBackfillService).backfill();
-        assertThat(output).contains("Scheduled EV charger sync failed.").contains("ev charger page failed");
     }
 }

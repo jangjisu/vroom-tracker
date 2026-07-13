@@ -1,6 +1,7 @@
 package com.restroute.domain;
 
 import com.restroute.client.response.EvChargerItem;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -61,7 +62,10 @@ public class EvChargerEntity {
     private String delYn;
     private String delDetail;
     private String trafficYn;
+
+    @Column(name = "\"year\"")
     private String year;
+
     private String floorNum;
     private String floorType;
     private String maker;

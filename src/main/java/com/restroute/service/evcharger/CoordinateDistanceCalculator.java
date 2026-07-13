@@ -1,12 +1,12 @@
 package com.restroute.service.evcharger;
 
-final class CoordinateDistanceCalculator {
+public final class CoordinateDistanceCalculator {
 
     private static final double EARTH_RADIUS_METERS = 6_371_000;
 
     private CoordinateDistanceCalculator() {}
 
-    static double meters(double latitude1, double longitude1, double latitude2, double longitude2) {
+    public static double meters(double latitude1, double longitude1, double latitude2, double longitude2) {
         double latitudeDistance = Math.toRadians(latitude2 - latitude1);
         double longitudeDistance = Math.toRadians(longitude2 - longitude1);
         double a = Math.sin(latitudeDistance / 2) * Math.sin(latitudeDistance / 2)
