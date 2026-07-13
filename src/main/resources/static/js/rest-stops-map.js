@@ -610,6 +610,7 @@ function renderDetail(detail) {
         '정보 없음',
         formatParkingCount
     );
+    renderEvChargerInfo(detail.evChargerCount);
     renderOilInfo(detail.oilInfo);
     renderFoodMenu(detail.foodMenu);
 }
@@ -1923,6 +1924,31 @@ export function formatRouteComparisonSummary(restStop) {
         .map((parts) => parts.join(' · '));
 }
 
+export function formatEvChargerAvailability(restStop) {
+    return restStop?.hasEvCharger === true ? '전기차 충전 가능' : '';
+}
+
+export function formatEvChargerCount(count) {
+    const numericCount = Number(count);
+    if (!Number.isFinite(numericCount) || numericCount <= 0) {
+        return '';
+    }
+
+    return `충전기 ${numericCount.toLocaleString()}대`;
+}
+
+function renderEvChargerInfo(count) {
+    const section = document.getElementById('restStopEvChargerSection');
+    const value = document.getElementById('restStopDetailEvCharger');
+    if (!section || !value) {
+        return;
+    }
+
+    const formattedCount = formatEvChargerCount(count);
+    value.textContent = formattedCount;
+    section.classList.toggle('d-none', formattedCount === '');
+}
+
 function routeResultFuelItems(restStop) {
     const summary = restStop?.comparisonSummary;
     if (!summary || typeof summary !== 'object') {
@@ -1984,6 +2010,14 @@ function createRouteResultItem(restStop, index) {
     meta.className = 'route-result-meta';
     meta.textContent = formatText(restStop?.routeName, '노선 정보 없음');
     item.appendChild(meta);
+
+    const evChargerLabel = formatEvChargerAvailability(restStop);
+    if (evChargerLabel) {
+        const evCharger = document.createElement('span');
+        evCharger.className = 'route-result-ev-charger';
+        evCharger.textContent = evChargerLabel;
+        item.appendChild(evCharger);
+    }
 
     const fuels = routeResultFuelItems(restStop);
     if (fuels.length > 0) {

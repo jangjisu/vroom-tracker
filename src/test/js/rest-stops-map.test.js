@@ -4,6 +4,8 @@ import test from 'node:test';
 import {
     canRequestRouteAutomatically,
     createPopupContent,
+    formatEvChargerAvailability,
+    formatEvChargerCount,
     formatOilPriceDelta,
     formatNationalOilPriceSummary,
     formatOilPriceComparison,
@@ -18,6 +20,18 @@ import {
     shouldShowRouteResultBackButton,
     shouldShowRouteSearchInline
 } from '../../main/resources/static/js/rest-stops-map.js';
+
+test('formatEvChargerAvailability only displays an indicator for true values', () => {
+    assert.equal(formatEvChargerAvailability({ hasEvCharger: true }), '전기차 충전 가능');
+    assert.equal(formatEvChargerAvailability({ hasEvCharger: false }), '');
+    assert.equal(formatEvChargerAvailability({}), '');
+});
+
+test('formatEvChargerCount only displays positive charger counts', () => {
+    assert.equal(formatEvChargerCount(6), '충전기 6대');
+    assert.equal(formatEvChargerCount(0), '');
+    assert.equal(formatEvChargerCount(undefined), '');
+});
 
 function createFakeElement(classNames = []) {
     const classes = new Set(classNames);

@@ -614,6 +614,22 @@ body.global-loading-open {
     font-size: 0.8rem;
 }
 
+.route-result-ev-charger {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    margin-top: 0.45rem;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid #b7dfc4;
+    border-radius: 999px;
+    background-color: #f0faf3;
+    color: #287a3f;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
 .route-result-tags {
     display: flex;
     flex-wrap: wrap;
