@@ -27,10 +27,10 @@ class EvChargerStationMappingCalculatorTest {
         List<EvChargerStationMappingEntity> result =
                 calculator.calculate(List.of(restStop), List.of(detail), List.of(charger));
 
-        assertThat(result).singleElement().satisfies(mapping -> {
-            assertThat(mapping.getMatchType()).isEqualTo(EvChargerMatchType.NAME_ADDRESS_DISTANCE.name());
-            assertThat(mapping.getDistanceMeters()).isLessThan(300.0);
-        });
+        assertThat(result)
+                .singleElement()
+                .satisfies(mapping ->
+                        assertThat(mapping.getRestStopServiceAreaCode()).isEqualTo("A00001"));
     }
 
     @Test
@@ -41,10 +41,7 @@ class EvChargerStationMappingCalculatorTest {
         List<EvChargerStationMappingEntity> result =
                 calculator.calculate(List.of(restStop), List.of(), List.of(charger));
 
-        assertThat(result)
-                .singleElement()
-                .extracting(EvChargerStationMappingEntity::getMatchType)
-                .isEqualTo(EvChargerMatchType.NAME_DISTANCE.name());
+        assertThat(result).singleElement();
     }
 
     @Test
@@ -57,10 +54,7 @@ class EvChargerStationMappingCalculatorTest {
                 calculator.calculate(List.of(restStop), List.of(detail), List.of(charger));
 
         assertThat(result).hasSize(1);
-        assertThat(result)
-                .singleElement()
-                .extracting(EvChargerStationMappingEntity::getMatchType)
-                .isEqualTo(EvChargerMatchType.NAME_ADDRESS_DISTANCE.name());
+        assertThat(result).singleElement();
     }
 
     @Test
@@ -72,10 +66,7 @@ class EvChargerStationMappingCalculatorTest {
         List<EvChargerStationMappingEntity> result =
                 calculator.calculate(List.of(restStop), List.of(detail), List.of(charger));
 
-        assertThat(result)
-                .singleElement()
-                .extracting(EvChargerStationMappingEntity::getMatchType)
-                .isEqualTo(EvChargerMatchType.ADDRESS_DISTANCE.name());
+        assertThat(result).singleElement();
     }
 
     @Test
@@ -89,45 +80,50 @@ class EvChargerStationMappingCalculatorTest {
         List<EvChargerStationMappingEntity> result =
                 calculator.calculate(List.of(first, second), List.of(firstDetail, secondDetail), List.of(charger));
 
-        assertThat(result).singleElement().satisfies(mapping -> {
-            assertThat(mapping.getRestStopServiceAreaCode()).isEqualTo("A00001");
-            assertThat(mapping.getMatchType()).isEqualTo(EvChargerMatchType.NAME_ADDRESS_DISTANCE.name());
-        });
+        assertThat(result)
+                .singleElement()
+                .extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .isEqualTo("A00001");
     }
 
     @Test
-    void calculate_rejectsMultipleNameAndAddressMatches() throws Exception {
+    void calculate_usesFirstMatchingCandidateWhenMultipleCandidatesMatch() throws Exception {
         RestStopEntity first = restStop("서울만남(부산)휴게소", "A00001");
         RestStopEntity second = restStop("서울만남(부산)휴게소", "A00002");
         RestStopDetailEntity firstDetail = detail("A00001", "서울만남(부산)휴게소", "같은 주소");
         RestStopDetailEntity secondDetail = detail("A00002", "서울만남(부산)휴게소", "같은 주소");
         EvChargerEntity charger = charger("ME1", "서울만남(부산) 휴게소", "같은 주소", "37.4600218", "127.0420378");
 
-        assertThat(calculator.calculate(
-                        List.of(first, second), List.of(firstDetail, secondDetail), List.of(charger)))
-                .isEmpty();
+        assertThat(calculator.calculate(List.of(first, second), List.of(firstDetail, secondDetail), List.of(charger)))
+                .singleElement()
+                .extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .isEqualTo("A00001");
     }
 
     @Test
-    void calculate_rejectsMultipleNameOnlyMatches() throws Exception {
+    void calculate_usesFirstNameMatchingCandidate() throws Exception {
         RestStopEntity first = restStop("서울만남(부산)휴게소", "A00001");
         RestStopEntity second = restStop("서울만남(부산)휴게소", "A00002");
         EvChargerEntity charger = charger("ME1", "서울만남(부산) 휴게소", "다른 주소", "37.4600218", "127.0420378");
 
-        assertThat(calculator.calculate(List.of(first, second), List.of(), List.of(charger))).isEmpty();
+        assertThat(calculator.calculate(List.of(first, second), List.of(), List.of(charger)))
+                .singleElement()
+                .extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .isEqualTo("A00001");
     }
 
     @Test
-    void calculate_rejectsMultipleAddressOnlyMatches() throws Exception {
+    void calculate_usesFirstAddressMatchingCandidate() throws Exception {
         RestStopEntity first = restStop("첫 번째 휴게소", "A00001");
         RestStopEntity second = restStop("두 번째 휴게소", "A00002");
         RestStopDetailEntity firstDetail = detail("A00001", "첫 번째 휴게소", "같은 주소");
         RestStopDetailEntity secondDetail = detail("A00002", "두 번째 휴게소", "같은 주소");
         EvChargerEntity charger = charger("ME1", "다른 충전소", "같은 주소", "37.4600218", "127.0420378");
 
-        assertThat(calculator.calculate(
-                        List.of(first, second), List.of(firstDetail, secondDetail), List.of(charger)))
-                .isEmpty();
+        assertThat(calculator.calculate(List.of(first, second), List.of(firstDetail, secondDetail), List.of(charger)))
+                .singleElement()
+                .extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .isEqualTo("A00001");
     }
 
     @Test
@@ -189,13 +185,6 @@ class EvChargerStationMappingCalculatorTest {
         assertThat(calculator.calculate(
                         List.of(restStop, blankNameRestStop), List.of(detail), List.of(charger, nonBlankCharger)))
                 .isEmpty();
-    }
-
-    @Test
-    void matchType_hasDescriptions() {
-        assertThat(EvChargerMatchType.NAME_ADDRESS_DISTANCE.getDescription()).isEqualTo("이름, 주소, 거리 일치");
-        assertThat(EvChargerMatchType.NAME_DISTANCE.getDescription()).isEqualTo("이름, 거리 일치");
-        assertThat(EvChargerMatchType.ADDRESS_DISTANCE.getDescription()).isEqualTo("주소, 거리 일치");
     }
 
     private RestStopEntity restStop(String name, String serviceAreaCode) {

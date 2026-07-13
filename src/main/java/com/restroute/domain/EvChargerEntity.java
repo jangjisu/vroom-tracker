@@ -12,6 +12,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @Entity
@@ -116,5 +117,13 @@ public class EvChargerEntity {
         this.floorNum = item.getFloorNum();
         this.floorType = item.getFloorType();
         this.maker = item.getMaker();
+    }
+
+    public boolean isActiveMappingTarget() {
+        return StringUtils.hasText(statId) && "N".equals(delYn);
+    }
+
+    public boolean hasSameStatId(EvChargerEntity other) {
+        return statId.equals(other.statId);
     }
 }

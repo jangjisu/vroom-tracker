@@ -45,7 +45,7 @@ class EvChargerStationMappingRepositoryTest {
 
     private EvChargerStationMappingEntity mapping(String statId, String serviceAreaCode) {
         EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of(statId);
-        mapping.updateMatch(serviceAreaCode, 100.0, "COORDINATE");
+        mapping.updateMatch(serviceAreaCode);
         return mapping;
     }
 }

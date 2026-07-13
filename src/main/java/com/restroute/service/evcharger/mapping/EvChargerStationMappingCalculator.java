@@ -26,7 +26,7 @@ public class EvChargerStationMappingCalculator {
         List<EvChargerStationMappingEntity> mappings = new ArrayList<>();
 
         for (EvChargerEntity charger : distinctChargers) {
-            Optional<MatchedCandidate> matchedCandidate = findMatchedCandidate(charger, restStops, restStopDetails);
+            Optional<DistanceCandidate> matchedCandidate = findMatchedCandidate(charger, restStops, restStopDetails);
             if (matchedCandidate.isEmpty()) {
                 continue;
             }
@@ -36,62 +36,28 @@ public class EvChargerStationMappingCalculator {
     }
 
     private List<EvChargerEntity> distinctActiveChargers(List<EvChargerEntity> evChargers) {
-        List<String> statIds = new ArrayList<>();
         List<EvChargerEntity> distinctChargers = new ArrayList<>();
-        for (EvChargerEntity charger : evChargers) {
-            if (StringUtils.hasText(charger.getStatId())
-                    && "N".equals(charger.getDelYn())
-                    && !statIds.contains(charger.getStatId())) {
-                statIds.add(charger.getStatId());
-                distinctChargers.add(charger);
-            }
-        }
+        evChargers.stream()
+                .filter(EvChargerEntity::isActiveMappingTarget)
+                .forEach(charger -> addIfNewStatId(distinctChargers, charger));
         return distinctChargers;
     }
 
-    private Optional<MatchedCandidate> findMatchedCandidate(
-            EvChargerEntity charger, List<RestStopEntity> restStops, List<RestStopDetailEntity> restStopDetails) {
-        List<DistanceCandidate> nearbyCandidates = findNearbyRestStops(charger, restStops);
-        List<MatchedCandidate> matchedCandidates = nearbyCandidates.stream()
-                .map(candidate -> matchCandidate(charger, candidate, restStopDetails))
-                .flatMap(Optional::stream)
-                .toList();
-        List<MatchedCandidate> nameAndAddressCandidates = new ArrayList<>();
-        List<MatchedCandidate> nameCandidates = new ArrayList<>();
-        List<MatchedCandidate> addressCandidates = new ArrayList<>();
-        for (MatchedCandidate candidate : matchedCandidates) {
-            if (candidate.matchType() == EvChargerMatchType.NAME_ADDRESS_DISTANCE) {
-                nameAndAddressCandidates.add(candidate);
-                continue;
-            }
-            if (candidate.matchType() == EvChargerMatchType.NAME_DISTANCE) {
-                nameCandidates.add(candidate);
-                continue;
-            }
-            addressCandidates.add(candidate);
+    private void addIfNewStatId(List<EvChargerEntity> chargers, EvChargerEntity charger) {
+        boolean alreadyAdded = chargers.stream().anyMatch(existing -> existing.hasSameStatId(charger));
+        if (!alreadyAdded) {
+            chargers.add(charger);
         }
-        if (nameAndAddressCandidates.size() == 1) {
-            return Optional.of(nameAndAddressCandidates.get(0));
-        }
-        if (!nameAndAddressCandidates.isEmpty()) {
-            return Optional.empty();
-        }
-
-        if (nameCandidates.size() == 1) {
-            return Optional.of(nameCandidates.get(0));
-        }
-        if (!nameCandidates.isEmpty()) {
-            return Optional.empty();
-        }
-
-        if (addressCandidates.size() == 1) {
-            return Optional.of(addressCandidates.get(0));
-        }
-        return Optional.empty();
     }
 
-    private List<DistanceCandidate> findNearbyRestStops(
-            EvChargerEntity charger, List<RestStopEntity> restStops) {
+    private Optional<DistanceCandidate> findMatchedCandidate(
+            EvChargerEntity charger, List<RestStopEntity> restStops, List<RestStopDetailEntity> restStopDetails) {
+        return findNearbyRestStops(charger, restStops).stream()
+                .filter(candidate -> isNameOrAddressMatched(charger, candidate.restStop(), restStopDetails))
+                .findFirst();
+    }
+
+    private List<DistanceCandidate> findNearbyRestStops(EvChargerEntity charger, List<RestStopEntity> restStops) {
         Optional<EvChargerCoordinates> chargerCoordinates = parseCoordinates(charger.getLat(), charger.getLng());
         if (chargerCoordinates.isEmpty()) {
             return List.of();
@@ -122,27 +88,15 @@ public class EvChargerStationMappingCalculator {
         return Optional.of(new DistanceCandidate(restStop, distanceMeters));
     }
 
-    private Optional<MatchedCandidate> matchCandidate(
-            EvChargerEntity charger,
-            DistanceCandidate distanceCandidate,
-            List<RestStopDetailEntity> restStopDetails) {
-        RestStopEntity restStop = distanceCandidate.restStop();
+    private boolean isNameOrAddressMatched(
+            EvChargerEntity charger, RestStopEntity restStop, List<RestStopDetailEntity> restStopDetails) {
         List<RestStopDetailEntity> details = restStopDetails.stream()
                 .filter(detail -> belongsToRestStop(detail, restStop))
                 .toList();
         boolean nameMatched = isNameMatched(charger, restStop, details);
         boolean addressMatched = isAddressMatched(charger, details);
 
-        if (nameMatched && addressMatched) {
-            return Optional.of(new MatchedCandidate(distanceCandidate, EvChargerMatchType.NAME_ADDRESS_DISTANCE));
-        }
-        if (nameMatched) {
-            return Optional.of(new MatchedCandidate(distanceCandidate, EvChargerMatchType.NAME_DISTANCE));
-        }
-        if (addressMatched) {
-            return Optional.of(new MatchedCandidate(distanceCandidate, EvChargerMatchType.ADDRESS_DISTANCE));
-        }
-        return Optional.empty();
+        return nameMatched || addressMatched;
     }
 
     private boolean isNameMatched(
@@ -165,14 +119,9 @@ public class EvChargerStationMappingCalculator {
                 .anyMatch(chargerAddress::equals);
     }
 
-    private EvChargerStationMappingEntity createMapping(
-            EvChargerEntity charger, MatchedCandidate matchedCandidate) {
-        DistanceCandidate distanceCandidate = matchedCandidate.distanceCandidate();
+    private EvChargerStationMappingEntity createMapping(EvChargerEntity charger, DistanceCandidate distanceCandidate) {
         EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of(charger.getStatId());
-        mapping.updateMatch(
-                distanceCandidate.restStop().getServiceAreaCode(),
-                distanceCandidate.distanceMeters(),
-                matchedCandidate.matchType());
+        mapping.updateMatch(distanceCandidate.restStop().getServiceAreaCode());
         return mapping;
     }
 
@@ -189,8 +138,8 @@ public class EvChargerStationMappingCalculator {
             return Optional.empty();
         }
         try {
-            return Optional.of(EvChargerCoordinates.of(
-                    Double.parseDouble(latitude.trim()), Double.parseDouble(longitude.trim())));
+            return Optional.of(
+                    EvChargerCoordinates.of(Double.parseDouble(latitude.trim()), Double.parseDouble(longitude.trim())));
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
@@ -219,6 +168,4 @@ public class EvChargerStationMappingCalculator {
     }
 
     private record DistanceCandidate(RestStopEntity restStop, double distanceMeters) {}
-
-    private record MatchedCandidate(DistanceCandidate distanceCandidate, EvChargerMatchType matchType) {}
 }

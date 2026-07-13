@@ -37,7 +37,7 @@ class EvChargerQueryServiceTest {
     @DisplayName("매핑된 휴게소 코드를 일괄 조회한다")
     void findMappedServiceAreaCodes_returnsMappedCodes() {
         EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of("ME1");
-        mapping.updateMatch("A00001", 40.0, "COORDINATE");
+        mapping.updateMatch("A00001");
         when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
                 .thenReturn(List.of(mapping));
         List<String> result = queryService.findMappedServiceAreaCodes(List.of("A00001"));
@@ -55,7 +55,7 @@ class EvChargerQueryServiceTest {
     @DisplayName("매핑된 휴게소의 활성 충전기 대수를 조회한다")
     void findActiveChargerCount_countsActiveChargers() throws Exception {
         EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of("ME1");
-        mapping.updateMatch("A00001", 40.0, "COORDINATE");
+        mapping.updateMatch("A00001");
         when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
                 .thenReturn(List.of(mapping));
         when(evChargerRepository.findAllByStatIdInAndDelYn(List.of("ME1"), "N"))

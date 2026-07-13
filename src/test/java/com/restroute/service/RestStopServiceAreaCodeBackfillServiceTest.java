@@ -220,7 +220,7 @@ class RestStopServiceAreaCodeBackfillServiceTest {
     @DisplayName("중앙 backfill은 EV 매핑 클래스의 결과를 저장한다")
     void backfill_replacesEvMappingsWithMapperResult() {
         EvChargerStationMappingEntity existing = EvChargerStationMappingEntity.of("ME1");
-        existing.updateMatch("A00001", 100.0, "COORDINATE");
+        existing.updateMatch("A00001");
         evChargerStationMappingRepository.save(existing);
 
         Map<String, Integer> result = backfillService.backfill();
