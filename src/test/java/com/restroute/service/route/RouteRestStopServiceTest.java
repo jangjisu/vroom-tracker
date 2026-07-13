@@ -70,7 +70,7 @@ class RouteRestStopServiceTest {
     @BeforeEach
     void setUp() {
         lenient().when(nationalOilPriceService.getTodaySummary()).thenReturn(Optional.empty());
-        lenient().when(evChargerQueryService.findMappedServiceAreaCodes(any())).thenReturn(java.util.Set.of());
+        lenient().when(evChargerQueryService.findMappedServiceAreaCodes(any())).thenReturn(List.of());
         lenient()
                 .when(restStopRelatedInfoQueryService.findByRestStop(any(RestStopEntity.class)))
                 .thenReturn(emptyRelatedInfo());
@@ -245,7 +245,7 @@ class RouteRestStopServiceTest {
                 .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
         RestStopEntity restStop = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
         when(restStopRepository.findAll()).thenReturn(List.of(restStop));
-        when(evChargerQueryService.findMappedServiceAreaCodes(List.of("A"))).thenReturn(java.util.Set.of("A"));
+        when(evChargerQueryService.findMappedServiceAreaCodes(List.of("A"))).thenReturn(List.of("A"));
 
         RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
 

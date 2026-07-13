@@ -6,6 +6,7 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerBackfillResult;
 import com.restroute.service.evcharger.EvChargerRestStopBackfillService;
 import com.restroute.service.evcharger.EvChargerSyncService;
 import java.util.Map;
@@ -38,11 +39,9 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         initializeRestOils();
         initializeRestOilPrices();
         initializeRestFoods();
-        boolean evChargerSyncSucceeded = initializeEvChargers();
+        initializeEvChargers();
         backfillRestStopServiceAreaCodes();
-        if (evChargerSyncSucceeded) {
-            backfillEvChargerRestStops();
-        }
+        backfillEvChargerRestStops();
     }
 
     private void initializeRestStops() {
@@ -124,25 +123,23 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         }
     }
 
-    private boolean initializeEvChargers() {
+    private void initializeEvChargers() {
         try {
             int savedCount = evChargerSyncService.initializeEvChargersIfEmpty();
             if (savedCount > 0) {
                 log.info("Initial EV charger sync completed. savedCount={}", savedCount);
-                return true;
+                return;
             }
 
             log.info("Initial EV charger sync skipped because ev_charger table already has data.");
-            return true;
         } catch (RuntimeException e) {
             log.error("Initial EV charger sync failed. cause={}", e.getMessage(), e);
-            return false;
         }
     }
 
     private void backfillEvChargerRestStops() {
         try {
-            Map<String, Integer> result = evChargerRestStopBackfillService.backfill();
+            EvChargerBackfillResult result = evChargerRestStopBackfillService.backfill();
             log.info("EV charger rest stop backfill completed. result={}", result);
         } catch (RuntimeException e) {
             log.error("EV charger rest stop backfill failed. cause={}", e.getMessage(), e);

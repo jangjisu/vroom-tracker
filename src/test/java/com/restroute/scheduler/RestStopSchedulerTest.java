@@ -13,9 +13,9 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerBackfillResult;
 import com.restroute.service.evcharger.EvChargerRestStopBackfillService;
 import com.restroute.service.evcharger.EvChargerSyncService;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,8 +68,7 @@ class RestStopSchedulerTest {
         when(restOilSyncService.refreshRestOils()).thenReturn(429);
         when(restFoodSyncService.refreshRestFoods()).thenReturn(7214);
         when(evChargerSyncService.refreshEvChargers()).thenReturn(2401);
-        when(evChargerRestStopBackfillService.backfill())
-                .thenReturn(Map.of("stationCount", 100, "matchedCount", 90, "unmatchedCount", 10));
+        when(evChargerRestStopBackfillService.backfill()).thenReturn(EvChargerBackfillResult.of(100, 90, 10));
 
         restStopScheduler.syncRestStopsDaily();
 
@@ -216,13 +215,13 @@ class RestStopSchedulerTest {
     }
 
     @Test
-    @DisplayName("EV 충전소 동기화가 실패하면 기존 매핑을 보존하기 위해 backfill을 실행하지 않는다")
-    void syncRestStopsDaily_skipsEvBackfillWhenEvSyncFails(CapturedOutput output) {
+    @DisplayName("EV 충전소 동기화가 실패해도 backfill은 독립적으로 실행한다")
+    void syncRestStopsDaily_runsEvBackfillWhenEvSyncFails(CapturedOutput output) {
         when(evChargerSyncService.refreshEvChargers()).thenThrow(new IllegalStateException("ev charger page failed"));
 
         assertThatCode(restStopScheduler::syncRestStopsDaily).doesNotThrowAnyException();
 
-        verify(evChargerRestStopBackfillService, org.mockito.Mockito.never()).backfill();
+        verify(evChargerRestStopBackfillService).backfill();
         assertThat(output).contains("Scheduled EV charger sync failed.").contains("ev charger page failed");
     }
 }

@@ -16,8 +16,6 @@ import com.restroute.repository.EvChargerStationMappingRepository;
 import com.restroute.repository.RestStopRepository;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,9 +54,10 @@ class EvChargerRestStopBackfillServiceTest {
         when(evChargerRepository.findAll()).thenReturn(List.of(station));
         when(restStopRepository.findAll()).thenReturn(List.of(restStop("서울만남(부산)휴게소", "A00001")));
 
-        Map<String, Integer> result = backfillService.backfill();
+        EvChargerBackfillResult result = backfillService.backfill();
 
-        assertThat(result).containsEntry("matchedCount", 1).containsEntry("unmatchedCount", 0);
+        assertThat(result.matchedCount()).isEqualTo(1);
+        assertThat(result.unmatchedCount()).isZero();
         EvChargerStationMappingEntity mapping = captureMappings().get(0);
         assertThat(mapping.getRestStopServiceAreaCode()).isEqualTo("A00001");
         assertThat(mapping.getDistanceMeters()).isLessThan(100.0);
@@ -86,9 +85,10 @@ class EvChargerRestStopBackfillServiceTest {
         when(evChargerRepository.findAll()).thenReturn(List.of(station));
         when(restStopRepository.findAll()).thenReturn(List.of(restStop("A휴게소", "A00001"), restStop("B휴게소", "B00001")));
 
-        Map<String, Integer> result = backfillService.backfill();
+        EvChargerBackfillResult result = backfillService.backfill();
 
-        assertThat(result).containsEntry("matchedCount", 0).containsEntry("unmatchedCount", 1);
+        assertThat(result.matchedCount()).isZero();
+        assertThat(result.unmatchedCount()).isEqualTo(1);
         assertThat(captureMappings()).isEmpty();
     }
 
@@ -100,9 +100,10 @@ class EvChargerRestStopBackfillServiceTest {
         when(evChargerRepository.findAll()).thenReturn(List.of(station, missingStatId));
         when(restStopRepository.findAll()).thenReturn(List.of(restStop("A휴게소", "A00001")));
 
-        Map<String, Integer> result = backfillService.backfill();
+        EvChargerBackfillResult result = backfillService.backfill();
 
-        assertThat(result).containsEntry("stationCount", 0).containsEntry("matchedCount", 0);
+        assertThat(result.stationCount()).isZero();
+        assertThat(result.matchedCount()).isZero();
         assertThat(captureMappings()).isEmpty();
         verify(mappingRepository).deleteAll();
     }
@@ -113,11 +114,11 @@ class EvChargerRestStopBackfillServiceTest {
         EvChargerEntity station = chargerEntity("ME1", "01", "A휴게소", "37.4599", "127.0425");
         when(evChargerRepository.findAll()).thenReturn(List.of(station));
         when(restStopRepository.findAll()).thenReturn(List.of(restStop("A휴게소", "A00001")));
-        when(mappingRepository.findAllByStatIdIn(Set.of("ME1"))).thenReturn(List.of());
+        when(mappingRepository.findAllByStatIdIn(List.of("ME1"))).thenReturn(List.of());
 
         backfillService.backfill();
 
-        verify(mappingRepository).deleteAllByStatIdNotIn(Set.of("ME1"));
+        verify(mappingRepository).deleteAllByStatIdNotIn(List.of("ME1"));
     }
 
     @Test
@@ -128,11 +129,13 @@ class EvChargerRestStopBackfillServiceTest {
         existing.updateMatch("OLD", 200.0, "COORDINATE");
         when(evChargerRepository.findAll()).thenReturn(List.of(station));
         when(restStopRepository.findAll()).thenReturn(List.of(restStop("A휴게소", "A00001")));
-        when(mappingRepository.findAllByStatIdIn(Set.of("ME1"))).thenReturn(List.of(existing, existing));
+        when(mappingRepository.findAllByStatIdIn(List.of("ME1"))).thenReturn(List.of(existing, existing));
 
         backfillService.backfill();
 
-        assertThat(captureMappings()).singleElement().extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+        assertThat(captureMappings())
+                .singleElement()
+                .extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
                 .isEqualTo("A00001");
     }
 

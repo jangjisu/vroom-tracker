@@ -10,7 +10,6 @@ import com.restroute.domain.EvChargerStationMappingEntity;
 import com.restroute.repository.EvChargerRepository;
 import com.restroute.repository.EvChargerStationMappingRepository;
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,9 +38,9 @@ class EvChargerQueryServiceTest {
     void findMappedServiceAreaCodes_returnsMappedCodes() {
         EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of("ME1");
         mapping.updateMatch("A00001", 40.0, "COORDINATE");
-        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(Set.of("A00001")))
+        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
                 .thenReturn(List.of(mapping));
-        Set<String> result = queryService.findMappedServiceAreaCodes(List.of("A00001"));
+        List<String> result = queryService.findMappedServiceAreaCodes(List.of("A00001"));
 
         assertThat(result).containsExactly("A00001");
     }
@@ -57,9 +56,9 @@ class EvChargerQueryServiceTest {
     void findActiveChargerCount_countsActiveChargers() throws Exception {
         EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of("ME1");
         mapping.updateMatch("A00001", 40.0, "COORDINATE");
-        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(Set.of("A00001")))
+        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
                 .thenReturn(List.of(mapping));
-        when(evChargerRepository.findAllByStatIdInAndDelYn(Set.of("ME1"), "N"))
+        when(evChargerRepository.findAllByStatIdInAndDelYn(List.of("ME1"), "N"))
                 .thenReturn(List.of(charger("ME1", "01", "N"), charger("ME1", "02", "N")));
 
         assertThat(queryService.findActiveChargerCount("A00001")).isEqualTo(2);
@@ -68,7 +67,7 @@ class EvChargerQueryServiceTest {
     @Test
     @DisplayName("매핑이 없거나 휴게소 코드가 없으면 상세 충전기 수를 0으로 반환한다")
     void findActiveChargerCount_returnsZeroWithoutMapping() {
-        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(Set.of("A00001")))
+        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
                 .thenReturn(List.of());
 
         assertThat(queryService.findActiveChargerCount("A00001")).isZero();

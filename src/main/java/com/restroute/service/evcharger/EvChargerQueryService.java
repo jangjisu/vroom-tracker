@@ -4,8 +4,7 @@ import com.restroute.domain.EvChargerStationMappingEntity;
 import com.restroute.repository.EvChargerRepository;
 import com.restroute.repository.EvChargerStationMappingRepository;
 import java.util.Collection;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,16 +20,16 @@ public class EvChargerQueryService {
     private final EvChargerStationMappingRepository mappingRepository;
 
     @Transactional(readOnly = true)
-    public Set<String> findMappedServiceAreaCodes(Collection<String> serviceAreaCodes) {
-        Set<String> validServiceAreaCodes =
-                serviceAreaCodes.stream().filter(StringUtils::hasText).collect(Collectors.toSet());
+    public List<String> findMappedServiceAreaCodes(Collection<String> serviceAreaCodes) {
+        List<String> validServiceAreaCodes =
+                serviceAreaCodes.stream().filter(StringUtils::hasText).toList();
         if (validServiceAreaCodes.isEmpty()) {
-            return Set.of();
+            return List.of();
         }
 
         return mappingRepository.findAllByRestStopServiceAreaCodeIn(validServiceAreaCodes).stream()
                 .map(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
-                .collect(Collectors.toSet());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -38,9 +37,9 @@ public class EvChargerQueryService {
         if (!StringUtils.hasText(serviceAreaCode)) {
             return 0;
         }
-        Set<String> statIds = mappingRepository.findAllByRestStopServiceAreaCodeIn(Set.of(serviceAreaCode)).stream()
+        List<String> statIds = mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of(serviceAreaCode)).stream()
                 .map(EvChargerStationMappingEntity::getStatId)
-                .collect(Collectors.toSet());
+                .toList();
         if (statIds.isEmpty()) {
             return 0;
         }

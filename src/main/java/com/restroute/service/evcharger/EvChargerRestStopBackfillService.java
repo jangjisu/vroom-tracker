@@ -8,13 +8,8 @@ import com.restroute.repository.EvChargerStationMappingRepository;
 import com.restroute.repository.RestStopRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,65 +32,59 @@ public class EvChargerRestStopBackfillService {
     private final RestStopRepository restStopRepository;
 
     @Transactional
-    public Map<String, Integer> backfill() {
+    public EvChargerBackfillResult backfill() {
         List<RestStopEntity> restStops = restStopRepository.findAll();
         List<EvChargerEntity> stations = distinctActiveStations();
-        Set<String> statIds = stations.stream().map(EvChargerEntity::getStatId).collect(Collectors.toSet());
-        Map<String, EvChargerStationMappingEntity> mappings = statIds.isEmpty()
-                ? Map.of()
-                : mappingRepository.findAllByStatIdIn(statIds).stream()
-                        .collect(Collectors.toMap(
-                                EvChargerStationMappingEntity::getStatId,
-                                Function.identity(),
-                                (first, second) -> first));
+        List<String> statIds = stations.stream().map(EvChargerEntity::getStatId).toList();
+        List<EvChargerStationMappingEntity> mappings =
+                statIds.isEmpty() ? List.of() : mappingRepository.findAllByStatIdIn(statIds);
 
         int matchedCount = 0;
         List<EvChargerStationMappingEntity> toSave = new ArrayList<>();
-        Set<String> matchedStatIds = new HashSet<>();
+        List<String> matchedStatIds = new ArrayList<>();
         for (EvChargerEntity station : stations) {
             EvChargerMatchResult result = findMatch(station, restStops);
             if (result.serviceAreaCode() == null) {
                 continue;
             }
-            EvChargerStationMappingEntity mapping = mappings.get(station.getStatId());
-            if (mapping == null) {
-                mapping = EvChargerStationMappingEntity.of(station.getStatId());
-            }
+            EvChargerStationMappingEntity mapping = mappings.stream()
+                    .filter(existing -> existing.getStatId().equals(station.getStatId()))
+                    .findFirst()
+                    .orElseGet(() -> EvChargerStationMappingEntity.of(station.getStatId()));
             mapping.updateMatch(result.serviceAreaCode(), result.distanceMeters(), result.matchType());
             toSave.add(mapping);
             matchedStatIds.add(station.getStatId());
             matchedCount++;
         }
-        if (matchedStatIds.isEmpty()) {
-            mappingRepository.deleteAll();
-        }
-        if (!matchedStatIds.isEmpty()) {
-            mappingRepository.deleteAllByStatIdNotIn(matchedStatIds);
-        }
+        deleteStaleMappings(matchedStatIds);
         mappingRepository.saveAll(toSave);
 
-        Map<String, Integer> result = Map.of(
-                "stationCount",
-                statIds.size(),
-                "matchedCount",
-                matchedCount,
-                "unmatchedCount",
-                statIds.size() - matchedCount);
+        EvChargerBackfillResult result =
+                EvChargerBackfillResult.of(statIds.size(), matchedCount, statIds.size() - matchedCount);
         log.info(
                 "EV charger rest stop backfill completed. stationCount={}, matchedCount={}, unmatchedCount={}",
-                result.get("stationCount"),
-                result.get("matchedCount"),
-                result.get("unmatchedCount"));
+                result.stationCount(),
+                result.matchedCount(),
+                result.unmatchedCount());
         return result;
     }
 
+    private void deleteStaleMappings(List<String> matchedStatIds) {
+        if (matchedStatIds.isEmpty()) {
+            mappingRepository.deleteAll();
+            return;
+        }
+        mappingRepository.deleteAllByStatIdNotIn(matchedStatIds);
+    }
+
     private List<EvChargerEntity> distinctActiveStations() {
-        Set<String> statIds = new HashSet<>();
+        List<String> statIds = new ArrayList<>();
         List<EvChargerEntity> stations = new ArrayList<>();
         for (EvChargerEntity charger : evChargerRepository.findAll()) {
             if (StringUtils.hasText(charger.getStatId())
                     && "N".equals(charger.getDelYn())
-                    && statIds.add(charger.getStatId())) {
+                    && !statIds.contains(charger.getStatId())) {
+                statIds.add(charger.getStatId());
                 stations.add(charger);
             }
         }

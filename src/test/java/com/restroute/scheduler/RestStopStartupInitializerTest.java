@@ -12,6 +12,7 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerBackfillResult;
 import com.restroute.service.evcharger.EvChargerRestStopBackfillService;
 import com.restroute.service.evcharger.EvChargerSyncService;
 import java.util.Map;
@@ -68,8 +69,7 @@ class RestStopStartupInitializerTest {
         when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(226);
         when(restFoodSyncService.initializeRestFoodsIfEmpty()).thenReturn(7214);
         when(evChargerSyncService.initializeEvChargersIfEmpty()).thenReturn(2401);
-        when(evChargerRestStopBackfillService.backfill())
-                .thenReturn(Map.of("stationCount", 100, "matchedCount", 90, "unmatchedCount", 10));
+        when(evChargerRestStopBackfillService.backfill()).thenReturn(EvChargerBackfillResult.of(100, 90, 10));
         when(restStopServiceAreaCodeBackfillService.backfill())
                 .thenReturn(Map.of(
                         RestStopServiceAreaCodeBackfillService.REST_STOP_DETAIL_MAPPED_COUNT,
@@ -197,15 +197,15 @@ class RestStopStartupInitializerTest {
     }
 
     @Test
-    @DisplayName("EV 충전소 초기 동기화 실패 시 기존 매핑을 보존하기 위해 backfill을 생략한다")
-    void run_skipsEvBackfillWhenEvSyncFails(CapturedOutput output) {
+    @DisplayName("EV 충전소 초기 동기화가 실패해도 backfill은 독립적으로 실행한다")
+    void run_runsEvBackfillWhenEvSyncFails(CapturedOutput output) {
         when(evChargerSyncService.initializeEvChargersIfEmpty())
                 .thenThrow(new IllegalStateException("ev charger API failed"));
 
         assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
                 .doesNotThrowAnyException();
 
-        org.mockito.Mockito.verify(evChargerRestStopBackfillService, org.mockito.Mockito.never()).backfill();
+        verify(evChargerRestStopBackfillService).backfill();
         assertThat(output).contains("Initial EV charger sync failed.").contains("ev charger API failed");
     }
 

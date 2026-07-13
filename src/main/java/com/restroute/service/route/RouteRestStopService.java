@@ -17,7 +17,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -128,7 +127,7 @@ public class RouteRestStopService {
                 .filter(RouteRestStopCandidate::hasDirectionGroup)
                 .map(RouteRestStopCandidate::groupKey)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-        Set<String> mappedServiceAreaCodes = evChargerQueryService.findMappedServiceAreaCodes(candidates.stream()
+        List<String> mappedServiceAreaCodes = evChargerQueryService.findMappedServiceAreaCodes(candidates.stream()
                 .map(candidate -> candidate.restStop().getServiceAreaCode())
                 .toList());
         List<RouteRestStopComparison> comparisons = candidates.stream()
