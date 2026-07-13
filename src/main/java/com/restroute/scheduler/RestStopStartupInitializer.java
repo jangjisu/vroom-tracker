@@ -37,12 +37,8 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         initializeRestOils();
         initializeRestOilPrices();
         initializeRestFoods();
-        EvChargerSyncResult evChargerSyncResult = initializeEvChargers();
-        if (evChargerSyncResult.evChargerBackfillAllowed()) {
-            backfillRestStopServiceAreaCodes();
-            return;
-        }
-        backfillRestStopServiceAreaCodes(false);
+        initializeEvChargers();
+        backfillRestStopServiceAreaCodes();
     }
 
     private void initializeRestStops() {

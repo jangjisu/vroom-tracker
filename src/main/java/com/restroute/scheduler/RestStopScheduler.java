@@ -36,12 +36,8 @@ public class RestStopScheduler {
         refreshHighwayServiceAreaInfos();
         refreshRestOils();
         refreshRestFoods();
-        EvChargerSyncResult evChargerSyncResult = refreshEvChargers();
-        if (evChargerSyncResult == null || evChargerSyncResult.evChargerBackfillAllowed()) {
-            backfillRestStopServiceAreaCodes();
-            return;
-        }
-        backfillRestStopServiceAreaCodes(false);
+        refreshEvChargers();
+        backfillRestStopServiceAreaCodes();
     }
 
     @Scheduled(cron = "0 0 */3 * * *", zone = "Asia/Seoul")

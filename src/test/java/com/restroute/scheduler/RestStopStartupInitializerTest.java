@@ -194,14 +194,14 @@ class RestStopStartupInitializerTest {
     }
 
     @Test
-    @DisplayName("EV 초기 동기화가 부분 실패하면 EV 매핑 backfill을 보존 모드로 실행한다")
-    void run_preservesEvMappingsWhenEvSyncPartiallyFails() {
+    @DisplayName("EV 초기 동기화가 부분 실패해도 backfill을 실행한다")
+    void run_runsBackfillWhenEvSyncPartiallyFails() {
         when(evChargerSyncService.initializeEvChargersIfEmpty())
                 .thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0, false));
 
         restStopStartupInitializer.run(applicationArguments);
 
-        verify(restStopServiceAreaCodeBackfillService).backfill(false);
+        verify(restStopServiceAreaCodeBackfillService).backfill();
     }
 
     @Test
@@ -212,7 +212,7 @@ class RestStopStartupInitializerTest {
         assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
                 .doesNotThrowAnyException();
 
-        verify(restStopServiceAreaCodeBackfillService).backfill(false);
+        verify(restStopServiceAreaCodeBackfillService).backfill();
         assertThat(output).contains("Initial EV charger sync failed.").contains("EV API failed");
     }
 
@@ -265,7 +265,7 @@ class RestStopStartupInitializerTest {
     void run_doesNotPropagateEvMappingBackfillFailure(CapturedOutput output) {
         when(evChargerSyncService.initializeEvChargersIfEmpty())
                 .thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0, false));
-        when(restStopServiceAreaCodeBackfillService.backfill(false))
+        when(restStopServiceAreaCodeBackfillService.backfill())
                 .thenThrow(new IllegalStateException("EV mapping backfill failed"));
 
         assertThatCode(() -> restStopStartupInitializer.run(applicationArguments))
