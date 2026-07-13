@@ -11,6 +11,7 @@ import com.restroute.controller.response.RestStopBasicInfoResponse;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
 import com.restroute.repository.RestStopRepository;
+import com.restroute.service.evcharger.EvChargerQueryService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,12 +31,18 @@ class RestStopBasicInfoQueryServiceTest {
     @Mock
     private RestStopRelatedInfoQueryService restStopRelatedInfoQueryService;
 
+    @Mock
+    private EvChargerQueryService evChargerQueryService;
+
     private RestStopBasicInfoQueryService restStopBasicInfoQueryService;
 
     @BeforeEach
     void setUp() {
-        restStopBasicInfoQueryService =
-                new RestStopBasicInfoQueryService(restStopRepository, restStopRelatedInfoQueryService);
+        restStopBasicInfoQueryService = new RestStopBasicInfoQueryService(
+                restStopRepository, restStopRelatedInfoQueryService, evChargerQueryService);
+        org.mockito.Mockito.lenient()
+                .when(evChargerQueryService.findActiveChargerCount("A00001"))
+                .thenReturn(0);
     }
 
     @Test
@@ -63,6 +70,7 @@ class RestStopBasicInfoQueryServiceTest {
         assertThat(response.address()).isEqualTo("경기 성남시");
         assertThat(response.telNo()).isEqualTo("02-573-7430");
         assertThat(response.brand()).isEqualTo("투썸플레이스");
+        assertThat(response.evChargerCount()).isZero();
     }
 
     @Test

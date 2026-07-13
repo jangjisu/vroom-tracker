@@ -3,6 +3,7 @@ package com.restroute.service;
 import com.restroute.controller.response.RestStopBasicInfoResponse;
 import com.restroute.domain.RestStopEntity;
 import com.restroute.repository.RestStopRepository;
+import com.restroute.service.evcharger.EvChargerQueryService;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ public class RestStopBasicInfoQueryService {
 
     private final RestStopRepository restStopRepository;
     private final RestStopRelatedInfoQueryService restStopRelatedInfoQueryService;
+    private final EvChargerQueryService evChargerQueryService;
 
     @Transactional(readOnly = true)
     public Optional<RestStopBasicInfoResponse> findByServiceAreaCode(String serviceAreaCode) {
@@ -22,6 +24,7 @@ public class RestStopBasicInfoQueryService {
 
     private RestStopBasicInfoResponse findByRestStop(RestStopEntity restStop) {
         RestStopRelatedInfo relatedInfo = restStopRelatedInfoQueryService.findByRestStop(restStop);
-        return RestStopBasicInfoResponse.of(restStop, relatedInfo.detail());
+        int evChargerCount = evChargerQueryService.findActiveChargerCount(restStop.getServiceAreaCode());
+        return RestStopBasicInfoResponse.of(restStop, relatedInfo.detail(), evChargerCount);
     }
 }

@@ -7,6 +7,8 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerRestStopBackfillService;
+import com.restroute.service.evcharger.EvChargerSyncService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,8 @@ public class RestStopScheduler {
     private final RestOilPriceSyncService restOilPriceSyncService;
     private final RestFoodSyncService restFoodSyncService;
     private final RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
+    private final EvChargerSyncService evChargerSyncService;
+    private final EvChargerRestStopBackfillService evChargerRestStopBackfillService;
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void syncRestStopsDaily() {
@@ -34,6 +38,8 @@ public class RestStopScheduler {
         refreshRestOils();
         refreshRestFoods();
         backfillRestStopServiceAreaCodes();
+        refreshEvChargers();
+        backfillEvChargerRestStops();
     }
 
     @Scheduled(cron = "0 0 */3 * * *", zone = "Asia/Seoul")
@@ -102,6 +108,24 @@ public class RestStopScheduler {
             log.info("Scheduled rest stop service area code backfill completed. result={}", result);
         } catch (RuntimeException e) {
             log.error("Scheduled rest stop service area code backfill failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void refreshEvChargers() {
+        try {
+            int savedCount = evChargerSyncService.refreshEvChargers();
+            log.info("Scheduled EV charger sync completed. savedCount={}", savedCount);
+        } catch (RuntimeException e) {
+            log.error("Scheduled EV charger sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void backfillEvChargerRestStops() {
+        try {
+            Map<String, Integer> result = evChargerRestStopBackfillService.backfill();
+            log.info("Scheduled EV charger rest stop backfill completed. result={}", result);
+        } catch (RuntimeException e) {
+            log.error("Scheduled EV charger rest stop backfill failed. cause={}", e.getMessage(), e);
         }
     }
 }

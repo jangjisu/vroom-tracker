@@ -4,7 +4,7 @@ import java.util.Set;
 
 public final class ExternalApiRequestLog {
 
-    private static final Set<String> SENSITIVE_PARAMETERS = Set.of("key", "code");
+    private static final Set<String> SENSITIVE_PARAMETERS = Set.of("key", "code", "serviceKey");
 
     private ExternalApiRequestLog() {}
 

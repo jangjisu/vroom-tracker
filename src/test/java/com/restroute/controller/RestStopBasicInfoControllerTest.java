@@ -45,7 +45,8 @@ class RestStopBasicInfoControllerTest {
                 "000001",
                 "경기 성남시",
                 "02-573-7430",
-                "투썸플레이스");
+                "투썸플레이스",
+                2);
         when(restStopBasicInfoQueryService.findByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/api/rest-stops/A00001/basic-info"))
@@ -62,7 +63,8 @@ class RestStopBasicInfoControllerTest {
                 .andExpect(jsonPath("$.data.stdRestCd").value("000001"))
                 .andExpect(jsonPath("$.data.address").value("경기 성남시"))
                 .andExpect(jsonPath("$.data.telNo").value("02-573-7430"))
-                .andExpect(jsonPath("$.data.brand").value("투썸플레이스"));
+                .andExpect(jsonPath("$.data.brand").value("투썸플레이스"))
+                .andExpect(jsonPath("$.data.evChargerCount").value(2));
     }
 
     @Test

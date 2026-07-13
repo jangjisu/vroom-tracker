@@ -13,6 +13,9 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerRestStopBackfillService;
+import com.restroute.service.evcharger.EvChargerSyncService;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +50,12 @@ class RestStopSchedulerTest {
     @Mock
     private RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
 
+    @Mock
+    private EvChargerSyncService evChargerSyncService;
+
+    @Mock
+    private EvChargerRestStopBackfillService evChargerRestStopBackfillService;
+
     @InjectMocks
     private RestStopScheduler restStopScheduler;
 
@@ -58,6 +67,9 @@ class RestStopSchedulerTest {
         when(highwayServiceAreaInfoSyncService.refreshHighwayServiceAreaInfos()).thenReturn(581);
         when(restOilSyncService.refreshRestOils()).thenReturn(429);
         when(restFoodSyncService.refreshRestFoods()).thenReturn(7214);
+        when(evChargerSyncService.refreshEvChargers()).thenReturn(2401);
+        when(evChargerRestStopBackfillService.backfill())
+                .thenReturn(Map.of("stationCount", 100, "matchedCount", 90, "unmatchedCount", 10));
 
         restStopScheduler.syncRestStopsDaily();
 
@@ -66,19 +78,25 @@ class RestStopSchedulerTest {
         verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         verify(restOilSyncService).refreshRestOils();
         verify(restFoodSyncService).refreshRestFoods();
+        verify(evChargerSyncService).refreshEvChargers();
+        verify(evChargerRestStopBackfillService).backfill();
         InOrder inOrder = inOrder(
                 restStopSyncService,
                 restStopDetailSyncService,
                 highwayServiceAreaInfoSyncService,
                 restOilSyncService,
                 restFoodSyncService,
-                restStopServiceAreaCodeBackfillService);
+                restStopServiceAreaCodeBackfillService,
+                evChargerSyncService,
+                evChargerRestStopBackfillService);
         inOrder.verify(restStopSyncService).refreshRestStops();
         inOrder.verify(restStopDetailSyncService).refreshRestStopDetails();
         inOrder.verify(highwayServiceAreaInfoSyncService).refreshHighwayServiceAreaInfos();
         inOrder.verify(restOilSyncService).refreshRestOils();
         inOrder.verify(restFoodSyncService).refreshRestFoods();
         inOrder.verify(restStopServiceAreaCodeBackfillService).backfill();
+        inOrder.verify(evChargerSyncService).refreshEvChargers();
+        inOrder.verify(evChargerRestStopBackfillService).backfill();
     }
 
     @Test

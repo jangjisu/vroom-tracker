@@ -17,12 +17,14 @@ class ProductionEnvironmentValidator implements InitializingBean {
             @Value("${ex.api.key:}") String exApiKey,
             @Value("${kakao.rest-api-key:}") String kakaoRestApiKey,
             @Value("${naver.maps.ncp-key-id:}") String naverMapsNcpKeyId,
-            @Value("${opinet.api.key:}") String opinetApiKey) {
+            @Value("${opinet.api.key:}") String opinetApiKey,
+            @Value("${ev.api.key:}") String evApiKey) {
         this.requiredProperties = List.of(
                 new RequiredProperty("EX_API_KEY", exApiKey),
                 new RequiredProperty("KAKAO_REST_API_KEY", kakaoRestApiKey),
                 new RequiredProperty("NAVER_MAPS_NCP_KEY_ID", naverMapsNcpKeyId),
-                new RequiredProperty("OPINET_API_KEY", opinetApiKey));
+                new RequiredProperty("OPINET_API_KEY", opinetApiKey),
+                new RequiredProperty("EV_API_KEY", evApiKey));
     }
 
     @Override

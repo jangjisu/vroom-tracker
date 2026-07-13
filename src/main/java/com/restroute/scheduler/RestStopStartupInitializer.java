@@ -6,6 +6,8 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerRestStopBackfillService;
+import com.restroute.service.evcharger.EvChargerSyncService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,8 @@ public class RestStopStartupInitializer implements ApplicationRunner {
     private final RestOilPriceSyncService restOilPriceSyncService;
     private final RestFoodSyncService restFoodSyncService;
     private final RestStopServiceAreaCodeBackfillService restStopServiceAreaCodeBackfillService;
+    private final EvChargerSyncService evChargerSyncService;
+    private final EvChargerRestStopBackfillService evChargerRestStopBackfillService;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -34,7 +38,9 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         initializeRestOils();
         initializeRestOilPrices();
         initializeRestFoods();
+        initializeEvChargers();
         backfillRestStopServiceAreaCodes();
+        backfillEvChargerRestStops();
     }
 
     private void initializeRestStops() {
@@ -113,6 +119,29 @@ public class RestStopStartupInitializer implements ApplicationRunner {
             log.info("Rest stop service area code backfill completed. result={}", result);
         } catch (RuntimeException e) {
             log.error("Rest stop service area code backfill failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void initializeEvChargers() {
+        try {
+            int savedCount = evChargerSyncService.initializeEvChargersIfEmpty();
+            if (savedCount > 0) {
+                log.info("Initial EV charger sync completed. savedCount={}", savedCount);
+                return;
+            }
+
+            log.info("Initial EV charger sync skipped because ev_charger table already has data.");
+        } catch (RuntimeException e) {
+            log.error("Initial EV charger sync failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void backfillEvChargerRestStops() {
+        try {
+            Map<String, Integer> result = evChargerRestStopBackfillService.backfill();
+            log.info("EV charger rest stop backfill completed. result={}", result);
+        } catch (RuntimeException e) {
+            log.error("EV charger rest stop backfill failed. cause={}", e.getMessage(), e);
         }
     }
 }
