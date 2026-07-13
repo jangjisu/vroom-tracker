@@ -65,6 +65,21 @@ class EvChargerQueryServiceTest {
     }
 
     @Test
+    @DisplayName("한 휴게소에 여러 statId가 매핑되면 활성 충전기 수를 합산한다")
+    void findActiveChargerCount_countsChargersAcrossMultipleStations() throws Exception {
+        EvChargerStationMappingEntity firstMapping = EvChargerStationMappingEntity.of("ME1");
+        firstMapping.updateMatch("A00001");
+        EvChargerStationMappingEntity secondMapping = EvChargerStationMappingEntity.of("ME2");
+        secondMapping.updateMatch("A00001");
+        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
+                .thenReturn(List.of(firstMapping, secondMapping));
+        when(evChargerRepository.findAllByStatIdInAndDelYn(List.of("ME1", "ME2"), "N"))
+                .thenReturn(List.of(charger("ME1", "01", "N"), charger("ME1", "02", "N"), charger("ME2", "01", "N")));
+
+        assertThat(queryService.findActiveChargerCount("A00001")).isEqualTo(3);
+    }
+
+    @Test
     @DisplayName("매핑이 없거나 휴게소 코드가 없으면 상세 충전기 수를 0으로 반환한다")
     void findActiveChargerCount_returnsZeroWithoutMapping() {
         when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
