@@ -20,11 +20,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(properties = "spring.h2.console.enabled=false")
 class SecurityConfigTest {
 
     @Autowired
@@ -87,6 +89,14 @@ class SecurityConfigTest {
     @DisplayName("기존 공개 API는 로그인 없이 접근할 수 있다")
     void publicApi_isAccessibleWithoutLogin() throws Exception {
         mockMvc.perform(get("/api/map-config")).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("H2 Console이 비활성화된 프로필에서는 접근할 수 없다")
+    void h2Console_isDeniedWhenDisabled() throws Exception {
+        mockMvc.perform(get("/h2-console/"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
     }
 
     @Test

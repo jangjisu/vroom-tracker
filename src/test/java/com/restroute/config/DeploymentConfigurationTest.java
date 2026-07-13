@@ -29,6 +29,29 @@ class DeploymentConfigurationTest {
     }
 
     @Test
+    @DisplayName("prod 프로필은 H2 Console을 비활성화한다")
+    void prodProperties_disableH2Console() throws Exception {
+        Properties properties = new Properties();
+        try (var reader = Files.newBufferedReader(Path.of("src/main/resources/application-prod.properties"))) {
+            properties.load(reader);
+        }
+
+        assertThat(properties.getProperty("spring.h2.console.enabled")).isEqualTo("false");
+    }
+
+    @Test
+    @DisplayName("local 프로필은 H2 Console을 활성화한다")
+    void localProperties_enableH2Console() throws Exception {
+        Properties properties = new Properties();
+        try (var reader = Files.newBufferedReader(Path.of("src/main/resources/application-local.properties"))) {
+            properties.load(reader);
+        }
+
+        assertThat(properties.getProperty("spring.h2.console.enabled")).isEqualTo("true");
+        assertThat(properties.getProperty("spring.h2.console.path")).isEqualTo("/h2-console");
+    }
+
+    @Test
     @DisplayName("docker compose는 앱과 MySQL DB 컨테이너를 함께 띄운다")
     void dockerCompose_definesMysqlServiceForApp() throws Exception {
         String compose = Files.readString(Path.of("docker-compose.yml"));
