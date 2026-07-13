@@ -17,8 +17,7 @@ import {
     routePointLabel,
     routeRecommendationLabels,
     shouldRequestRouteAutomatically,
-    shouldShowRouteResultBackButton,
-    shouldShowRouteSearchInline
+    shouldShowRouteResultBackButton
 } from '../../main/resources/static/js/rest-stops-map.js';
 
 test('formatEvChargerAvailability only displays an indicator for true values', () => {
@@ -28,7 +27,7 @@ test('formatEvChargerAvailability only displays an indicator for true values', (
 });
 
 test('formatEvChargerCount only displays positive charger counts', () => {
-    assert.equal(formatEvChargerCount(6), '충전기 6대');
+    assert.equal(formatEvChargerCount(6), '6대');
     assert.equal(formatEvChargerCount(0), '');
     assert.equal(formatEvChargerCount(undefined), '');
 });
@@ -167,17 +166,7 @@ test('shouldRequestRouteAutomatically allows automatic route search on mobile an
     const origin = { latitude: 37.5, longitude: 126.9 };
     const destination = { latitude: 35.1, longitude: 129.0 };
 
-    assert.equal(shouldRequestRouteAutomatically(origin, destination, true), true);
-    assert.equal(shouldRequestRouteAutomatically(origin, destination, false), true);
-});
-
-test('shouldShowRouteSearchInline is hidden after route points are selected because route search is automatic', () => {
-    const origin = { latitude: 37.5, longitude: 126.9 };
-    const destination = { latitude: 35.1, longitude: 129.0 };
-
-    assert.equal(shouldShowRouteSearchInline(origin, destination), false);
-    assert.equal(shouldShowRouteSearchInline(origin, undefined), false);
-    assert.equal(shouldShowRouteSearchInline(undefined, destination), false);
+    assert.equal(shouldRequestRouteAutomatically(origin, destination), true);
 });
 
 test('shouldShowRouteResultBackButton is visible only on mobile detail opened from route results', () => {

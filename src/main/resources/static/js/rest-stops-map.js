@@ -1213,10 +1213,6 @@ export function shouldRequestRouteAutomatically(origin, destination) {
     return canRequestRouteAutomatically(origin, destination);
 }
 
-export function shouldShowRouteSearchInline() {
-    return false;
-}
-
 export function isRouteGlobalLoadingState(state) {
     return state?.status === 'loading';
 }
@@ -1304,11 +1300,6 @@ function updateRoutePointSummary() {
             ? routePointSummaryLabel(destination, '도착지 입력')
             : formatText(destinationQuery, '도착지 입력')
     );
-    toggleRouteSearchInlineButton(shouldShowRouteSearchInline(origin, destination));
-}
-
-function toggleRouteSearchInlineButton(visible) {
-    document.getElementById('routeSearchInlineButton')?.classList.toggle('d-none', !visible);
 }
 
 function routePointSummaryLabel(point, fallback) {

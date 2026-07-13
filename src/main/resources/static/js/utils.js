@@ -5,16 +5,6 @@ export function setText(id, text) {
     if (el) el.textContent = text;
 }
 
-export function showEl(id) {
-    const el = document.getElementById(id);
-    if (el) el.style.display = '';
-}
-
-export function hideEl(id) {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-}
-
 export function showGlobalLoading(message) {
     setText('globalLoadingMessage', message);
     const overlay = document.getElementById('globalLoadingOverlay');
