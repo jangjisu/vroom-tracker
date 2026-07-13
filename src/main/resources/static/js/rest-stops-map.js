@@ -1929,15 +1929,15 @@ export function formatEvChargerCount(count) {
 }
 
 function renderEvChargerInfo(count) {
-    const section = document.getElementById('restStopEvChargerSection');
-    const value = document.getElementById('restStopDetailEvCharger');
-    if (!section || !value) {
+    const badge = document.getElementById('restStopDetailEvCharger');
+    const value = document.getElementById('restStopDetailEvChargerText');
+    if (!badge || !value) {
         return;
     }
 
     const formattedCount = formatEvChargerCount(count);
     value.textContent = formattedCount;
-    section.classList.toggle('d-none', formattedCount === '');
+    badge.classList.toggle('d-none', formattedCount === '');
 }
 
 function routeResultFuelItems(restStop) {

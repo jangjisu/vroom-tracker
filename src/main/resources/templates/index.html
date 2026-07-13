@@ -101,6 +101,10 @@
                         </button>
                         <div class="rest-stop-detail-kicker">선택한 휴게소</div>
                         <h2 id="restStopDetailName" class="rest-stop-detail-name"></h2>
+                        <span id="restStopDetailEvCharger" class="rest-stop-detail-ev-charger d-none">
+                            <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+                            <span id="restStopDetailEvChargerText"></span>
+                        </span>
                     </div>
                     <div class="rest-stop-detail-actions">
                         <button id="restStopFoodOpen" class="btn btn-primary rest-stop-food-open d-none"
@@ -122,14 +126,6 @@
                             <dd id="restStopDetailFullSizeParking"></dd>
                             <dt>장애인</dt>
                             <dd id="restStopDetailDisabledParking"></dd>
-                        </dl>
-                    </section>
-                    <section id="restStopEvChargerSection" class="rest-stop-detail-section d-none"
-                             aria-labelledby="restStopDetailEvChargerHeading">
-                        <h3 id="restStopDetailEvChargerHeading" class="rest-stop-detail-section-title">전기차 충전</h3>
-                        <dl class="rest-stop-detail-list">
-                            <dt>충전기</dt>
-                            <dd id="restStopDetailEvCharger"></dd>
                         </dl>
                     </section>
                     <section id="restStopOilSection" class="rest-stop-detail-section"
