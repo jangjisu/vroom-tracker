@@ -10,7 +10,6 @@ import com.restroute.domain.EvChargerStationMappingEntity;
 import com.restroute.repository.EvChargerRepository;
 import com.restroute.repository.EvChargerStationMappingRepository;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,8 +35,26 @@ class EvChargerQueryServiceTest {
     }
 
     @Test
-    @DisplayName("매핑된 휴게소별 활성 충전기 대수를 일괄 조회한다")
-    void findActiveChargerCounts_groupsActiveChargersByRestStop() throws Exception {
+    @DisplayName("매핑된 휴게소 코드를 일괄 조회한다")
+    void findMappedServiceAreaCodes_returnsMappedCodes() {
+        EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of("ME1");
+        mapping.updateMatch("A00001", 40.0, "COORDINATE");
+        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(Set.of("A00001")))
+                .thenReturn(List.of(mapping));
+        Set<String> result = queryService.findMappedServiceAreaCodes(List.of("A00001"));
+
+        assertThat(result).containsExactly("A00001");
+    }
+
+    @Test
+    @DisplayName("휴게소 코드가 없으면 경로용 매핑 결과를 조회하지 않는다")
+    void findMappedServiceAreaCodes_returnsEmptyForBlankInput() {
+        assertThat(queryService.findMappedServiceAreaCodes(List.of("", " "))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("매핑된 휴게소의 활성 충전기 대수를 조회한다")
+    void findActiveChargerCount_countsActiveChargers() throws Exception {
         EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of("ME1");
         mapping.updateMatch("A00001", 40.0, "COORDINATE");
         when(mappingRepository.findAllByRestStopServiceAreaCodeIn(Set.of("A00001")))
@@ -45,18 +62,17 @@ class EvChargerQueryServiceTest {
         when(evChargerRepository.findAllByStatIdInAndDelYn(Set.of("ME1"), "N"))
                 .thenReturn(List.of(charger("ME1", "01", "N"), charger("ME1", "02", "N")));
 
-        Map<String, Integer> result = queryService.findActiveChargerCounts(List.of("A00001"));
-
-        assertThat(result).containsEntry("A00001", 2);
+        assertThat(queryService.findActiveChargerCount("A00001")).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("매핑되지 않은 휴게소는 충전기 대수를 0으로 반환한다")
-    void findActiveChargerCounts_returnsEmptyWhenNoMappingExists() {
+    @DisplayName("매핑이 없거나 휴게소 코드가 없으면 상세 충전기 수를 0으로 반환한다")
+    void findActiveChargerCount_returnsZeroWithoutMapping() {
         when(mappingRepository.findAllByRestStopServiceAreaCodeIn(Set.of("A00001")))
                 .thenReturn(List.of());
 
-        assertThat(queryService.findActiveChargerCounts(List.of("A00001"))).isEmpty();
+        assertThat(queryService.findActiveChargerCount("A00001")).isZero();
+        assertThat(queryService.findActiveChargerCount(" ")).isZero();
     }
 
     private EvChargerEntity charger(String statId, String chgerId, String delYn) throws Exception {

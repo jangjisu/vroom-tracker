@@ -8,10 +8,11 @@ import com.restroute.repository.EvChargerStationMappingRepository;
 import com.restroute.repository.RestStopRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -38,41 +39,67 @@ public class EvChargerRestStopBackfillService {
     @Transactional
     public Map<String, Integer> backfill() {
         List<RestStopEntity> restStops = restStopRepository.findAll();
-        Map<String, EvChargerEntity> stations = evChargerRepository.findAll().stream()
-                .filter(station -> StringUtils.hasText(station.getStatId()))
-                .collect(Collectors.toMap(EvChargerEntity::getStatId, Function.identity(), (first, second) -> first));
-        Map<String, EvChargerStationMappingEntity> mappings = new HashMap<>(mappingRepository.findAllByStatIdMap());
+        List<EvChargerEntity> stations = distinctActiveStations();
+        Set<String> statIds = stations.stream().map(EvChargerEntity::getStatId).collect(Collectors.toSet());
+        Map<String, EvChargerStationMappingEntity> mappings = statIds.isEmpty()
+                ? Map.of()
+                : mappingRepository.findAllByStatIdIn(statIds).stream()
+                        .collect(Collectors.toMap(
+                                EvChargerStationMappingEntity::getStatId,
+                                Function.identity(),
+                                (first, second) -> first));
 
         int matchedCount = 0;
-        int unmatchedCount = 0;
         List<EvChargerStationMappingEntity> toSave = new ArrayList<>();
-        for (EvChargerEntity station : stations.values()) {
+        Set<String> matchedStatIds = new HashSet<>();
+        for (EvChargerEntity station : stations) {
             EvChargerMatchResult result = findMatch(station, restStops);
+            if (result.serviceAreaCode() == null) {
+                continue;
+            }
             EvChargerStationMappingEntity mapping = mappings.get(station.getStatId());
             if (mapping == null) {
                 mapping = EvChargerStationMappingEntity.of(station.getStatId());
-                mappings.put(station.getStatId(), mapping);
             }
             mapping.updateMatch(result.serviceAreaCode(), result.distanceMeters(), result.matchType());
             toSave.add(mapping);
-            if (result.serviceAreaCode() == null) {
-                unmatchedCount++;
-                continue;
-            }
+            matchedStatIds.add(station.getStatId());
             matchedCount++;
+        }
+        if (matchedStatIds.isEmpty()) {
+            mappingRepository.deleteAll();
+        }
+        if (!matchedStatIds.isEmpty()) {
+            mappingRepository.deleteAllByStatIdNotIn(matchedStatIds);
         }
         mappingRepository.saveAll(toSave);
 
         Map<String, Integer> result = Map.of(
-                "stationCount", stations.size(),
-                "matchedCount", matchedCount,
-                "unmatchedCount", unmatchedCount);
+                "stationCount",
+                statIds.size(),
+                "matchedCount",
+                matchedCount,
+                "unmatchedCount",
+                statIds.size() - matchedCount);
         log.info(
                 "EV charger rest stop backfill completed. stationCount={}, matchedCount={}, unmatchedCount={}",
                 result.get("stationCount"),
                 result.get("matchedCount"),
                 result.get("unmatchedCount"));
         return result;
+    }
+
+    private List<EvChargerEntity> distinctActiveStations() {
+        Set<String> statIds = new HashSet<>();
+        List<EvChargerEntity> stations = new ArrayList<>();
+        for (EvChargerEntity charger : evChargerRepository.findAll()) {
+            if (StringUtils.hasText(charger.getStatId())
+                    && "N".equals(charger.getDelYn())
+                    && statIds.add(charger.getStatId())) {
+                stations.add(charger);
+            }
+        }
+        return stations;
     }
 
     private EvChargerMatchResult findMatch(EvChargerEntity station, List<RestStopEntity> restStops) {

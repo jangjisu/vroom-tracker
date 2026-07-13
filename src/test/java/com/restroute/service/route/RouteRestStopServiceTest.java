@@ -33,7 +33,6 @@ import com.restroute.service.RestStopRelatedInfo;
 import com.restroute.service.RestStopRelatedInfoQueryService;
 import com.restroute.service.evcharger.EvChargerQueryService;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -71,7 +70,7 @@ class RouteRestStopServiceTest {
     @BeforeEach
     void setUp() {
         lenient().when(nationalOilPriceService.getTodaySummary()).thenReturn(Optional.empty());
-        lenient().when(evChargerQueryService.findActiveChargerCounts(any())).thenReturn(Map.of());
+        lenient().when(evChargerQueryService.findMappedServiceAreaCodes(any())).thenReturn(java.util.Set.of());
         lenient()
                 .when(restStopRelatedInfoQueryService.findByRestStop(any(RestStopEntity.class)))
                 .thenReturn(emptyRelatedInfo());
@@ -239,14 +238,14 @@ class RouteRestStopServiceTest {
     }
 
     @Test
-    @DisplayName("경로 휴게소는 충전기 일괄 조회 결과로 hasEvCharger를 반환한다")
-    void success_includesEvChargerFlagFromBatchQuery() {
+    @DisplayName("경로 휴게소는 매핑된 휴게소 코드로 hasEvCharger를 반환한다")
+    void success_includesEvChargerFlagFromMappedCodes() {
         when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
         when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
                 .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
         RestStopEntity restStop = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
         when(restStopRepository.findAll()).thenReturn(List.of(restStop));
-        when(evChargerQueryService.findActiveChargerCounts(List.of("A"))).thenReturn(Map.of("A", 2));
+        when(evChargerQueryService.findMappedServiceAreaCodes(List.of("A"))).thenReturn(java.util.Set.of("A"));
 
         RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
 

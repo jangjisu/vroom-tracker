@@ -38,8 +38,9 @@ public class RestStopScheduler {
         refreshRestOils();
         refreshRestFoods();
         backfillRestStopServiceAreaCodes();
-        refreshEvChargers();
-        backfillEvChargerRestStops();
+        if (refreshEvChargers()) {
+            backfillEvChargerRestStops();
+        }
     }
 
     @Scheduled(cron = "0 0 */3 * * *", zone = "Asia/Seoul")
@@ -111,12 +112,14 @@ public class RestStopScheduler {
         }
     }
 
-    private void refreshEvChargers() {
+    private boolean refreshEvChargers() {
         try {
             int savedCount = evChargerSyncService.refreshEvChargers();
             log.info("Scheduled EV charger sync completed. savedCount={}", savedCount);
+            return true;
         } catch (RuntimeException e) {
             log.error("Scheduled EV charger sync failed. cause={}", e.getMessage(), e);
+            return false;
         }
     }
 

@@ -38,9 +38,11 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         initializeRestOils();
         initializeRestOilPrices();
         initializeRestFoods();
-        initializeEvChargers();
+        boolean evChargerSyncSucceeded = initializeEvChargers();
         backfillRestStopServiceAreaCodes();
-        backfillEvChargerRestStops();
+        if (evChargerSyncSucceeded) {
+            backfillEvChargerRestStops();
+        }
     }
 
     private void initializeRestStops() {
@@ -122,17 +124,19 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         }
     }
 
-    private void initializeEvChargers() {
+    private boolean initializeEvChargers() {
         try {
             int savedCount = evChargerSyncService.initializeEvChargersIfEmpty();
             if (savedCount > 0) {
                 log.info("Initial EV charger sync completed. savedCount={}", savedCount);
-                return;
+                return true;
             }
 
             log.info("Initial EV charger sync skipped because ev_charger table already has data.");
+            return true;
         } catch (RuntimeException e) {
             log.error("Initial EV charger sync failed. cause={}", e.getMessage(), e);
+            return false;
         }
     }
 

@@ -17,6 +17,7 @@ import com.restroute.repository.RestStopRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,9 @@ class EvChargerRestStopBackfillServiceTest {
     void setUp() {
         backfillService =
                 new EvChargerRestStopBackfillService(evChargerRepository, mappingRepository, restStopRepository);
-        lenient().when(mappingRepository.findAllByStatIdMap()).thenReturn(Map.of());
+        lenient()
+                .when(mappingRepository.findAllByStatIdIn(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(List.of());
     }
 
     @Test
@@ -86,9 +89,51 @@ class EvChargerRestStopBackfillServiceTest {
         Map<String, Integer> result = backfillService.backfill();
 
         assertThat(result).containsEntry("matchedCount", 0).containsEntry("unmatchedCount", 1);
-        EvChargerStationMappingEntity mapping = captureMappings().get(0);
-        assertThat(mapping.getRestStopServiceAreaCode()).isNull();
-        assertThat(mapping.getMatchType()).isEqualTo("AMBIGUOUS");
+        assertThat(captureMappings()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("삭제된 충전기는 휴게소 매핑 대상에서 제외한다")
+    void backfill_excludesDeletedChargers() throws Exception {
+        EvChargerEntity station = chargerEntity("ME3", "01", "A휴게소", "37.4599", "127.0425", "Y");
+        EvChargerEntity missingStatId = chargerEntity("", "02", "A휴게소", "37.4599", "127.0425", "N");
+        when(evChargerRepository.findAll()).thenReturn(List.of(station, missingStatId));
+        when(restStopRepository.findAll()).thenReturn(List.of(restStop("A휴게소", "A00001")));
+
+        Map<String, Integer> result = backfillService.backfill();
+
+        assertThat(result).containsEntry("stationCount", 0).containsEntry("matchedCount", 0);
+        assertThat(captureMappings()).isEmpty();
+        verify(mappingRepository).deleteAll();
+    }
+
+    @Test
+    @DisplayName("전체 backfill 성공 시 최신 매칭에 없는 기존 매핑을 제거한다")
+    void backfill_removesStaleMappingsAfterSuccessfulBackfill() throws Exception {
+        EvChargerEntity station = chargerEntity("ME1", "01", "A휴게소", "37.4599", "127.0425");
+        when(evChargerRepository.findAll()).thenReturn(List.of(station));
+        when(restStopRepository.findAll()).thenReturn(List.of(restStop("A휴게소", "A00001")));
+        when(mappingRepository.findAllByStatIdIn(Set.of("ME1"))).thenReturn(List.of());
+
+        backfillService.backfill();
+
+        verify(mappingRepository).deleteAllByStatIdNotIn(Set.of("ME1"));
+    }
+
+    @Test
+    @DisplayName("기존 statId 매핑은 새 매칭 결과로 갱신한다")
+    void backfill_updatesExistingMapping() throws Exception {
+        EvChargerEntity station = chargerEntity("ME1", "01", "A휴게소", "37.4599", "127.0425");
+        EvChargerStationMappingEntity existing = EvChargerStationMappingEntity.of("ME1");
+        existing.updateMatch("OLD", 200.0, "COORDINATE");
+        when(evChargerRepository.findAll()).thenReturn(List.of(station));
+        when(restStopRepository.findAll()).thenReturn(List.of(restStop("A휴게소", "A00001")));
+        when(mappingRepository.findAllByStatIdIn(Set.of("ME1"))).thenReturn(List.of(existing, existing));
+
+        backfillService.backfill();
+
+        assertThat(captureMappings()).singleElement().extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .isEqualTo("A00001");
     }
 
     @Test
@@ -104,6 +149,12 @@ class EvChargerRestStopBackfillServiceTest {
 
     private EvChargerEntity chargerEntity(
             String statId, String chgerId, String statName, String latitude, String longitude) throws Exception {
+        return chargerEntity(statId, chgerId, statName, latitude, longitude, "N");
+    }
+
+    private EvChargerEntity chargerEntity(
+            String statId, String chgerId, String statName, String latitude, String longitude, String delYn)
+            throws Exception {
         String json = "{\"statNm\":\""
                 + statName
                 + "\",\"statId\":\""
@@ -114,7 +165,9 @@ class EvChargerRestStopBackfillServiceTest {
                 + latitude
                 + "\",\"lng\":\""
                 + longitude
-                + "\",\"delYn\":\"N\"}";
+                + "\",\"delYn\":\""
+                + delYn
+                + "\"}";
         EvChargerItem item = new ObjectMapper().readValue(json, EvChargerItem.class);
         return EvChargerEntity.from(item);
     }
