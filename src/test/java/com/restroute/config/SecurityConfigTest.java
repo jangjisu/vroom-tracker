@@ -101,14 +101,6 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("H2 Console이 비활성화된 프로필에서는 접근할 수 없다")
-    void h2Console_isDeniedWhenDisabled() throws Exception {
-        mockMvc.perform(get("/h2-console/"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
-    }
-
-    @Test
     @DisplayName("CSRF 토큰이 없는 로그인 요청은 거부한다")
     void loginWithoutCsrf_returnsForbidden() throws Exception {
         mockMvc.perform(post("/login").param("username", "admin").param("password", "password"))

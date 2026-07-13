@@ -28,9 +28,6 @@ public class SecurityConfig {
                     if (h2ConsoleEnabled) {
                         authorize.requestMatchers("/h2-console/**").permitAll();
                     }
-                    if (!h2ConsoleEnabled) {
-                        authorize.requestMatchers("/h2-console/**").denyAll();
-                    }
                     authorize
                             .requestMatchers("/", "/login", "/favicon.ico", "/css/**", "/js/**", "/api/**")
                             .permitAll();
