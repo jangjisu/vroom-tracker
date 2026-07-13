@@ -22,18 +22,15 @@ public class EvChargerStationMappingCalculator {
             List<RestStopEntity> restStops,
             List<RestStopDetailEntity> restStopDetails,
             List<EvChargerEntity> evChargers) {
-        List<EvChargerEntity> distinctActiveChargers = distinctActiveChargers(evChargers);
+        List<EvChargerEntity> distinctChargers = distinctActiveChargers(evChargers);
         List<EvChargerStationMappingEntity> mappings = new ArrayList<>();
 
-        for (EvChargerEntity charger : distinctActiveChargers) {
-            Optional<MappingCandidate> candidate = findCandidate(charger, restStops, restStopDetails);
-            if (candidate.isEmpty()) {
+        for (EvChargerEntity charger : distinctChargers) {
+            Optional<MatchedCandidate> matchedCandidate = findMatchedCandidate(charger, restStops, restStopDetails);
+            if (matchedCandidate.isEmpty()) {
                 continue;
             }
-            MappingCandidate matched = candidate.get();
-            EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of(charger.getStatId());
-            mapping.updateMatch(matched.restStop().getServiceAreaCode(), matched.distanceMeters(), matched.matchType());
-            mappings.add(mapping);
+            mappings.add(createMapping(charger, matchedCandidate.get()));
         }
         return mappings;
     }
@@ -52,69 +49,131 @@ public class EvChargerStationMappingCalculator {
         return distinctChargers;
     }
 
-    private Optional<MappingCandidate> findCandidate(
+    private Optional<MatchedCandidate> findMatchedCandidate(
             EvChargerEntity charger, List<RestStopEntity> restStops, List<RestStopDetailEntity> restStopDetails) {
-        Optional<EvChargerCoordinates> chargerCoordinates = coordinates(charger.getLat(), charger.getLng());
-        if (chargerCoordinates.isEmpty()) {
+        List<DistanceCandidate> nearbyCandidates = findNearbyRestStops(charger, restStops);
+        List<MatchedCandidate> matchedCandidates = nearbyCandidates.stream()
+                .map(candidate -> matchCandidate(charger, candidate, restStopDetails))
+                .flatMap(Optional::stream)
+                .toList();
+        List<MatchedCandidate> nameAndAddressCandidates = new ArrayList<>();
+        List<MatchedCandidate> nameCandidates = new ArrayList<>();
+        List<MatchedCandidate> addressCandidates = new ArrayList<>();
+        for (MatchedCandidate candidate : matchedCandidates) {
+            if (candidate.matchType() == EvChargerMatchType.NAME_ADDRESS_DISTANCE) {
+                nameAndAddressCandidates.add(candidate);
+                continue;
+            }
+            if (candidate.matchType() == EvChargerMatchType.NAME_DISTANCE) {
+                nameCandidates.add(candidate);
+                continue;
+            }
+            addressCandidates.add(candidate);
+        }
+        if (nameAndAddressCandidates.size() == 1) {
+            return Optional.of(nameAndAddressCandidates.get(0));
+        }
+        if (!nameAndAddressCandidates.isEmpty()) {
             return Optional.empty();
         }
 
-        List<MappingCandidate> candidates = restStops.stream()
-                .map(restStop -> candidate(charger, chargerCoordinates.get(), restStop, restStopDetails))
-                .flatMap(Optional::stream)
-                .filter(candidate -> candidate.distanceMeters() <= MAX_MATCH_DISTANCE_METERS)
-                .sorted(Comparator.comparing(MappingCandidate::distanceMeters))
-                .toList();
-        List<MappingCandidate> nameMatches =
-                candidates.stream().filter(MappingCandidate::nameMatched).toList();
-        List<MappingCandidate> addressMatches =
-                candidates.stream().filter(MappingCandidate::addressMatched).toList();
-
-        if (nameMatches.size() == 1) {
-            MappingCandidate nameMatch = nameMatches.get(0);
-            if (nameMatch.addressMatched()) {
-                return Optional.of(nameMatch.withMatchType(EvChargerMatchType.NAME_ADDRESS_DISTANCE));
-            }
-            return Optional.of(nameMatch.withMatchType(EvChargerMatchType.NAME_DISTANCE));
+        if (nameCandidates.size() == 1) {
+            return Optional.of(nameCandidates.get(0));
         }
-        if (addressMatches.size() == 1) {
-            MappingCandidate addressMatch = addressMatches.get(0);
-            if (addressMatch.nameMatched()) {
-                return Optional.of(addressMatch.withMatchType(EvChargerMatchType.NAME_ADDRESS_DISTANCE));
-            }
-            return Optional.of(addressMatch.withMatchType(EvChargerMatchType.ADDRESS_DISTANCE));
+        if (!nameCandidates.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (addressCandidates.size() == 1) {
+            return Optional.of(addressCandidates.get(0));
         }
         return Optional.empty();
     }
 
-    private Optional<MappingCandidate> candidate(
-            EvChargerEntity charger,
-            EvChargerCoordinates chargerCoordinates,
-            RestStopEntity restStop,
-            List<RestStopDetailEntity> restStopDetails) {
-        Optional<EvChargerCoordinates> restStopCoordinates = coordinates(restStop.getYValue(), restStop.getXValue());
+    private List<DistanceCandidate> findNearbyRestStops(
+            EvChargerEntity charger, List<RestStopEntity> restStops) {
+        Optional<EvChargerCoordinates> chargerCoordinates = parseCoordinates(charger.getLat(), charger.getLng());
+        if (chargerCoordinates.isEmpty()) {
+            return List.of();
+        }
+
+        return restStops.stream()
+                .map(restStop -> calculateDistance(chargerCoordinates.get(), restStop))
+                .flatMap(Optional::stream)
+                .filter(candidate -> candidate.distanceMeters() <= MAX_MATCH_DISTANCE_METERS)
+                .sorted(Comparator.comparing(DistanceCandidate::distanceMeters))
+                .toList();
+    }
+
+    private Optional<DistanceCandidate> calculateDistance(
+            EvChargerCoordinates chargerCoordinates, RestStopEntity restStop) {
+        Optional<EvChargerCoordinates> restStopCoordinates =
+                parseCoordinates(restStop.getYValue(), restStop.getXValue());
         if (restStopCoordinates.isEmpty()) {
             return Optional.empty();
         }
+
         EvChargerCoordinates coordinates = restStopCoordinates.get();
         double distanceMeters = CoordinateDistanceCalculator.meters(
                 chargerCoordinates.latitude(),
                 chargerCoordinates.longitude(),
                 coordinates.latitude(),
                 coordinates.longitude());
+        return Optional.of(new DistanceCandidate(restStop, distanceMeters));
+    }
+
+    private Optional<MatchedCandidate> matchCandidate(
+            EvChargerEntity charger,
+            DistanceCandidate distanceCandidate,
+            List<RestStopDetailEntity> restStopDetails) {
+        RestStopEntity restStop = distanceCandidate.restStop();
         List<RestStopDetailEntity> details = restStopDetails.stream()
                 .filter(detail -> belongsToRestStop(detail, restStop))
                 .toList();
-        boolean nameMatched = sameNormalized(charger.getStatNm(), restStop.getUnitName())
-                || details.stream()
-                        .anyMatch(detail ->
-                                sameNormalized(charger.getStatNm(), detail.getServiceAreaName()));
-        boolean addressMatched = details.stream()
+        boolean nameMatched = isNameMatched(charger, restStop, details);
+        boolean addressMatched = isAddressMatched(charger, details);
+
+        if (nameMatched && addressMatched) {
+            return Optional.of(new MatchedCandidate(distanceCandidate, EvChargerMatchType.NAME_ADDRESS_DISTANCE));
+        }
+        if (nameMatched) {
+            return Optional.of(new MatchedCandidate(distanceCandidate, EvChargerMatchType.NAME_DISTANCE));
+        }
+        if (addressMatched) {
+            return Optional.of(new MatchedCandidate(distanceCandidate, EvChargerMatchType.ADDRESS_DISTANCE));
+        }
+        return Optional.empty();
+    }
+
+    private boolean isNameMatched(
+            EvChargerEntity charger, RestStopEntity restStop, List<RestStopDetailEntity> restStopDetails) {
+        if (sameNormalized(charger.getStatNm(), restStop.getUnitName())) {
+            return true;
+        }
+        return restStopDetails.stream()
+                .anyMatch(detail -> sameNormalized(charger.getStatNm(), detail.getServiceAreaName()));
+    }
+
+    private boolean isAddressMatched(EvChargerEntity charger, List<RestStopDetailEntity> restStopDetails) {
+        String chargerAddress = normalizedAddress(charger.getAddr());
+        if (!StringUtils.hasText(chargerAddress)) {
+            return false;
+        }
+        return restStopDetails.stream()
                 .map(RestStopDetailEntity::getSvarAddr)
                 .map(this::normalizedAddress)
-                .anyMatch(address -> StringUtils.hasText(address)
-                        && address.equals(normalizedAddress(charger.getAddr())));
-        return Optional.of(new MappingCandidate(restStop, distanceMeters, nameMatched, addressMatched, null));
+                .anyMatch(chargerAddress::equals);
+    }
+
+    private EvChargerStationMappingEntity createMapping(
+            EvChargerEntity charger, MatchedCandidate matchedCandidate) {
+        DistanceCandidate distanceCandidate = matchedCandidate.distanceCandidate();
+        EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of(charger.getStatId());
+        mapping.updateMatch(
+                distanceCandidate.restStop().getServiceAreaCode(),
+                distanceCandidate.distanceMeters(),
+                matchedCandidate.matchType());
+        return mapping;
     }
 
     private boolean belongsToRestStop(RestStopDetailEntity detail, RestStopEntity restStop) {
@@ -125,31 +184,31 @@ public class EvChargerStationMappingCalculator {
                 && detail.getServiceAreaCode().equals(restStop.getServiceAreaCode());
     }
 
-    private Optional<EvChargerCoordinates> coordinates(String latitude, String longitude) {
+    private Optional<EvChargerCoordinates> parseCoordinates(String latitude, String longitude) {
         if (!StringUtils.hasText(latitude) || !StringUtils.hasText(longitude)) {
             return Optional.empty();
         }
         try {
-            return Optional.of(
-                    EvChargerCoordinates.of(Double.parseDouble(latitude.trim()), Double.parseDouble(longitude.trim())));
+            return Optional.of(EvChargerCoordinates.of(
+                    Double.parseDouble(latitude.trim()), Double.parseDouble(longitude.trim())));
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
     }
 
-    private String normalized(String value) {
+    private boolean sameNormalized(String first, String second) {
+        String normalizedFirst = normalizeName(first);
+        String normalizedSecond = normalizeName(second);
+        return StringUtils.hasText(normalizedFirst)
+                && StringUtils.hasText(normalizedSecond)
+                && normalizedFirst.equals(normalizedSecond);
+    }
+
+    private String normalizeName(String value) {
         if (!StringUtils.hasText(value)) {
             return "";
         }
         return value.trim().replaceAll("\\s+", "").replace("휴게소", "").replaceAll("[^\\p{L}\\p{N}()]", "");
-    }
-
-    private boolean sameNormalized(String first, String second) {
-        String normalizedFirst = normalized(first);
-        String normalizedSecond = normalized(second);
-        return StringUtils.hasText(normalizedFirst)
-                && StringUtils.hasText(normalizedSecond)
-                && normalizedFirst.equals(normalizedSecond);
     }
 
     private String normalizedAddress(String value) {
@@ -159,15 +218,7 @@ public class EvChargerStationMappingCalculator {
         return value.trim().replaceAll("\\s+", "").replaceAll("[^\\p{L}\\p{N}]", "");
     }
 
-    private record MappingCandidate(
-            RestStopEntity restStop,
-            double distanceMeters,
-            boolean nameMatched,
-            boolean addressMatched,
-            EvChargerMatchType matchType) {
+    private record DistanceCandidate(RestStopEntity restStop, double distanceMeters) {}
 
-        private MappingCandidate withMatchType(EvChargerMatchType matchType) {
-            return new MappingCandidate(restStop, distanceMeters, nameMatched, addressMatched, matchType);
-        }
-    }
+    private record MatchedCandidate(DistanceCandidate distanceCandidate, EvChargerMatchType matchType) {}
 }

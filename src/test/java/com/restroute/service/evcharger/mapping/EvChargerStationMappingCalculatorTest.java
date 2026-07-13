@@ -56,6 +56,7 @@ class EvChargerStationMappingCalculatorTest {
         List<EvChargerStationMappingEntity> result =
                 calculator.calculate(List.of(restStop), List.of(detail), List.of(charger));
 
+        assertThat(result).hasSize(1);
         assertThat(result)
                 .singleElement()
                 .extracting(EvChargerStationMappingEntity::getMatchType)
@@ -92,6 +93,41 @@ class EvChargerStationMappingCalculatorTest {
             assertThat(mapping.getRestStopServiceAreaCode()).isEqualTo("A00001");
             assertThat(mapping.getMatchType()).isEqualTo(EvChargerMatchType.NAME_ADDRESS_DISTANCE.name());
         });
+    }
+
+    @Test
+    void calculate_rejectsMultipleNameAndAddressMatches() throws Exception {
+        RestStopEntity first = restStop("서울만남(부산)휴게소", "A00001");
+        RestStopEntity second = restStop("서울만남(부산)휴게소", "A00002");
+        RestStopDetailEntity firstDetail = detail("A00001", "서울만남(부산)휴게소", "같은 주소");
+        RestStopDetailEntity secondDetail = detail("A00002", "서울만남(부산)휴게소", "같은 주소");
+        EvChargerEntity charger = charger("ME1", "서울만남(부산) 휴게소", "같은 주소", "37.4600218", "127.0420378");
+
+        assertThat(calculator.calculate(
+                        List.of(first, second), List.of(firstDetail, secondDetail), List.of(charger)))
+                .isEmpty();
+    }
+
+    @Test
+    void calculate_rejectsMultipleNameOnlyMatches() throws Exception {
+        RestStopEntity first = restStop("서울만남(부산)휴게소", "A00001");
+        RestStopEntity second = restStop("서울만남(부산)휴게소", "A00002");
+        EvChargerEntity charger = charger("ME1", "서울만남(부산) 휴게소", "다른 주소", "37.4600218", "127.0420378");
+
+        assertThat(calculator.calculate(List.of(first, second), List.of(), List.of(charger))).isEmpty();
+    }
+
+    @Test
+    void calculate_rejectsMultipleAddressOnlyMatches() throws Exception {
+        RestStopEntity first = restStop("첫 번째 휴게소", "A00001");
+        RestStopEntity second = restStop("두 번째 휴게소", "A00002");
+        RestStopDetailEntity firstDetail = detail("A00001", "첫 번째 휴게소", "같은 주소");
+        RestStopDetailEntity secondDetail = detail("A00002", "두 번째 휴게소", "같은 주소");
+        EvChargerEntity charger = charger("ME1", "다른 충전소", "같은 주소", "37.4600218", "127.0420378");
+
+        assertThat(calculator.calculate(
+                        List.of(first, second), List.of(firstDetail, secondDetail), List.of(charger)))
+                .isEmpty();
     }
 
     @Test
