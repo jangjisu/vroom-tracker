@@ -1934,7 +1934,7 @@ export function formatEvChargerCount(count) {
         return '';
     }
 
-    return `충전기 ${numericCount.toLocaleString()}대`;
+    return `${numericCount.toLocaleString()}대`;
 }
 
 function renderEvChargerInfo(count) {
