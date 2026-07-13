@@ -74,7 +74,7 @@ test('a later selection ignores an earlier successful response', async () => {
 
     const firstLoad = request.load('FIRST');
     const secondLoad = request.load('SECOND');
-    second.resolve(successSectionResponse({ unitName: '두 번째 상세' }));
+    second.resolve(successSectionResponse({ unitName: '두 번째 상세', evChargerCount: 4 }));
     await secondLoad;
     first.resolve(successSectionResponse({ unitName: '첫 번째 상세' }));
     await firstLoad;
@@ -86,6 +86,7 @@ test('a later selection ignores an earlier successful response', async () => {
             status: 'success',
             data: {
                 unitName: '두 번째 상세',
+                evChargerCount: 4,
                 oilInfo: {},
                 foodMenu: { menus: [], sections: [] }
             }

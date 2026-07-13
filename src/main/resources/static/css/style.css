@@ -272,10 +272,6 @@ body.global-loading-open {
     display: none;
 }
 
-#routeSearchInlineButton {
-    display: none !important;
-}
-
 .route-result-open {
     white-space: nowrap;
     font-weight: 600;
@@ -614,6 +610,22 @@ body.global-loading-open {
     font-size: 0.8rem;
 }
 
+.route-result-ev-charger {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    margin-top: 0.45rem;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid #b7dfc4;
+    border-radius: 999px;
+    background-color: #f0faf3;
+    color: #287a3f;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
 .route-result-tags {
     display: flex;
     flex-wrap: wrap;
@@ -806,6 +818,27 @@ body.global-loading-open {
     font-weight: 700;
     line-height: 1.4;
     overflow-wrap: anywhere;
+}
+
+.rest-stop-detail-ev-charger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    max-width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #b7dfc4;
+    border-radius: 999px;
+    background-color: #f0faf3;
+    color: #287a3f;
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.rest-stop-detail-ev-charger i {
+    flex: 0 0 auto;
 }
 
 .rest-stop-detail-status {
