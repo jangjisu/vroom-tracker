@@ -18,7 +18,6 @@ import com.restroute.repository.RestStopRepository;
 import com.restroute.service.evcharger.mapping.EvChargerStationMappingCalculator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,12 +50,12 @@ public class RestStopServiceAreaCodeBackfillService {
     @Transactional
     public Map<String, Integer> backfill() {
         List<RestStopEntity> restStops = restStopRepository.findAll();
-        Map<String, String> serviceAreaCodeByServiceAreaCode = mapServiceAreaCode(restStops);
+        List<String> restStopServiceAreaCodes = findRestStopServiceAreaCodes(restStops);
         Map<String, String> serviceAreaCodeByStdRestCd = mapByStdRestCd(restStops);
         Map<String, String> serviceAreaCodeByOilKey = mapByOilKey(restStops);
 
-        int restStopDetailMappedCount = backfillRestStopDetails(serviceAreaCodeByServiceAreaCode);
-        int highwayServiceAreaInfoMappedCount = backfillHighwayServiceAreaInfos(serviceAreaCodeByServiceAreaCode);
+        int restStopDetailMappedCount = backfillRestStopDetails(restStopServiceAreaCodes);
+        int highwayServiceAreaInfoMappedCount = backfillHighwayServiceAreaInfos(restStopServiceAreaCodes);
         int restFoodMappedCount = backfillRestFoods(serviceAreaCodeByStdRestCd);
         int restOilMappedCount = backfillRestOils(serviceAreaCodeByOilKey);
         int restOilPriceMappedCount = backfillRestOilPrices(mapByOilStandardRestCode());
@@ -96,11 +95,12 @@ public class RestStopServiceAreaCodeBackfillService {
         return mappingsToSave.size();
     }
 
-    private Map<String, String> mapServiceAreaCode(List<RestStopEntity> restStops) {
+    private List<String> findRestStopServiceAreaCodes(List<RestStopEntity> restStops) {
         return restStops.stream()
                 .map(RestStopEntity::getServiceAreaCode)
                 .filter(StringUtils::hasText)
-                .collect(Collectors.toMap(Function.identity(), Function.identity(), (first, second) -> first));
+                .distinct()
+                .toList();
     }
 
     private Map<String, String> mapByStdRestCd(List<RestStopEntity> restStops) {
@@ -133,10 +133,11 @@ public class RestStopServiceAreaCodeBackfillService {
                         (first, second) -> first));
     }
 
-    private int backfillRestStopDetails(Map<String, String> serviceAreaCodeByServiceAreaCode) {
+    private int backfillRestStopDetails(List<String> restStopServiceAreaCodes) {
         int mappedCount = 0;
         for (RestStopDetailEntity detail : restStopDetailRepository.findAll()) {
-            String restStopServiceAreaCode = serviceAreaCodeByServiceAreaCode.get(detail.getServiceAreaCode());
+            String restStopServiceAreaCode =
+                    findMatchingServiceAreaCode(detail.getServiceAreaCode(), restStopServiceAreaCodes);
             detail.updateRestStopServiceAreaCode(restStopServiceAreaCode);
             if (restStopServiceAreaCode != null) {
                 mappedCount++;
@@ -145,16 +146,21 @@ public class RestStopServiceAreaCodeBackfillService {
         return mappedCount;
     }
 
-    private int backfillHighwayServiceAreaInfos(Map<String, String> serviceAreaCodeByServiceAreaCode) {
+    private int backfillHighwayServiceAreaInfos(List<String> restStopServiceAreaCodes) {
         int mappedCount = 0;
         for (HighwayServiceAreaInfoEntity info : highwayServiceAreaInfoRepository.findAll()) {
-            String restStopServiceAreaCode = serviceAreaCodeByServiceAreaCode.get(info.getBusinessFacilityCode());
+            String restStopServiceAreaCode =
+                    findMatchingServiceAreaCode(info.getBusinessFacilityCode(), restStopServiceAreaCodes);
             info.updateRestStopServiceAreaCode(restStopServiceAreaCode);
             if (restStopServiceAreaCode != null) {
                 mappedCount++;
             }
         }
         return mappedCount;
+    }
+
+    private String findMatchingServiceAreaCode(String sourceCode, List<String> restStopServiceAreaCodes) {
+        return restStopServiceAreaCodes.contains(sourceCode) ? sourceCode : null;
     }
 
     private int backfillRestFoods(Map<String, String> serviceAreaCodeByStdRestCd) {

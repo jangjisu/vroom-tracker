@@ -127,9 +127,10 @@ public class RouteRestStopService {
                 .filter(RouteRestStopCandidate::hasDirectionGroup)
                 .map(RouteRestStopCandidate::groupKey)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-        List<String> mappedServiceAreaCodes = evChargerQueryService.findMappedServiceAreaCodes(candidates.stream()
-                .map(candidate -> candidate.restStop().getServiceAreaCode())
-                .toList());
+        List<String> mappedServiceAreaCodes =
+                evChargerQueryService.findChargerMappedServiceAreaCodes(candidates.stream()
+                        .map(candidate -> candidate.restStop().getServiceAreaCode())
+                        .toList());
         List<RouteRestStopComparison> comparisons = candidates.stream()
                 .map(candidate -> RouteRestStopComparison.of(
                         candidate,

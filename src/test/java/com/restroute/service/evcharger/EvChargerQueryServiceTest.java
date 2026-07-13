@@ -35,20 +35,35 @@ class EvChargerQueryServiceTest {
 
     @Test
     @DisplayName("매핑된 휴게소 코드를 일괄 조회한다")
-    void findMappedServiceAreaCodes_returnsMappedCodes() {
+    void findChargerMappedServiceAreaCodes_returnsMappedCodes() {
         EvChargerStationMappingEntity mapping = EvChargerStationMappingEntity.of("ME1");
         mapping.updateMatch("A00001");
         when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
                 .thenReturn(List.of(mapping));
-        List<String> result = queryService.findMappedServiceAreaCodes(List.of("A00001"));
+        List<String> result = queryService.findChargerMappedServiceAreaCodes(List.of("A00001"));
 
         assertThat(result).containsExactly("A00001");
     }
 
     @Test
     @DisplayName("휴게소 코드가 없으면 경로용 매핑 결과를 조회하지 않는다")
-    void findMappedServiceAreaCodes_returnsEmptyForBlankInput() {
-        assertThat(queryService.findMappedServiceAreaCodes(List.of("", " "))).isEmpty();
+    void findChargerMappedServiceAreaCodes_returnsEmptyForBlankInput() {
+        assertThat(queryService.findChargerMappedServiceAreaCodes(List.of("", " ")))
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("여러 충전소가 같은 휴게소에 매핑되어도 경로용 휴게소 코드는 중복하지 않는다")
+    void findChargerMappedServiceAreaCodes_removesDuplicateRestStops() {
+        EvChargerStationMappingEntity first = EvChargerStationMappingEntity.of("ME1");
+        first.updateMatch("A00001");
+        EvChargerStationMappingEntity second = EvChargerStationMappingEntity.of("ME2");
+        second.updateMatch("A00001");
+        when(mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of("A00001")))
+                .thenReturn(List.of(first, second));
+
+        assertThat(queryService.findChargerMappedServiceAreaCodes(List.of("A00001", "A00001")))
+                .containsExactly("A00001");
     }
 
     @Test

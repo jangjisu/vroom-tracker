@@ -20,15 +20,18 @@ public class EvChargerQueryService {
     private final EvChargerStationMappingRepository mappingRepository;
 
     @Transactional(readOnly = true)
-    public List<String> findMappedServiceAreaCodes(Collection<String> serviceAreaCodes) {
-        List<String> validServiceAreaCodes =
-                serviceAreaCodes.stream().filter(StringUtils::hasText).toList();
+    public List<String> findChargerMappedServiceAreaCodes(Collection<String> serviceAreaCodes) {
+        List<String> validServiceAreaCodes = serviceAreaCodes.stream()
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
         if (validServiceAreaCodes.isEmpty()) {
             return List.of();
         }
 
         return mappingRepository.findAllByRestStopServiceAreaCodeIn(validServiceAreaCodes).stream()
                 .map(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .distinct()
                 .toList();
     }
 
@@ -39,6 +42,7 @@ public class EvChargerQueryService {
         }
         List<String> statIds = mappingRepository.findAllByRestStopServiceAreaCodeIn(List.of(serviceAreaCode)).stream()
                 .map(EvChargerStationMappingEntity::getStatId)
+                .distinct()
                 .toList();
         if (statIds.isEmpty()) {
             return 0;
