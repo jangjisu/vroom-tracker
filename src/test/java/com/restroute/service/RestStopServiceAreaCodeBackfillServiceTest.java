@@ -8,8 +8,10 @@ import static com.restroute.support.RestStopTestFixtures.restStopItem;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.restroute.client.response.EvChargerItem;
 import com.restroute.client.response.RestBestfoodItem;
 import com.restroute.client.response.RestOilItem;
+import com.restroute.domain.EvChargerEntity;
 import com.restroute.domain.EvChargerStationMappingEntity;
 import com.restroute.domain.HighwayServiceAreaInfoEntity;
 import com.restroute.domain.RestFoodEntity;
@@ -17,6 +19,7 @@ import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.EvChargerRepository;
 import com.restroute.repository.EvChargerStationMappingRepository;
 import com.restroute.repository.HighwayServiceAreaInfoRepository;
 import com.restroute.repository.RestFoodRepository;
@@ -24,7 +27,7 @@ import com.restroute.repository.RestOilPriceRepository;
 import com.restroute.repository.RestOilRepository;
 import com.restroute.repository.RestStopDetailRepository;
 import com.restroute.repository.RestStopRepository;
-import com.restroute.service.evcharger.EvChargerStationMappingMapper;
+import com.restroute.service.evcharger.mapping.EvChargerStationMappingCalculator;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
@@ -37,11 +40,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({RestStopServiceAreaCodeBackfillService.class, EvChargerStationMappingMapper.class})
+@Import({RestStopServiceAreaCodeBackfillService.class, EvChargerStationMappingCalculator.class})
 class RestStopServiceAreaCodeBackfillServiceTest {
 
     @Autowired
     private RestStopServiceAreaCodeBackfillService backfillService;
+
+    @Autowired
+    private EvChargerRepository evChargerRepository;
 
     @Autowired
     private RestStopRepository restStopRepository;
@@ -224,11 +230,42 @@ class RestStopServiceAreaCodeBackfillServiceTest {
         assertThat(evChargerStationMappingRepository.findAll()).isEmpty();
     }
 
+    @Test
+    @DisplayName("중앙 backfill은 rest stop detail과 EV 충전소를 Calculator에 전달한다")
+    void backfill_calculatesEvMappingFromThreeDataSources() throws Exception {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001")));
+        restStopDetailRepository.save(RestStopDetailEntity.from(restStopDetailItem("A00001", "서울만남(부산)휴게소")));
+        evChargerRepository.save(chargerEntity("ME1", "서울만남(부산) 휴게소", "37.4600218", "127.0420378"));
+
+        Map<String, Integer> result = backfillService.backfill();
+
+        assertThat(result.get(RestStopServiceAreaCodeBackfillService.EV_CHARGER_MAPPED_COUNT))
+                .isEqualTo(1);
+        assertThat(evChargerStationMappingRepository.findAll())
+                .singleElement()
+                .extracting(EvChargerStationMappingEntity::getRestStopServiceAreaCode)
+                .isEqualTo("A00001");
+    }
+
     private RestFoodEntity foodEntity(String stdRestCd, String foodName) throws Exception {
         String json = """
                 {"stdRestCd":"%s","foodNm":"%s","foodCost":"7000","recommendyn":"N"}
                 """.formatted(stdRestCd, foodName);
         RestBestfoodItem item = new ObjectMapper().readValue(json, RestBestfoodItem.class);
         return RestFoodEntity.from(item);
+    }
+
+    private EvChargerEntity chargerEntity(String statId, String statName, String latitude, String longitude)
+            throws Exception {
+        String json = "{\"statId\":\""
+                + statId
+                + "\",\"statNm\":\""
+                + statName
+                + "\",\"lat\":\""
+                + latitude
+                + "\",\"lng\":\""
+                + longitude
+                + "\",\"delYn\":\"N\"}";
+        return EvChargerEntity.from(new ObjectMapper().readValue(json, EvChargerItem.class));
     }
 }

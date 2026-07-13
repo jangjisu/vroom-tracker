@@ -16,7 +16,7 @@ import com.restroute.repository.RestOilPriceRepository;
 import com.restroute.repository.RestOilRepository;
 import com.restroute.repository.RestStopDetailRepository;
 import com.restroute.repository.RestStopRepository;
-import com.restroute.service.evcharger.EvChargerStationMappingMapper;
+import com.restroute.service.evcharger.mapping.EvChargerStationMappingCalculator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +48,7 @@ public class RestStopServiceAreaCodeBackfillService {
     private final RestOilPriceRepository restOilPriceRepository;
     private final EvChargerRepository evChargerRepository;
     private final EvChargerStationMappingRepository evChargerStationMappingRepository;
-    private final EvChargerStationMappingMapper evChargerStationMappingMapper;
+    private final EvChargerStationMappingCalculator evChargerStationMappingCalculator;
 
     @Transactional
     public Map<String, Integer> backfill() {
@@ -92,8 +92,8 @@ public class RestStopServiceAreaCodeBackfillService {
 
     private int backfillEvChargerMappings(List<RestStopEntity> restStops) {
         List<EvChargerEntity> activeStations = distinctActiveEvStations();
-        List<EvChargerStationMappingEntity> mappingsToSave =
-                evChargerStationMappingMapper.map(restStops, activeStations);
+        List<EvChargerStationMappingEntity> mappingsToSave = evChargerStationMappingCalculator.calculate(
+                restStops, restStopDetailRepository.findAll(), activeStations);
         evChargerStationMappingRepository.deleteAll();
         evChargerStationMappingRepository.saveAll(mappingsToSave);
         return mappingsToSave.size();
@@ -102,7 +102,7 @@ public class RestStopServiceAreaCodeBackfillService {
     private List<EvChargerEntity> distinctActiveEvStations() {
         List<String> statIds = new ArrayList<>();
         List<EvChargerEntity> stations = new ArrayList<>();
-        for (EvChargerEntity charger : evChargerRepository.findAll()) {
+        for (EvChargerEntity charger : evChargerRepository.findAllByDelYn("N")) {
             if (StringUtils.hasText(charger.getStatId())
                     && "N".equals(charger.getDelYn())
                     && !statIds.contains(charger.getStatId())) {

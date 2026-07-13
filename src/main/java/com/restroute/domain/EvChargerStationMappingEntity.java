@@ -1,5 +1,6 @@
 package com.restroute.domain;
 
+import com.restroute.service.evcharger.mapping.EvChargerMatchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -44,5 +45,9 @@ public class EvChargerStationMappingEntity {
         this.restStopServiceAreaCode = restStopServiceAreaCode;
         this.distanceMeters = distanceMeters;
         this.matchType = matchType;
+    }
+
+    public void updateMatch(String restStopServiceAreaCode, Double distanceMeters, EvChargerMatchType matchType) {
+        updateMatch(restStopServiceAreaCode, distanceMeters, matchType.name());
     }
 }
