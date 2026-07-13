@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * 프론트엔드 JS가 각 섹션을 비동기로 채웁니다.
  */
 @WebMvcTest(TrafficController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class TrafficControllerTest {
 
     @Autowired
