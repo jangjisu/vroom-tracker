@@ -50,6 +50,11 @@ public class RestStopServiceAreaCodeBackfillService {
 
     @Transactional
     public Map<String, Integer> backfill() {
+        return backfill(true);
+    }
+
+    @Transactional
+    public Map<String, Integer> backfill(boolean includeEvChargerMappings) {
         List<RestStopEntity> restStops = restStopRepository.findAll();
         Map<String, String> serviceAreaCodeByServiceAreaCode = mapServiceAreaCode(restStops);
         Map<String, String> serviceAreaCodeByStdRestCd = mapByStdRestCd(restStops);
@@ -60,7 +65,7 @@ public class RestStopServiceAreaCodeBackfillService {
         int restFoodMappedCount = backfillRestFoods(serviceAreaCodeByStdRestCd);
         int restOilMappedCount = backfillRestOils(serviceAreaCodeByOilKey);
         int restOilPriceMappedCount = backfillRestOilPrices(mapByOilStandardRestCode());
-        int evChargerMappedCount = backfillEvChargerMappings(restStops);
+        int evChargerMappedCount = includeEvChargerMappings ? backfillEvChargerMappings(restStops) : 0;
 
         Map<String, Integer> result = Map.of(
                 REST_STOP_DETAIL_MAPPED_COUNT,

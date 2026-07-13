@@ -15,9 +15,9 @@ class EvChargerResponseTest {
                 {
                   "resultCode": "00",
                   "resultMsg": "NORMAL SERVICE.",
-                  "totalCount": 401,
+                  "totalCount": 201,
                   "pageNo": 1,
-                  "numOfRows": 400,
+                  "numOfRows": 200,
                   "items": {
                     "item": [{
                       "statNm": "서울만남(부산) 휴게소",
@@ -52,7 +52,7 @@ class EvChargerResponseTest {
     void response_returnsEmptyListWhenItemsAreMissing() throws Exception {
         EvChargerResponse response = new ObjectMapper()
                 .readValue(
-                        "{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\",\"totalCount\":0,\"numOfRows\":400}",
+                        "{\"resultCode\":\"00\",\"resultMsg\":\"NORMAL SERVICE.\",\"totalCount\":0,\"numOfRows\":200}",
                         EvChargerResponse.class);
 
         assertThat(response.getList()).isEmpty();

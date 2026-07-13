@@ -67,15 +67,14 @@ public class EvChargerApiClient {
                     "External API request failed. api={}, requestUrl={}, message={}",
                     API_NAME,
                     safeRequestUrl,
-                    e.getMessage());
+                    ExternalApiRequestLog.sanitizeUrl(e.getMessage()));
             throw e;
         } catch (RuntimeException e) {
             log.warn(
                     "External API request failed. api={}, requestUrl={}, message={}",
                     API_NAME,
                     safeRequestUrl,
-                    e.getMessage(),
-                    e);
+                    ExternalApiRequestLog.sanitizeUrl(e.getMessage()));
             throw new ExApiException(requestUrl, e.getMessage(), e);
         }
     }

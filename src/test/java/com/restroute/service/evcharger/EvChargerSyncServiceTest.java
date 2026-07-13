@@ -1,7 +1,6 @@
 package com.restroute.service.evcharger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -53,9 +52,10 @@ class EvChargerSyncServiceTest {
         when(evChargerApiClient.getChargerInfo(1)).thenReturn(response(401, 1, charger("ME1", "01", "C001")));
         when(evChargerApiClient.getChargerInfo(2)).thenReturn(response(401, 2, charger("ME2", "01", "C003")));
 
-        int savedCount = evChargerSyncService.refreshEvChargers();
+        EvChargerSyncResult result = evChargerSyncService.refreshEvChargers();
 
-        assertThat(savedCount).isEqualTo(1);
+        assertThat(result.savedItemCount()).isEqualTo(1);
+        assertThat(result.totalPageCount()).isEqualTo(3);
         assertThat(captureSavedEntities())
                 .extracting(EvChargerEntity::getStatId)
                 .containsExactly("ME1");
@@ -79,16 +79,51 @@ class EvChargerSyncServiceTest {
     }
 
     @Test
-    @DisplayName("중간 페이지 실패 시 기존 데이터를 조회하거나 저장하지 않는다")
-    void refreshEvChargers_keepsExistingDataWhenPageFails() throws Exception {
+    @DisplayName("중간 페이지 실패 시 성공한 페이지를 저장하고 다음 페이지를 계속 조회한다")
+    void refreshEvChargers_savesSuccessfulPagesAndContinuesAfterPageFailure() throws Exception {
+        runTransactionCallback();
+        when(evChargerRepository.findAll()).thenReturn(List.of());
         when(evChargerApiClient.getChargerInfo(1)).thenReturn(response(401, 1, charger("ME1", "01", "C001")));
         RuntimeException exception = new RuntimeException("timeout");
         when(evChargerApiClient.getChargerInfo(2)).thenThrow(exception);
+        when(evChargerApiClient.getChargerInfo(3)).thenReturn(response(401, 3, charger("ME3", "01", "C001")));
 
-        assertThatThrownBy(() -> evChargerSyncService.refreshEvChargers()).isSameAs(exception);
+        EvChargerSyncResult result = evChargerSyncService.refreshEvChargers();
 
+        assertThat(result.failedPageCount()).isEqualTo(1);
+        assertThat(result.successfulPageCount()).isEqualTo(2);
+        assertThat(result.evChargerBackfillAllowed()).isTrue();
+        assertThat(captureSavedEntities())
+                .extracting(EvChargerEntity::getStatId)
+                .containsExactly("ME1", "ME3");
+        verify(evChargerApiClient).getChargerInfo(3);
+    }
+
+    @Test
+    @DisplayName("첫 페이지 실패 시 추가 페이지를 조회하지 않고 기존 데이터를 유지한다")
+    void refreshEvChargers_keepsExistingDataWhenFirstPageFails() {
+        RuntimeException exception = new RuntimeException("timeout");
+        when(evChargerApiClient.getChargerInfo(1)).thenThrow(exception);
+
+        EvChargerSyncResult result = evChargerSyncService.refreshEvChargers();
+
+        assertThat(result.successfulPageCount()).isZero();
+        assertThat(result.failedPageCount()).isEqualTo(1);
+        assertThat(result.evChargerBackfillAllowed()).isFalse();
+        verify(evChargerApiClient, never()).getChargerInfo(2);
         verify(evChargerRepository, never()).findAll();
         verify(evChargerRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("충전기 테이블에 데이터가 있으면 초기 동기화를 생략한다")
+    void initializeEvChargersIfEmpty_skipsWhenDataExists() {
+        when(evChargerRepository.count()).thenReturn(1L);
+
+        EvChargerSyncResult result = evChargerSyncService.initializeEvChargersIfEmpty();
+
+        assertThat(result).isEqualTo(EvChargerSyncResult.skipped());
+        verify(evChargerApiClient, never()).getChargerInfo(1);
     }
 
     private EvChargerResponse response(int totalCount, int pageNo, String... items) throws Exception {
@@ -96,7 +131,7 @@ class EvChargerSyncServiceTest {
                 + totalCount
                 + ",\"pageNo\":"
                 + pageNo
-                + ",\"numOfRows\":400,\"items\":{\"item\":["
+                + ",\"numOfRows\":200,\"items\":{\"item\":["
                 + String.join(",", items)
                 + "]}}";
         return new ObjectMapper().readValue(json, EvChargerResponse.class);

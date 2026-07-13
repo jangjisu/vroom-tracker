@@ -17,7 +17,7 @@ public interface EvChargerFeignClient {
     String JSON_DATA_TYPE = "JSON";
     String REST_FACILITY_KIND = "C0";
     String HIGHWAY_REST_STOP_KIND_DETAIL = "C001";
-    int CHARGER_NUM_OF_ROWS = 400;
+    int CHARGER_NUM_OF_ROWS = 200;
 
     @GetMapping(CHARGER_INFO_PATH)
     EvChargerResponse getChargerInfo(

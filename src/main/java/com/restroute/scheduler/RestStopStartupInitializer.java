@@ -6,6 +6,7 @@ import com.restroute.service.RestOilSyncService;
 import com.restroute.service.RestStopDetailSyncService;
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
 import com.restroute.service.RestStopSyncService;
+import com.restroute.service.evcharger.EvChargerSyncResult;
 import com.restroute.service.evcharger.EvChargerSyncService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +37,12 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         initializeRestOils();
         initializeRestOilPrices();
         initializeRestFoods();
-        initializeEvChargers();
-        backfillRestStopServiceAreaCodes();
+        EvChargerSyncResult evChargerSyncResult = initializeEvChargers();
+        if (evChargerSyncResult.evChargerBackfillAllowed()) {
+            backfillRestStopServiceAreaCodes();
+            return;
+        }
+        backfillRestStopServiceAreaCodes(false);
     }
 
     private void initializeRestStops() {
@@ -110,23 +115,37 @@ public class RestStopStartupInitializer implements ApplicationRunner {
         }
     }
 
-    private void initializeEvChargers() {
+    private EvChargerSyncResult initializeEvChargers() {
         try {
-            int savedCount = evChargerSyncService.initializeEvChargersIfEmpty();
-            if (savedCount > 0) {
-                log.info("Initial EV charger sync completed. savedCount={}", savedCount);
-                return;
+            EvChargerSyncResult result = evChargerSyncService.initializeEvChargersIfEmpty();
+            if (result == null) {
+                return EvChargerSyncResult.skipped();
+            }
+            if (result.savedItemCount() > 0) {
+                log.info("Initial EV charger sync completed. result={}", result);
+                return result;
             }
 
             log.info("Initial EV charger sync skipped because ev_charger table already has data.");
+            return result;
         } catch (RuntimeException e) {
             log.error("Initial EV charger sync failed. cause={}", e.getMessage(), e);
+            return EvChargerSyncResult.failed();
         }
     }
 
     private void backfillRestStopServiceAreaCodes() {
         try {
             Map<String, Integer> result = restStopServiceAreaCodeBackfillService.backfill();
+            log.info("Rest stop service area code backfill completed. result={}", result);
+        } catch (RuntimeException e) {
+            log.error("Rest stop service area code backfill failed. cause={}", e.getMessage(), e);
+        }
+    }
+
+    private void backfillRestStopServiceAreaCodes(boolean includeEvChargerMappings) {
+        try {
+            Map<String, Integer> result = restStopServiceAreaCodeBackfillService.backfill(includeEvChargerMappings);
             log.info("Rest stop service area code backfill completed. result={}", result);
         } catch (RuntimeException e) {
             log.error("Rest stop service area code backfill failed. cause={}", e.getMessage(), e);

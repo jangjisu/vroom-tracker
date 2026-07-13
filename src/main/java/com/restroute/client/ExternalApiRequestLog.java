@@ -17,6 +17,6 @@ public final class ExternalApiRequestLog {
         for (String parameter : SENSITIVE_PARAMETERS) {
             sanitized = sanitized.replaceAll("([?&])" + parameter + "=[^&]*", "$1" + parameter + "=<redacted>");
         }
-        return sanitized;
+        return sanitized.replaceAll("(?i)(serviceKey|key|code)=[^&\\s]*", "$1=<redacted>");
     }
 }
