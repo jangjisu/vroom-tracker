@@ -92,7 +92,6 @@ class EvChargerSyncServiceTest {
 
         assertThat(result.failedPageCount()).isEqualTo(1);
         assertThat(result.successfulPageCount()).isEqualTo(2);
-        assertThat(result.evChargerBackfillAllowed()).isTrue();
         assertThat(captureSavedEntities())
                 .extracting(EvChargerEntity::getStatId)
                 .containsExactly("ME1", "ME3");
@@ -109,7 +108,6 @@ class EvChargerSyncServiceTest {
 
         assertThat(result.successfulPageCount()).isZero();
         assertThat(result.failedPageCount()).isEqualTo(1);
-        assertThat(result.evChargerBackfillAllowed()).isFalse();
         verify(evChargerApiClient, never()).getChargerInfo(2);
         verify(evChargerRepository, never()).findAll();
         verify(evChargerRepository, never()).saveAll(any());

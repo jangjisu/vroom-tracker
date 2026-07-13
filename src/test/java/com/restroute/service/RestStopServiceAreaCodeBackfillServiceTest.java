@@ -231,23 +231,6 @@ class RestStopServiceAreaCodeBackfillServiceTest {
     }
 
     @Test
-    @DisplayName("EV 동기화 실패 후 backfill은 기존 EV 매핑을 보존한다")
-    void backfill_withoutEvMappings_keepsExistingEvMappings() {
-        EvChargerStationMappingEntity existing = EvChargerStationMappingEntity.of("ME1");
-        existing.updateMatch("A00001");
-        evChargerStationMappingRepository.save(existing);
-
-        Map<String, Integer> result = backfillService.backfill(false);
-
-        assertThat(result.get(RestStopServiceAreaCodeBackfillService.EV_CHARGER_MAPPED_COUNT))
-                .isZero();
-        assertThat(evChargerStationMappingRepository.findAll())
-                .singleElement()
-                .extracting(EvChargerStationMappingEntity::getStatId)
-                .isEqualTo("ME1");
-    }
-
-    @Test
     @DisplayName("중앙 backfill은 rest stop detail과 EV 충전소를 Calculator에 전달한다")
     void backfill_calculatesEvMappingFromThreeDataSources() throws Exception {
         restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001")));

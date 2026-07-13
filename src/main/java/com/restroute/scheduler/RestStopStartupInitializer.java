@@ -138,13 +138,4 @@ public class RestStopStartupInitializer implements ApplicationRunner {
             log.error("Rest stop service area code backfill failed. cause={}", e.getMessage(), e);
         }
     }
-
-    private void backfillRestStopServiceAreaCodes(boolean includeEvChargerMappings) {
-        try {
-            Map<String, Integer> result = restStopServiceAreaCodeBackfillService.backfill(includeEvChargerMappings);
-            log.info("Rest stop service area code backfill completed. result={}", result);
-        } catch (RuntimeException e) {
-            log.error("Rest stop service area code backfill failed. cause={}", e.getMessage(), e);
-        }
-    }
 }

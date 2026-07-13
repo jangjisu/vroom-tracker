@@ -93,7 +93,7 @@ class RestStopSchedulerTest {
     @Test
     @DisplayName("EV 동기화가 완전히 실패해도 backfill을 실행한다")
     void syncRestStopsDaily_runsBackfillWhenEvSyncFails() {
-        when(evChargerSyncService.refreshEvChargers()).thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0, false));
+        when(evChargerSyncService.refreshEvChargers()).thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0));
 
         restStopScheduler.syncRestStopsDaily();
 
@@ -114,7 +114,7 @@ class RestStopSchedulerTest {
     @Test
     @DisplayName("EV 매핑 backfill 실패를 기록하고 스케줄러를 중단하지 않는다")
     void syncRestStopsDaily_doesNotPropagateEvMappingBackfillFailure(CapturedOutput output) {
-        when(evChargerSyncService.refreshEvChargers()).thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0, false));
+        when(evChargerSyncService.refreshEvChargers()).thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0));
         when(restStopServiceAreaCodeBackfillService.backfill())
                 .thenThrow(new IllegalStateException("EV mapping backfill failed"));
 
@@ -126,7 +126,7 @@ class RestStopSchedulerTest {
     }
 
     private EvChargerSyncResult successfulEvChargerSync() {
-        return new EvChargerSyncResult(13, 13, 0, 2401, 1000, true);
+        return new EvChargerSyncResult(13, 13, 0, 2401, 1000);
     }
 
     @Test

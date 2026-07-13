@@ -119,13 +119,4 @@ public class RestStopScheduler {
             log.error("Scheduled rest stop service area code backfill failed. cause={}", e.getMessage(), e);
         }
     }
-
-    private void backfillRestStopServiceAreaCodes(boolean includeEvChargerMappings) {
-        try {
-            Map<String, Integer> result = restStopServiceAreaCodeBackfillService.backfill(includeEvChargerMappings);
-            log.info("Scheduled rest stop service area code backfill completed. result={}", result);
-        } catch (RuntimeException e) {
-            log.error("Scheduled rest stop service area code backfill failed. cause={}", e.getMessage(), e);
-        }
-    }
 }

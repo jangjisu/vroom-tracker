@@ -105,7 +105,7 @@ class RestStopStartupInitializerTest {
     }
 
     private EvChargerSyncResult successfulEvChargerSync() {
-        return new EvChargerSyncResult(13, 13, 0, 2401, 1000, true);
+        return new EvChargerSyncResult(13, 13, 0, 2401, 1000);
     }
 
     @Test
@@ -180,8 +180,7 @@ class RestStopStartupInitializerTest {
         when(restOilSyncService.initializeRestOilsIfEmpty()).thenReturn(0);
         when(restOilPriceSyncService.initializeRestOilPricesIfEmpty()).thenReturn(0);
         when(restFoodSyncService.initializeRestFoodsIfEmpty()).thenReturn(0);
-        when(evChargerSyncService.initializeEvChargersIfEmpty())
-                .thenReturn(new EvChargerSyncResult(0, 0, 0, 0, 0, true));
+        when(evChargerSyncService.initializeEvChargersIfEmpty()).thenReturn(new EvChargerSyncResult(0, 0, 0, 0, 0));
 
         restStopStartupInitializer.run(applicationArguments);
 
@@ -196,8 +195,7 @@ class RestStopStartupInitializerTest {
     @Test
     @DisplayName("EV 초기 동기화가 부분 실패해도 backfill을 실행한다")
     void run_runsBackfillWhenEvSyncPartiallyFails() {
-        when(evChargerSyncService.initializeEvChargersIfEmpty())
-                .thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0, false));
+        when(evChargerSyncService.initializeEvChargersIfEmpty()).thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0));
 
         restStopStartupInitializer.run(applicationArguments);
 
@@ -263,8 +261,7 @@ class RestStopStartupInitializerTest {
     @Test
     @DisplayName("EV 매핑 backfill 실패를 기록하고 앱 시작으로 전파하지 않는다")
     void run_doesNotPropagateEvMappingBackfillFailure(CapturedOutput output) {
-        when(evChargerSyncService.initializeEvChargersIfEmpty())
-                .thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0, false));
+        when(evChargerSyncService.initializeEvChargersIfEmpty()).thenReturn(new EvChargerSyncResult(7, 0, 1, 0, 0));
         when(restStopServiceAreaCodeBackfillService.backfill())
                 .thenThrow(new IllegalStateException("EV mapping backfill failed"));
 

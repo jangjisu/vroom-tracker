@@ -38,7 +38,7 @@ public class EvChargerSyncService {
     public EvChargerSyncResult refreshEvChargers() {
         EvChargerFetchSummary summary = fetchAllEvChargers();
         if (summary.items().isEmpty()) {
-            EvChargerSyncResult result = resultOf(summary, 0, 0, false);
+            EvChargerSyncResult result = resultOf(summary, 0, 0);
             log.warn(
                     "EV charger sync skipped because no successful C001 data was fetched. "
                             + "totalPageCount={}, successfulPageCount={}, failedPageCount={}",
@@ -49,8 +49,7 @@ public class EvChargerSyncService {
         }
 
         transactionTemplate.executeWithoutResult(status -> upsertEvChargers(summary.items()));
-        EvChargerSyncResult result =
-                resultOf(summary, summary.items().size(), uniqueStationCount(summary.items()), true);
+        EvChargerSyncResult result = resultOf(summary, summary.items().size(), uniqueStationCount(summary.items()));
         log.info(
                 "EV charger sync completed. totalPageCount={}, successfulPageCount={}, failedPageCount={}, "
                         + "savedItemCount={}, uniqueStationCount={}",
@@ -160,15 +159,13 @@ public class EvChargerSyncService {
         return statId + "\n" + chgerId;
     }
 
-    private EvChargerSyncResult resultOf(
-            EvChargerFetchSummary summary, int savedItemCount, long uniqueStationCount, boolean backfillAllowed) {
+    private EvChargerSyncResult resultOf(EvChargerFetchSummary summary, int savedItemCount, long uniqueStationCount) {
         return EvChargerSyncResult.of(
                 summary.totalPageCount(),
                 summary.successfulPageCount(),
                 summary.failedPageCount(),
                 savedItemCount,
-                uniqueStationCount,
-                backfillAllowed);
+                uniqueStationCount);
     }
 
     private String safeMessage(Throwable throwable) {

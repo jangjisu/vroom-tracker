@@ -1,19 +1,14 @@
 package com.restroute.service.evcharger;
 
 public record EvChargerSyncResult(
-        int totalPageCount,
-        int successfulPageCount,
-        int failedPageCount,
-        int savedItemCount,
-        long uniqueStationCount,
-        boolean evChargerBackfillAllowed) {
+        int totalPageCount, int successfulPageCount, int failedPageCount, int savedItemCount, long uniqueStationCount) {
 
     public static EvChargerSyncResult skipped() {
-        return new EvChargerSyncResult(0, 0, 0, 0, 0, true);
+        return new EvChargerSyncResult(0, 0, 0, 0, 0);
     }
 
     public static EvChargerSyncResult failed() {
-        return new EvChargerSyncResult(0, 0, 0, 0, 0, false);
+        return new EvChargerSyncResult(0, 0, 0, 0, 0);
     }
 
     public static EvChargerSyncResult of(
@@ -21,14 +16,8 @@ public record EvChargerSyncResult(
             int successfulPageCount,
             int failedPageCount,
             int savedItemCount,
-            long uniqueStationCount,
-            boolean evChargerBackfillAllowed) {
+            long uniqueStationCount) {
         return new EvChargerSyncResult(
-                totalPageCount,
-                successfulPageCount,
-                failedPageCount,
-                savedItemCount,
-                uniqueStationCount,
-                evChargerBackfillAllowed);
+                totalPageCount, successfulPageCount, failedPageCount, savedItemCount, uniqueStationCount);
     }
 }
