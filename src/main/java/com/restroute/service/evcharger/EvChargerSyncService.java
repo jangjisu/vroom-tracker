@@ -45,19 +45,31 @@ public class EvChargerSyncService {
         EvChargerResponse firstPage = fetchPage(FIRST_PAGE);
         List<EvChargerItem> items = new ArrayList<>();
         addHighwayRestStopItems(items, firstPage);
-        logPage(firstPage);
 
         int totalPageCount = firstPage.getTotalPageCount();
         for (int pageNo = FIRST_PAGE + 1; pageNo <= totalPageCount; pageNo++) {
             EvChargerResponse response = fetchPage(pageNo);
             addHighwayRestStopItems(items, response);
-            logPage(response);
         }
         return items;
     }
 
     private EvChargerResponse fetchPage(int pageNo) {
-        return evChargerApiClient.getChargerInfo(pageNo);
+        log.info("EV charger page request started. pageNo={}", pageNo);
+        try {
+            EvChargerResponse response = evChargerApiClient.getChargerInfo(pageNo);
+            log.info(
+                    "EV charger page request succeeded. pageNo={}, totalCount={}, itemCount={}, "
+                            + "highwayRestStopItemCount={}",
+                    pageNo,
+                    response.getTotalCount(),
+                    response.getList().size(),
+                    highwayRestStopItemCount(response));
+            return response;
+        } catch (RuntimeException e) {
+            log.warn("EV charger page request failed. pageNo={}, cause={}", pageNo, e.getMessage(), e);
+            throw e;
+        }
     }
 
     private void addHighwayRestStopItems(List<EvChargerItem> items, EvChargerResponse response) {
@@ -75,15 +87,10 @@ public class EvChargerSyncService {
         return StringUtils.hasText(item.getStatId()) && StringUtils.hasText(item.getChgerId());
     }
 
-    private void logPage(EvChargerResponse response) {
-        log.info(
-                "EV charger page fetched. pageNo={}, totalCount={}, itemCount={}, highwayRestStopItemCount={}",
-                response.getPageNo(),
-                response.getTotalCount(),
-                response.getList().size(),
-                response.getList().stream()
-                        .filter(this::isHighwayRestStopCharger)
-                        .count());
+    private long highwayRestStopItemCount(EvChargerResponse response) {
+        return response.getList().stream()
+                .filter(this::isHighwayRestStopCharger)
+                .count();
     }
 
     private void upsertEvChargers(List<EvChargerItem> items) {

@@ -11,7 +11,7 @@
 한국도로공사 OpenAPI를 호출하는 `ex-api` Feign Client는 모든 요청에 다음 헤더를 보낸다.
 
 ```text
-User-Agent: vroom-tracker
+User-Agent: rest-route
 Accept: application/json
 ```
 
@@ -33,17 +33,85 @@ HTTP/1.1 강제 여부는 결과에 영향을 주지 않았다. endpoint, query 
 Failed to fetch API. requestUrl=<실제 요청 URL>, message=<실패 원인>
 ```
 
-`requestUrl`에는 endpoint와 실제 호출한 모든 query parameter가 포함된다. 장애 로그에서 URL을 바로 실행해 재현할 수 있도록 `key`도 마스킹하지 않고 runtime 값을 그대로 포함한다.
+`requestUrl`에는 endpoint와 실제 호출한 query parameter가 포함된다. 인증키가 포함된 query parameter는 로그에서 마스킹한다.
 
 ```text
-Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/conveniServiceArea?key=YOUR_API_KEY&type=json&numOfRows=99&pageNo=2, message=For input string: ""
+Failed to fetch API. requestUrl=https://data.ex.co.kr/openapi/business/conveniServiceArea?key=%3Credacted%3E&type=json&numOfRows=99&pageNo=2, message=For input string: ""
 ```
 
-API 키 평문 포함은 로그 접근자와 외부 로그 저장소에 키가 노출될 수 있는 운영상 위험이 있다. 이 프로젝트에서는 장애 재현 편의성을 우선한 명시적 결정으로 적용한다.
+API key는 애플리케이션 설정과 로그에 평문으로 남기지 않는다.
 
 ---
 
 ## 현재 연동 API
+
+### getChargerInfo — 환경공단 전기자동차 충전소 정보
+
+전국 전기자동차 충전소의 충전기 원본 정보를 조회한다. 현재는 고속도로 휴게소에 해당하는
+`kindDetail=C001` 데이터만 저장하고 휴게소 매핑에 사용한다. 충전기 실시간 상태 API인
+`getChargerStatus`는 아직 사용하지 않는다.
+
+#### 엔드포인트
+
+```text
+GET https://apis.data.go.kr/B552584/EvCharger/getChargerInfo
+```
+
+#### 요청 헤더
+
+```text
+User-Agent: rest-route
+Accept: application/json
+```
+
+#### 요청 파라미터
+
+| 파라미터 | 값 | 설명 |
+|---|---|---|
+| `serviceKey` | `EV_API_KEY` | 환경변수로 주입하는 인증키 |
+| `pageNo` | 페이지 번호 | 1부터 시작 |
+| `numOfRows` | `400` | 페이지당 조회 건수 |
+| `dataType` | `JSON` | JSON 응답 요청 |
+| `kind` | `C0` | 충전소 유형 필터 |
+
+응답의 `totalCount`와 `numOfRows`로 전체 페이지 수를 계산한다. 페이지 중 하나라도
+timeout이나 외부 API 오류로 실패하면 해당 동기화 전체를 실패 처리하고 기존
+`ev_charger`와 휴게소 매핑 데이터를 유지한다.
+
+#### 주요 응답 구조
+
+```json
+{
+  "resultCode": "00",
+  "resultMsg": "NORMAL SERVICE.",
+  "totalCount": 2401,
+  "pageNo": 1,
+  "numOfRows": 400,
+  "items": {
+    "item": [
+      {
+        "statNm": "기흥(부산) 휴게소",
+        "statId": "ME178003",
+        "chgerId": "01",
+        "addr": "경기도 용인시 기흥구 공세로 173",
+        "lat": "37.2356557",
+        "lng": "127.105021",
+        "stat": "2",
+        "kind": "C0",
+        "kindDetail": "C001",
+        "delYn": "N",
+        "maker": "채비"
+      }
+    ]
+  }
+}
+```
+
+`kindDetail=C001`만 저장·매핑 대상으로 취급하며 `C002`, `C003` 등 다른 시설 유형은 제외한다.
+`statId + chgerId`를 충전기 자연키로 사용하고, 페이지별 요청 시작·성공·실패 로그에는
+페이지 번호와 건수만 기록한다. 응답 payload와 `serviceKey`는 로그에 출력하지 않는다.
+
+---
 
 ### avgAllPrice — 오피넷 주유소 전국 평균가격(현재)
 
