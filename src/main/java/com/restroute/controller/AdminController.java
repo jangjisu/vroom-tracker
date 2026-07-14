@@ -35,13 +35,13 @@ public class AdminController {
     @PostMapping("/admin/sales-rankings/products")
     public String uploadProductSalesRankings(@RequestParam("productFile") MultipartFile productFile) {
         salesRankingUploadService.uploadProducts(productFile);
-        return "redirect:/admin?upload=success";
+        return "redirect:/admin?upload=success&type=product";
     }
 
     @PostMapping("/admin/sales-rankings/stores")
     public String uploadStoreSalesRankings(@RequestParam("storeFile") MultipartFile storeFile) {
         salesRankingUploadService.uploadStores(storeFile);
-        return "redirect:/admin?upload=success";
+        return "redirect:/admin?upload=success&type=store";
     }
 
     @PostMapping("/admin/sales-rankings/backfill")

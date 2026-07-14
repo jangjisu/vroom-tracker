@@ -51,7 +51,8 @@ class AdminControllerTest {
                 service, mock(RestStopServiceAreaCodeBackfillService.class), mock(AdminDashboardService.class));
         MockMultipartFile product = new MockMultipartFile("productFile", "product.csv", "text/csv", new byte[] {1});
 
-        assertThat(controller.uploadProductSalesRankings(product)).isEqualTo("redirect:/admin?upload=success");
+        assertThat(controller.uploadProductSalesRankings(product))
+                .isEqualTo("redirect:/admin?upload=success&type=product");
         verify(service).uploadProducts(product);
     }
 
@@ -63,7 +64,7 @@ class AdminControllerTest {
                 service, mock(RestStopServiceAreaCodeBackfillService.class), mock(AdminDashboardService.class));
         MockMultipartFile store = new MockMultipartFile("storeFile", "store.csv", "text/csv", new byte[] {1});
 
-        assertThat(controller.uploadStoreSalesRankings(store)).isEqualTo("redirect:/admin?upload=success");
+        assertThat(controller.uploadStoreSalesRankings(store)).isEqualTo("redirect:/admin?upload=success&type=store");
         verify(service).uploadStores(store);
     }
 
