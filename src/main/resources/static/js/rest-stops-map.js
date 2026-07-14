@@ -15,6 +15,7 @@ import {
     hasFoodMenu,
     hasFoodSections,
     isMissingValue,
+    normalizeSalesRankingStoreName,
     orderFoodMenus,
     parseConvenience,
     sortSalesRankingProducts,
@@ -662,7 +663,9 @@ function createSalesRankingItem(ranking, nameKey) {
 
     const name = document.createElement('span');
     name.className = 'rest-stop-sales-ranking-name';
-    name.textContent = ranking[nameKey];
+    name.textContent = nameKey === 'storeName'
+        ? normalizeSalesRankingStoreName(ranking[nameKey])
+        : ranking[nameKey];
     item.appendChild(name);
 
     return item;

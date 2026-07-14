@@ -130,6 +130,27 @@ export function sortSalesRankingStores(stores) {
     return sortSalesRankingItems(stores, 'storeName');
 }
 
+export function normalizeSalesRankingStoreName(value) {
+    if (isMissingValue(value)) {
+        return '';
+    }
+
+    let normalized = String(value);
+    const firstAsterisk = normalized.indexOf('*');
+    const secondAsterisk = firstAsterisk < 0 ? -1 : normalized.indexOf('*', firstAsterisk + 1);
+    if (firstAsterisk >= 0 && secondAsterisk > firstAsterisk) {
+        normalized = normalized.slice(firstAsterisk + 1, secondAsterisk);
+    }
+
+    normalized = normalized.replace(/^[0-9]+([.)-][0-9]+)?[.)-]?\s*/, '');
+    const underscoreIndex = normalized.indexOf('_');
+    if (underscoreIndex >= 0) {
+        normalized = normalized.slice(underscoreIndex + 1);
+    }
+
+    return normalized.trim();
+}
+
 function sortSalesRankingItems(items, nameKey) {
     if (!Array.isArray(items)) {
         return [];

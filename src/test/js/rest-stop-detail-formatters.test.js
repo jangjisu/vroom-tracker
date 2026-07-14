@@ -13,6 +13,7 @@ import {
     formatParkingCount,
     formatRefreshedAt,
     formatSalesRankingMonth,
+    normalizeSalesRankingStoreName,
     formatText,
     hasFoodMenu,
     hasFoodSections,
@@ -160,6 +161,22 @@ test('sortSalesRankingStores returns valid stores in top-five rank order', () =>
         ]).map((store) => store.storeName),
         ['첫번째 매장', '두번째 매장', '세번째 매장', '여섯번째 매장']
     );
+});
+
+test('normalizeSalesRankingStoreName removes source prefixes before displaying store names', () => {
+    assert.equal(normalizeSalesRankingStoreName('H01_편의점'), '편의점');
+    assert.equal(normalizeSalesRankingStoreName('1 편의점'), '편의점');
+    assert.equal(normalizeSalesRankingStoreName('2-1 한식(편의점)'), '한식(편의점)');
+    assert.equal(normalizeSalesRankingStoreName('03한식전문점'), '한식전문점');
+    assert.equal(normalizeSalesRankingStoreName('13파스쿠찌'), '파스쿠찌');
+    assert.equal(normalizeSalesRankingStoreName('인*CU편의점*인천'), 'CU편의점');
+    assert.equal(normalizeSalesRankingStoreName('  하이샵  '), '하이샵');
+});
+
+test('normalizeSalesRankingStoreName keeps names without a recognized prefix', () => {
+    assert.equal(normalizeSalesRankingStoreName('하이샵'), '하이샵');
+    assert.equal(normalizeSalesRankingStoreName(''), '');
+    assert.equal(normalizeSalesRankingStoreName(null), '');
 });
 
 test('formatFoodBadges uses backend seasonLabel instead of frontend season code mapping', () => {
