@@ -111,6 +111,7 @@ test('loads sales rankings as an optional detail feature', async () => {
             basicInfo: successSectionResponse({ unitName: '휴게소' }),
             salesRanking: successSectionResponse({
                 baseYearMonth: '2026-06',
+                storeRankings: [{ rank: 1, storeName: 'CU편의점' }],
                 products: [{ rank: 1, productName: '대표 메뉴' }]
             })
         })),
@@ -127,6 +128,7 @@ test('loads sales rankings as an optional detail feature', async () => {
             foodMenu: { menus: [], sections: [] },
             salesRanking: {
                 baseYearMonth: '2026-06',
+                storeRankings: [{ rank: 1, storeName: 'CU편의점' }],
                 products: [{ rank: 1, productName: '대표 메뉴' }]
             }
         }

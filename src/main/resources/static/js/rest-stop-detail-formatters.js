@@ -123,12 +123,20 @@ export function formatSalesRankingMonth(baseYearMonth) {
 }
 
 export function sortSalesRankingProducts(products) {
-    if (!Array.isArray(products)) {
+    return sortSalesRankingItems(products, 'productName');
+}
+
+export function sortSalesRankingStores(stores) {
+    return sortSalesRankingItems(stores, 'storeName');
+}
+
+function sortSalesRankingItems(items, nameKey) {
+    if (!Array.isArray(items)) {
         return [];
     }
 
-    return products
-        .filter((product) => Number.isInteger(product?.rank) && product.rank > 0 && !isMissingValue(product?.productName))
+    return items
+        .filter((item) => Number.isInteger(item?.rank) && item.rank > 0 && !isMissingValue(item?.[nameKey]))
         .sort((first, second) => first.rank - second.rank)
         .slice(0, 5);
 }

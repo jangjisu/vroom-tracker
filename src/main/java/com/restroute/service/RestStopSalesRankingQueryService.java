@@ -2,8 +2,10 @@ package com.restroute.service;
 
 import com.restroute.controller.response.RestStopSalesRankingResponse;
 import com.restroute.domain.RestStopProductSalesRankEntity;
+import com.restroute.domain.RestStopStoreSalesRankEntity;
 import com.restroute.repository.RestStopProductSalesRankRepository;
 import com.restroute.repository.RestStopRepository;
+import com.restroute.repository.RestStopStoreSalesRankRepository;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -16,10 +18,11 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class RestStopSalesRankingQueryService {
 
-    private static final int TOP_PRODUCT_COUNT = 5;
+    private static final int TOP_RANKING_COUNT = 5;
 
     private final RestStopRepository restStopRepository;
     private final RestStopProductSalesRankRepository productSalesRankRepository;
+    private final RestStopStoreSalesRankRepository storeSalesRankRepository;
 
     @Transactional(readOnly = true)
     public Optional<RestStopSalesRankingResponse> findByServiceAreaCode(String serviceAreaCode) {
@@ -33,30 +36,54 @@ public class RestStopSalesRankingQueryService {
 
         List<RestStopProductSalesRankEntity> mappedProducts =
                 productSalesRankRepository.findAllMappedProductsOrderByLatestMonth(serviceAreaCode);
+        List<RestStopStoreSalesRankEntity> mappedStores =
+                storeSalesRankRepository.findAllMappedStoresOrderByLatestMonth(serviceAreaCode);
         List<RestStopProductSalesRankEntity> validProducts =
                 mappedProducts.stream().filter(this::hasValidRank).toList();
-        if (validProducts.isEmpty()) {
+        List<RestStopStoreSalesRankEntity> validStores =
+                mappedStores.stream().filter(this::hasValidRank).toList();
+        if (validProducts.isEmpty() && validStores.isEmpty()) {
             return Optional.of(RestStopSalesRankingResponse.empty());
         }
 
-        String latestMonth = validProducts.get(0).getBaseYearMonth();
+        String latestMonth = latestMonth(validProducts, validStores);
         List<RestStopProductSalesRankEntity> topProducts = validProducts.stream()
                 .filter(product -> latestMonth.equals(product.getBaseYearMonth()))
                 .sorted(Comparator.comparingInt(product -> Integer.parseInt(product.getRestStopRank())))
-                .limit(TOP_PRODUCT_COUNT)
+                .limit(TOP_RANKING_COUNT)
                 .toList();
-        return Optional.of(RestStopSalesRankingResponse.of(latestMonth, topProducts));
+        List<RestStopStoreSalesRankEntity> topStores = validStores.stream()
+                .filter(store -> latestMonth.equals(store.getBaseYearMonth()))
+                .sorted(Comparator.comparingInt(store -> Integer.parseInt(store.getRestStopRank())))
+                .limit(TOP_RANKING_COUNT)
+                .toList();
+        return Optional.of(RestStopSalesRankingResponse.of(latestMonth, topStores, topProducts));
+    }
+
+    private String latestMonth(
+            List<RestStopProductSalesRankEntity> products, List<RestStopStoreSalesRankEntity> stores) {
+        return java.util.stream.Stream.concat(
+                        products.stream().map(RestStopProductSalesRankEntity::getBaseYearMonth),
+                        stores.stream().map(RestStopStoreSalesRankEntity::getBaseYearMonth))
+                .max(String::compareTo)
+                .orElse(null);
     }
 
     private boolean hasValidRank(RestStopProductSalesRankEntity product) {
-        if (!StringUtils.hasText(product.getBaseYearMonth())
-                || !StringUtils.hasText(product.getRestStopRank())
-                || !StringUtils.hasText(product.getProductName())) {
+        return hasValidRank(product.getBaseYearMonth(), product.getRestStopRank(), product.getProductName());
+    }
+
+    private boolean hasValidRank(RestStopStoreSalesRankEntity store) {
+        return hasValidRank(store.getBaseYearMonth(), store.getRestStopRank(), store.getSourceStoreName());
+    }
+
+    private boolean hasValidRank(String baseYearMonth, String rank, String name) {
+        if (!StringUtils.hasText(baseYearMonth) || !StringUtils.hasText(rank) || !StringUtils.hasText(name)) {
             return false;
         }
 
         try {
-            return Integer.parseInt(product.getRestStopRank()) > 0;
+            return Integer.parseInt(rank) > 0;
         } catch (NumberFormatException exception) {
             return false;
         }

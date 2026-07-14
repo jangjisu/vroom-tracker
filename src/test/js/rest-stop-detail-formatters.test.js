@@ -21,6 +21,7 @@ import {
     isMissingValue,
     orderFoodMenus,
     sortSalesRankingProducts,
+    sortSalesRankingStores,
     parseConvenience
 } from '../../main/resources/static/js/rest-stop-detail-formatters.js';
 
@@ -146,6 +147,18 @@ test('sortSalesRankingProducts returns valid products in top-five rank order', (
             { rank: 8, productName: '' }
         ]).map((product) => product.productName),
         ['첫번째', '두번째', '세번째', '네번째', '다섯번째']
+    );
+});
+
+test('sortSalesRankingStores returns valid stores in top-five rank order', () => {
+    assert.deepEqual(
+        sortSalesRankingStores([
+            { rank: 2, storeName: '두번째 매장' },
+            { rank: 1, storeName: '첫번째 매장' },
+            { rank: 6, storeName: '여섯번째 매장' },
+            { rank: 3, storeName: '세번째 매장' }
+        ]).map((store) => store.storeName),
+        ['첫번째 매장', '두번째 매장', '세번째 매장', '여섯번째 매장']
     );
 });
 
