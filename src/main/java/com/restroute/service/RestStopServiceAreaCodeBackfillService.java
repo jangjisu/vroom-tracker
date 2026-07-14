@@ -7,6 +7,8 @@ import com.restroute.domain.RestOilEntity;
 import com.restroute.domain.RestOilPriceEntity;
 import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.domain.RestStopProductSalesRankEntity;
+import com.restroute.domain.RestStopStoreSalesRankEntity;
 import com.restroute.repository.EvChargerRepository;
 import com.restroute.repository.EvChargerStationMappingRepository;
 import com.restroute.repository.HighwayServiceAreaInfoRepository;
@@ -14,8 +16,12 @@ import com.restroute.repository.RestFoodRepository;
 import com.restroute.repository.RestOilPriceRepository;
 import com.restroute.repository.RestOilRepository;
 import com.restroute.repository.RestStopDetailRepository;
+import com.restroute.repository.RestStopProductSalesRankRepository;
 import com.restroute.repository.RestStopRepository;
+import com.restroute.repository.RestStopStoreSalesRankRepository;
 import com.restroute.service.evcharger.mapping.EvChargerStationMappingCalculator;
+import com.restroute.service.salesranking.SalesRankingRestStopNameNormalizer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,6 +42,8 @@ public class RestStopServiceAreaCodeBackfillService {
     public static final String REST_OIL_MAPPED_COUNT = "restOilMappedCount";
     public static final String REST_OIL_PRICE_MAPPED_COUNT = "restOilPriceMappedCount";
     public static final String EV_CHARGER_MAPPED_COUNT = "evChargerMappedCount";
+    public static final String PRODUCT_SALES_RANK_MAPPED_COUNT = "productSalesRankMappedCount";
+    public static final String STORE_SALES_RANK_MAPPED_COUNT = "storeSalesRankMappedCount";
 
     private final RestStopRepository restStopRepository;
     private final RestStopDetailRepository restStopDetailRepository;
@@ -46,6 +54,8 @@ public class RestStopServiceAreaCodeBackfillService {
     private final EvChargerRepository evChargerRepository;
     private final EvChargerStationMappingRepository evChargerStationMappingRepository;
     private final EvChargerStationMappingCalculator evChargerStationMappingCalculator;
+    private final RestStopProductSalesRankRepository productSalesRankRepository;
+    private final RestStopStoreSalesRankRepository storeSalesRankRepository;
 
     @Transactional
     public Map<String, Integer> backfill() {
@@ -60,6 +70,9 @@ public class RestStopServiceAreaCodeBackfillService {
         int restOilMappedCount = backfillRestOils(serviceAreaCodeByOilKey);
         int restOilPriceMappedCount = backfillRestOilPrices(mapByOilStandardRestCode());
         int evChargerMappedCount = backfillEvChargerMappings(restStops);
+        Map<String, List<String>> serviceAreaCodesByName = mapServiceAreaCodesByName(restStops);
+        int productSalesRankMappedCount = backfillProductSalesRanks(serviceAreaCodesByName);
+        int storeSalesRankMappedCount = backfillStoreSalesRanks(serviceAreaCodesByName);
 
         Map<String, Integer> result = Map.of(
                 REST_STOP_DETAIL_MAPPED_COUNT,
@@ -73,17 +86,24 @@ public class RestStopServiceAreaCodeBackfillService {
                 REST_OIL_PRICE_MAPPED_COUNT,
                 restOilPriceMappedCount,
                 EV_CHARGER_MAPPED_COUNT,
-                evChargerMappedCount);
+                evChargerMappedCount,
+                PRODUCT_SALES_RANK_MAPPED_COUNT,
+                productSalesRankMappedCount,
+                STORE_SALES_RANK_MAPPED_COUNT,
+                storeSalesRankMappedCount);
         log.info(
                 "Rest stop service area code backfill completed. restStopDetailMappedCount={}, "
                         + "highwayServiceAreaInfoMappedCount={}, restFoodMappedCount={}, restOilMappedCount={}, "
-                        + "restOilPriceMappedCount={}, evChargerMappedCount={}",
+                        + "restOilPriceMappedCount={}, evChargerMappedCount={}, productSalesRankMappedCount={}, "
+                        + "storeSalesRankMappedCount={}",
                 result.get(REST_STOP_DETAIL_MAPPED_COUNT),
                 result.get(HIGHWAY_SERVICE_AREA_INFO_MAPPED_COUNT),
                 result.get(REST_FOOD_MAPPED_COUNT),
                 result.get(REST_OIL_MAPPED_COUNT),
                 result.get(REST_OIL_PRICE_MAPPED_COUNT),
-                result.get(EV_CHARGER_MAPPED_COUNT));
+                result.get(EV_CHARGER_MAPPED_COUNT),
+                result.get(PRODUCT_SALES_RANK_MAPPED_COUNT),
+                result.get(STORE_SALES_RANK_MAPPED_COUNT));
         return result;
     }
 
@@ -198,6 +218,57 @@ public class RestStopServiceAreaCodeBackfillService {
             }
         }
         return mappedCount;
+    }
+
+    private Map<String, List<String>> mapServiceAreaCodesByName(List<RestStopEntity> restStops) {
+        return restStops.stream()
+                .filter(restStop -> StringUtils.hasText(restStop.getUnitName()))
+                .filter(restStop -> StringUtils.hasText(restStop.getServiceAreaCode()))
+                .collect(Collectors.groupingBy(
+                        restStop -> SalesRankingRestStopNameNormalizer.normalize(restStop.getUnitName()),
+                        Collectors.mapping(
+                                RestStopEntity::getServiceAreaCode,
+                                Collectors.collectingAndThen(Collectors.toSet(), ArrayList::new))));
+    }
+
+    private int backfillProductSalesRanks(Map<String, List<String>> serviceAreaCodesByName) {
+        int mappedCount = 0;
+        for (RestStopProductSalesRankEntity rank : productSalesRankRepository.findAll()) {
+            if (!rank.isUnmapped()) {
+                continue;
+            }
+            String serviceAreaCode = findUniqueServiceAreaCode(serviceAreaCodesByName, rank.getSourceRestStopName());
+            if (serviceAreaCode == null) {
+                continue;
+            }
+            rank.updateRestStopServiceAreaCode(serviceAreaCode);
+            mappedCount++;
+        }
+        return mappedCount;
+    }
+
+    private int backfillStoreSalesRanks(Map<String, List<String>> serviceAreaCodesByName) {
+        int mappedCount = 0;
+        for (RestStopStoreSalesRankEntity rank : storeSalesRankRepository.findAll()) {
+            if (!rank.isUnmapped()) {
+                continue;
+            }
+            String serviceAreaCode = findUniqueServiceAreaCode(serviceAreaCodesByName, rank.getSourceRestStopName());
+            if (serviceAreaCode == null) {
+                continue;
+            }
+            rank.updateRestStopServiceAreaCode(serviceAreaCode);
+            mappedCount++;
+        }
+        return mappedCount;
+    }
+
+    private String findUniqueServiceAreaCode(Map<String, List<String>> serviceAreaCodesByName, String name) {
+        List<String> serviceAreaCodes = serviceAreaCodesByName.get(SalesRankingRestStopNameNormalizer.normalize(name));
+        if (serviceAreaCodes == null || serviceAreaCodes.size() != 1) {
+            return null;
+        }
+        return serviceAreaCodes.get(0);
     }
 
     private String oilRestStopKey(String routeCode, String normalizedStationName) {
