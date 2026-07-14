@@ -1,9 +1,12 @@
 package com.restroute.controller;
 
 import com.restroute.service.RestStopServiceAreaCodeBackfillService;
+import com.restroute.service.admindashboard.AdminDashboardService;
+import com.restroute.service.admindashboard.AdminDashboardSummary;
 import com.restroute.service.salesranking.SalesRankingUploadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,9 +18,13 @@ public class AdminController {
 
     private final SalesRankingUploadService salesRankingUploadService;
     private final RestStopServiceAreaCodeBackfillService backfillService;
+    private final AdminDashboardService dashboardService;
 
     @GetMapping("/admin")
-    public String admin() {
+    public String admin(Model model) {
+        AdminDashboardSummary summary = dashboardService.getSummary();
+        model.addAttribute("restStopCount", summary.restStopCount());
+        model.addAttribute("latestSalesRankingMonth", summary.latestSalesRankingMonth());
         return "admin";
     }
 

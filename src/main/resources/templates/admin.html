@@ -4,35 +4,113 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 페이지 | rest-route</title>
+    <style>
+        :root { --ink: #18212b; --muted: #71808d; --line: #e3e8ed; --canvas: #f5f7f9; --panel: #fff; --nav: #17242e; --nav-muted: #9eacb8; --accent: #1e7a68; --soft: #e5f2ee; --warn: #94621b; --warn-soft: #fff5e3; }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: var(--ink); background: var(--canvas); font-family: Inter, Pretendard, Arial, sans-serif; }
+        button, input { font: inherit; }
+        button { cursor: pointer; }
+        .app { min-height: 100vh; display: grid; grid-template-columns: 238px 1fr; }
+        aside { padding: 28px 18px; color: white; background: var(--nav); }
+        .brand { padding: 0 12px 30px; font-size: 20px; font-weight: 800; }
+        .brand small { display: block; margin-top: 7px; color: var(--nav-muted); font-size: 11px; font-weight: 500; }
+        .nav-label { margin: 22px 12px 9px; color: #738391; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        nav a { display: flex; align-items: center; gap: 11px; padding: 11px 12px; color: var(--nav-muted); text-decoration: none; border-radius: 6px; font-size: 14px; }
+        nav a.active { color: white; background: #25404d; }
+        nav a.disabled { color: #60717d; cursor: default; }
+        nav a.disabled span:last-child { margin-left: auto; color: #6f7e88; font-size: 10px; }
+        .nav-icon { width: 18px; color: #8db8ae; text-align: center; }
+        .account { position: fixed; bottom: 22px; width: 202px; padding: 17px 12px 0; color: var(--nav-muted); border-top: 1px solid #30424c; font-size: 12px; }
+        .account strong { display: block; margin-bottom: 7px; color: white; font-size: 13px; }
+        .logout { margin-top: 12px; padding: 0; color: var(--nav-muted); border: 0; background: transparent; font-size: 12px; }
+        main { min-width: 0; }
+        header { height: 82px; display: flex; align-items: center; justify-content: space-between; padding: 0 42px; background: var(--panel); border-bottom: 1px solid var(--line); }
+        .breadcrumb { color: var(--muted); font-size: 12px; }
+        .breadcrumb strong { margin-left: 10px; color: var(--ink); font-size: 15px; }
+        .header-right { display: flex; align-items: center; gap: 18px; }
+        .header-meta { color: var(--muted); font-size: 12px; }
+        .status-button { display: flex; align-items: center; gap: 8px; padding: 10px 13px; color: #236b5b; background: var(--soft); border: 1px solid #cbe7df; border-radius: 5px; font-size: 12px; font-weight: 700; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #40a688; }
+        .content { max-width: 1240px; margin: 0 auto; padding: 34px 42px 56px; }
+        .intro { display: flex; align-items: end; justify-content: space-between; margin-bottom: 25px; }
+        h1 { margin: 0; font-size: 28px; letter-spacing: -.7px; }
+        .intro p { margin: 9px 0 0; color: var(--muted); font-size: 13px; }
+        .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 26px; }
+        .summary-card, .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+        .summary-card { padding: 20px; }
+        .summary-card span { color: var(--muted); font-size: 12px; }
+        .summary-card strong { display: block; margin-top: 12px; font-size: 25px; }
+        .summary-card em { display: block; margin-top: 6px; color: var(--accent); font-size: 11px; font-style: normal; }
+        .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .6fr); gap: 18px; align-items: start; }
+        .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px; border-bottom: 1px solid var(--line); }
+        .panel-head h2 { margin: 0; font-size: 16px; }
+        .panel-head p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+        .panel-body { padding: 20px 22px; }
+        .tag, .ready-tag { padding: 5px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+        .tag { color: var(--accent); background: var(--soft); }
+        .ready-tag { color: var(--warn); background: var(--warn-soft); }
+        .upload-block + .upload-block { margin-top: 23px; padding-top: 23px; border-top: 1px solid var(--line); }
+        .upload-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
+        .file-row { display: flex; align-items: center; gap: 8px; }
+        .file-input { flex: 1; min-width: 0; padding: 10px; color: var(--muted); background: #fbfcfd; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
+        .primary, .secondary { padding: 10px 13px; border-radius: 5px; font-size: 12px; font-weight: 700; }
+        .primary { color: white; background: var(--accent); border: 1px solid var(--accent); }
+        .secondary { color: var(--ink); background: white; border: 1px solid var(--line); }
+        .mapping-action { color: #704b17; background: var(--warn-soft); border-color: #e9c987; }
+        .helper { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+        .activity { grid-column: 1 / -1; }
+        .activity-list { padding: 0 22px; }
+        .activity-empty { padding: 34px 0; color: var(--muted); text-align: center; font-size: 13px; }
+        @media (max-width: 900px) { .app { grid-template-columns: 190px 1fr; } .content { padding: 28px 24px; } header { padding: 0 24px; } .workspace { grid-template-columns: 1fr; } .activity { grid-column: auto; } }
+    </style>
 </head>
 <body>
-<main>
-    <h1>관리자 페이지</h1>
-    <section>
-        <h2>월별 판매순위 업로드</h2>
-        <p th:if="${param.upload != null and param.upload[0] == 'success'}">업로드가 완료되었습니다.</p>
-        <form th:action="@{/admin/sales-rankings/products}" method="post" enctype="multipart/form-data">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <label for="productFile">상품 판매순위 CSV</label>
-            <input id="productFile" name="productFile" type="file" accept=".csv" required>
-            <button type="submit">상품 순위 업로드</button>
-        </form>
-        <form th:action="@{/admin/sales-rankings/stores}" method="post" enctype="multipart/form-data">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <label for="storeFile">매장 판매순위 CSV</label>
-            <input id="storeFile" name="storeFile" type="file" accept=".csv" required>
-            <button type="submit">매장 순위 업로드</button>
-        </form>
-        <form th:action="@{/admin/sales-rankings/backfill}" method="post">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <button type="submit">판매순위 매핑 실행</button>
-        </form>
-        <p th:if="${param.backfill != null and param.backfill[0] == 'success'}">판매순위 매핑이 완료되었습니다.</p>
-    </section>
-    <form th:action="@{/logout}" method="post">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-        <button type="submit">로그아웃</button>
-    </form>
-</main>
+<div class="app">
+    <aside>
+        <div class="brand">rest-route<small>운영자 콘솔</small></div>
+        <nav>
+            <div class="nav-label">Overview</div>
+            <a class="active" href="#"><span class="nav-icon">▦</span>대시보드</a>
+            <div class="nav-label">Content</div>
+            <a class="disabled" href="#"><span class="nav-icon">↥</span>판매순위 관리<span>준비중</span></a>
+            <a class="disabled" href="#"><span class="nav-icon">▣</span>휴게소 관리<span>준비중</span></a>
+            <a class="disabled" href="#"><span class="nav-icon">◇</span>상품·메뉴 관리<span>준비중</span></a>
+            <div class="nav-label">System</div>
+            <a class="disabled" href="#"><span class="nav-icon">↻</span>데이터 동기화<span>준비중</span></a>
+        </nav>
+        <div class="account"><strong>관리자 계정</strong>현재 로그인됨<form th:action="@{/logout}" method="post"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button class="logout" type="submit">로그아웃</button></form></div>
+    </aside>
+    <main>
+        <header><div class="breadcrumb">관리자 콘솔 <strong>대시보드</strong></div><div class="header-right"><button class="status-button" type="button"><span class="dot"></span>서비스 정상</button><div class="header-meta">운영 환경</div></div></header>
+        <div class="content">
+            <div class="intro"><div><h1>대시보드</h1><p>휴게소 데이터 작업 현황을 확인합니다.</p></div><form th:action="@{/admin/sales-rankings/backfill}" method="post"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button class="secondary mapping-action" type="submit">전체 휴게소명 매핑</button></form></div>
+            <section class="summary">
+                <div class="summary-card"><span>등록 휴게소</span><strong th:text="${restStopCount}">203</strong><em>전체 휴게소</em></div>
+                <div class="summary-card"><span>최신 판매순위</span><strong th:text="${latestSalesRankingMonth != null ? latestSalesRankingMonth : '준비중'}">2026-06</strong><em>최근 업로드 월</em></div>
+                <div class="summary-card"><span>마지막 동기화</span><strong>준비중</strong><em>동기화 이력 준비중</em></div>
+            </section>
+            <div class="workspace">
+                <section class="panel">
+                    <div class="panel-head"><div><h2>판매순위 관리</h2><p>월별 CSV를 업로드합니다.</p></div><span class="tag" th:text="${latestSalesRankingMonth != null ? latestSalesRankingMonth + ' 기준' : '기준월 없음'}">2026-06 기준</span></div>
+                    <div class="panel-body">
+                        <p th:if="${param.upload != null and param.upload[0] == 'success'}">업로드가 완료되었습니다.</p>
+                        <p th:if="${param.backfill != null and param.backfill[0] == 'success'}">휴게소명 매핑이 완료되었습니다.</p>
+                        <div class="upload-block"><div class="upload-title"><span>상품 판매순위</span><span class="tag">CP949 CSV</span></div><form th:action="@{/admin/sales-rankings/products}" method="post" enctype="multipart/form-data"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><div class="file-row"><input class="file-input" name="productFile" type="file" accept=".csv" required><button class="primary" type="submit">업로드</button></div></form><p class="helper">상품명, 판매순위, 휴게소명과 매장 정보를 저장합니다.</p></div>
+                        <div class="upload-block"><div class="upload-title"><span>매장 판매순위</span><span class="tag">CP949 CSV</span></div><form th:action="@{/admin/sales-rankings/stores}" method="post" enctype="multipart/form-data"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><div class="file-row"><input class="file-input" name="storeFile" type="file" accept=".csv" required><button class="primary" type="submit">업로드</button></div></form><p class="helper">매장별 판매순위와 원본 휴게소 정보를 저장합니다.</p></div>
+                    </div>
+                </section>
+                <section class="panel activity">
+                    <div class="panel-head"><div><h2>최근 작업</h2><p>관리자 작업 이력</p></div><span class="ready-tag">준비중</span><button id="showActivityNotice" class="secondary" type="button">전체 보기</button></div>
+                    <div class="activity-list"><div class="activity-empty">최근 실행한 작업이 없습니다.</div></div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+<script>
+    document.getElementById('showActivityNotice').addEventListener('click', function () {
+        window.alert('최근 작업 이력은 준비중입니다.');
+    });
+</script>
 </body>
 </html>
