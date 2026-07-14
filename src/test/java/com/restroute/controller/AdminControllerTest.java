@@ -12,7 +12,6 @@ import com.restroute.service.salesranking.SalesRankingUploadService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.ui.Model;
 
 class AdminControllerTest {
 
@@ -20,14 +19,28 @@ class AdminControllerTest {
     @DisplayName("GET /admin은 관리자 템플릿을 반환한다")
     void admin_returnsAdminView() {
         AdminDashboardService dashboardService = mock(AdminDashboardService.class);
-        when(dashboardService.getSummary()).thenReturn(new AdminDashboardSummary(203, "2026-06"));
+        when(dashboardService.getSummary()).thenReturn(new AdminDashboardSummary(203, "2026-06", "준비중"));
 
         assertThat(new AdminController(
                                 mock(SalesRankingUploadService.class),
                                 mock(RestStopServiceAreaCodeBackfillService.class),
                                 dashboardService)
-                        .admin(mock(Model.class)))
+                        .admin())
                 .isEqualTo("admin");
+    }
+
+    @Test
+    @DisplayName("관리자 대시보드 API는 조회 요약을 반환한다")
+    void dashboard_returnsSummary() {
+        AdminDashboardSummary summary = new AdminDashboardSummary(203, "2026-06", "준비중");
+        AdminDashboardService dashboardService = mock(AdminDashboardService.class);
+        when(dashboardService.getSummary()).thenReturn(summary);
+        AdminController controller = new AdminController(
+                mock(SalesRankingUploadService.class),
+                mock(RestStopServiceAreaCodeBackfillService.class),
+                dashboardService);
+
+        assertThat(controller.dashboard().getData()).isEqualTo(summary);
     }
 
     @Test

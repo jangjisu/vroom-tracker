@@ -30,6 +30,6 @@ public class AdminDashboardService {
                 .filter(StringUtils::hasText)
                 .max(String::compareTo)
                 .orElse(null);
-        return AdminDashboardSummary.of(restStopCount, latestSalesRankingMonth);
+        return AdminDashboardSummary.of(restStopCount, latestSalesRankingMonth, "준비중");
     }
 }

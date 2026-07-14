@@ -40,7 +40,7 @@ class AdminDashboardServiceTest {
         when(productRepository.findTopByOrderByBaseYearMonthDesc()).thenReturn(Optional.of(product("2026-05")));
         when(storeRepository.findTopByOrderByBaseYearMonthDesc()).thenReturn(Optional.of(store("2026-06")));
 
-        assertThat(service.getSummary()).isEqualTo(new AdminDashboardSummary(203L, "2026-06"));
+        assertThat(service.getSummary()).isEqualTo(new AdminDashboardSummary(203L, "2026-06", "준비중"));
     }
 
     @Test
@@ -49,7 +49,7 @@ class AdminDashboardServiceTest {
         when(productRepository.findTopByOrderByBaseYearMonthDesc()).thenReturn(Optional.empty());
         when(storeRepository.findTopByOrderByBaseYearMonthDesc()).thenReturn(Optional.empty());
 
-        assertThat(service.getSummary()).isEqualTo(new AdminDashboardSummary(0L, null));
+        assertThat(service.getSummary()).isEqualTo(new AdminDashboardSummary(0L, null, "준비중"));
     }
 
     private RestStopProductSalesRankEntity product(String month) {
