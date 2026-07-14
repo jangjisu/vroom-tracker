@@ -108,7 +108,7 @@ public class RestStopServiceAreaCodeBackfillService {
     private int backfillEvChargerMappings(List<RestStopEntity> restStops) {
         List<EvChargerStationMappingEntity> mappingsToSave = evChargerStationMappingCalculator.calculate(
                 restStops, restStopDetailRepository.findAll(), evChargerRepository.findAllByDelYn("N"));
-        evChargerStationMappingRepository.deleteAll();
+        evChargerStationMappingRepository.deleteAllInBatch();
         evChargerStationMappingRepository.saveAll(mappingsToSave);
         return mappingsToSave.size();
     }
