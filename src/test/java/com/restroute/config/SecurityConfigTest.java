@@ -55,10 +55,28 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("비로그인 사용자는 관리자 대시보드 API에서 로그인 폼으로 이동한다")
+    void anonymousAdminDashboardApi_redirectsToLogin() throws Exception {
+        mockMvc.perform(get("/api/admin/dashboard"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("ADMIN 사용자는 관리자 경로의 보안 필터를 통과한다")
     void adminRequest_passesAuthorization() throws Exception {
         mockMvc.perform(get("/admin")).andExpect(status().isOk()).andExpect(view().name("admin"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("ADMIN 사용자는 관리자 대시보드 API를 조회할 수 있다")
+    void adminDashboardApi_passesAuthorization() throws Exception {
+        mockMvc.perform(get("/api/admin/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("restStopCount")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("lastSyncStatus")));
     }
 
     @Test
@@ -76,6 +94,13 @@ class SecurityConfigTest {
     @DisplayName("ADMIN이 아닌 인증 사용자는 관리자 경로에서 403을 받는다")
     void nonAdminRequest_returnsForbidden() throws Exception {
         mockMvc.perform(get("/admin")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("ADMIN이 아닌 인증 사용자는 관리자 대시보드 API에서 403을 받는다")
+    void nonAdminDashboardApi_returnsForbidden() throws Exception {
+        mockMvc.perform(get("/api/admin/dashboard")).andExpect(status().isForbidden());
     }
 
     @Test

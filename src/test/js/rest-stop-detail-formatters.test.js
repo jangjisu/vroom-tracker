@@ -12,6 +12,8 @@ import {
     formatOperationTime,
     formatParkingCount,
     formatRefreshedAt,
+    formatSalesRankingMonth,
+    normalizeSalesRankingStoreName,
     formatText,
     hasFoodMenu,
     hasFoodSections,
@@ -19,6 +21,8 @@ import {
     hasParkingInfo,
     isMissingValue,
     orderFoodMenus,
+    sortSalesRankingProducts,
+    sortSalesRankingStores,
     parseConvenience
 } from '../../main/resources/static/js/rest-stop-detail-formatters.js';
 
@@ -123,6 +127,56 @@ test('formatFoodCost adds thousands separator and won unit for numeric prices', 
     assert.equal(formatFoodCost('시가'), '시가');
     assert.equal(formatFoodCost(null), '가격 정보 없음');
     assert.equal(formatFoodCost('   '), '가격 정보 없음');
+});
+
+test('formatSalesRankingMonth formats a monthly sales ranking label', () => {
+    assert.equal(formatSalesRankingMonth('2026-06'), '2026년 06월 기준');
+    assert.equal(formatSalesRankingMonth('2026/06'), '2026/06 기준');
+});
+
+test('sortSalesRankingProducts returns valid products in top-five rank order', () => {
+    assert.deepEqual(
+        sortSalesRankingProducts([
+            { rank: 6, productName: '여섯번째' },
+            { rank: 2, productName: '두번째' },
+            { rank: 1, productName: '첫번째' },
+            { rank: 0, productName: '잘못된 순위' },
+            { rank: 3, productName: '세번째' },
+            { rank: 4, productName: '네번째' },
+            { rank: 5, productName: '다섯번째' },
+            { rank: 7, productName: '일곱번째' },
+            { rank: 8, productName: '' }
+        ]).map((product) => product.productName),
+        ['첫번째', '두번째', '세번째', '네번째', '다섯번째']
+    );
+});
+
+test('sortSalesRankingStores returns valid stores in top-five rank order', () => {
+    assert.deepEqual(
+        sortSalesRankingStores([
+            { rank: 2, storeName: '두번째 매장' },
+            { rank: 1, storeName: '첫번째 매장' },
+            { rank: 6, storeName: '여섯번째 매장' },
+            { rank: 3, storeName: '세번째 매장' }
+        ]).map((store) => store.storeName),
+        ['첫번째 매장', '두번째 매장', '세번째 매장', '여섯번째 매장']
+    );
+});
+
+test('normalizeSalesRankingStoreName removes source prefixes before displaying store names', () => {
+    assert.equal(normalizeSalesRankingStoreName('H01_편의점'), '편의점');
+    assert.equal(normalizeSalesRankingStoreName('1 편의점'), '편의점');
+    assert.equal(normalizeSalesRankingStoreName('2-1 한식(편의점)'), '한식(편의점)');
+    assert.equal(normalizeSalesRankingStoreName('03한식전문점'), '한식전문점');
+    assert.equal(normalizeSalesRankingStoreName('13파스쿠찌'), '파스쿠찌');
+    assert.equal(normalizeSalesRankingStoreName('인*CU편의점*인천'), 'CU편의점');
+    assert.equal(normalizeSalesRankingStoreName('  하이샵  '), '하이샵');
+});
+
+test('normalizeSalesRankingStoreName keeps names without a recognized prefix', () => {
+    assert.equal(normalizeSalesRankingStoreName('하이샵'), '하이샵');
+    assert.equal(normalizeSalesRankingStoreName(''), '');
+    assert.equal(normalizeSalesRankingStoreName(null), '');
 });
 
 test('formatFoodBadges uses backend seasonLabel instead of frontend season code mapping', () => {

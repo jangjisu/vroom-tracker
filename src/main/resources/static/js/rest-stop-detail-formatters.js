@@ -117,6 +117,51 @@ export function formatFoodCost(value) {
     return text;
 }
 
+export function formatSalesRankingMonth(baseYearMonth) {
+    const match = String(baseYearMonth).match(/^(\d{4})-(\d{2})$/);
+    return match ? `${match[1]}년 ${match[2]}월 기준` : `${baseYearMonth} 기준`;
+}
+
+export function sortSalesRankingProducts(products) {
+    return sortSalesRankingItems(products, 'productName');
+}
+
+export function sortSalesRankingStores(stores) {
+    return sortSalesRankingItems(stores, 'storeName');
+}
+
+export function normalizeSalesRankingStoreName(value) {
+    if (isMissingValue(value)) {
+        return '';
+    }
+
+    let normalized = String(value);
+    const firstAsterisk = normalized.indexOf('*');
+    const secondAsterisk = firstAsterisk < 0 ? -1 : normalized.indexOf('*', firstAsterisk + 1);
+    if (firstAsterisk >= 0 && secondAsterisk > firstAsterisk) {
+        normalized = normalized.slice(firstAsterisk + 1, secondAsterisk);
+    }
+
+    normalized = normalized.replace(/^[0-9]+([.)-][0-9]+)?[.)-]?\s*/, '');
+    const underscoreIndex = normalized.indexOf('_');
+    if (underscoreIndex >= 0) {
+        normalized = normalized.slice(underscoreIndex + 1);
+    }
+
+    return normalized.trim();
+}
+
+function sortSalesRankingItems(items, nameKey) {
+    if (!Array.isArray(items)) {
+        return [];
+    }
+
+    return items
+        .filter((item) => Number.isInteger(item?.rank) && item.rank > 0 && !isMissingValue(item?.[nameKey]))
+        .sort((first, second) => first.rank - second.rank)
+        .slice(0, 5);
+}
+
 export const DATA_TAG_DEFINITIONS = [
     { key: 'food', label: '먹거리' },
     { key: 'parking', label: '주차' },

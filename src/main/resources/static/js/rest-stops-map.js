@@ -10,12 +10,16 @@ import {
     formatOperationTime,
     formatParkingCount,
     formatRefreshedAt,
+    formatSalesRankingMonth,
     formatText,
     hasFoodMenu,
     hasFoodSections,
     isMissingValue,
+    normalizeSalesRankingStoreName,
     orderFoodMenus,
-    parseConvenience
+    parseConvenience,
+    sortSalesRankingProducts,
+    sortSalesRankingStores
 } from './rest-stop-detail-formatters.js';
 import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
 import { createRouteRestStopRequest } from './route-rest-stop-request.js';
@@ -611,8 +615,60 @@ function renderDetail(detail) {
         formatParkingCount
     );
     renderEvChargerInfo(detail.evChargerCount);
+    renderSalesRanking(detail.salesRanking);
     renderOilInfo(detail.oilInfo);
     renderFoodMenu(detail.foodMenu);
+}
+
+function renderSalesRanking(salesRanking) {
+    const section = document.getElementById('restStopSalesRankingSection');
+    const month = document.getElementById('restStopSalesRankingMonth');
+    const storeColumn = document.getElementById('restStopStoreRankingColumn');
+    const productColumn = document.getElementById('restStopProductRankingColumn');
+    const storeList = document.getElementById('restStopStoreRankingList');
+    const productList = document.getElementById('restStopProductRankingList');
+    if (!section || !month || !storeColumn || !productColumn || !storeList || !productList) {
+        return;
+    }
+
+    const visibleStores = sortSalesRankingStores(salesRanking?.storeRankings);
+    const visibleProducts = sortSalesRankingProducts(salesRanking?.products);
+    const hasRanking = (visibleStores.length > 0 || visibleProducts.length > 0)
+        && !isMissingValue(salesRanking?.baseYearMonth);
+    section.classList.toggle('d-none', !hasRanking);
+    if (!hasRanking) {
+        storeList.replaceChildren();
+        productList.replaceChildren();
+        storeColumn.classList.add('d-none');
+        productColumn.classList.add('d-none');
+        month.textContent = '';
+        return;
+    }
+
+    month.textContent = formatSalesRankingMonth(salesRanking.baseYearMonth);
+    storeColumn.classList.toggle('d-none', visibleStores.length === 0);
+    productColumn.classList.toggle('d-none', visibleProducts.length === 0);
+    storeList.replaceChildren(...visibleStores.map((store) => createSalesRankingItem(store, 'storeName')));
+    productList.replaceChildren(...visibleProducts.map((product) => createSalesRankingItem(product, 'productName')));
+}
+
+function createSalesRankingItem(ranking, nameKey) {
+    const item = document.createElement('li');
+    item.className = 'rest-stop-sales-ranking-item';
+
+    const rank = document.createElement('span');
+    rank.className = 'rest-stop-sales-ranking-rank';
+    rank.textContent = `${ranking.rank}`;
+    item.appendChild(rank);
+
+    const name = document.createElement('span');
+    name.className = 'rest-stop-sales-ranking-name';
+    name.textContent = nameKey === 'storeName'
+        ? normalizeSalesRankingStoreName(ranking[nameKey])
+        : ranking[nameKey];
+    item.appendChild(name);
+
+    return item;
 }
 
 function setDetailName(value, fallbackValue) {
