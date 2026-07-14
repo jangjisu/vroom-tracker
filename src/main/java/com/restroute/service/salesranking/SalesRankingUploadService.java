@@ -22,26 +22,16 @@ public class SalesRankingUploadService {
     private final RestStopStoreSalesRankRepository storeRepository;
     private final TransactionTemplate transactionTemplate;
 
-    public SalesRankingUploadResult upload(MultipartFile productFile, MultipartFile storeFile) {
+    public int uploadProducts(MultipartFile productFile) {
         List<SalesRankingProductRow> products = csvParser.parseProducts(productFile);
-        List<SalesRankingStoreRow> stores = csvParser.parseStores(storeFile);
-        String baseYearMonth = validateSameBaseYearMonth(products, stores);
-        transactionTemplate.executeWithoutResult(status -> {
-            saveProducts(products);
-            saveStores(stores);
-        });
-        return SalesRankingUploadResult.of(baseYearMonth, products.size(), stores.size());
+        transactionTemplate.executeWithoutResult(status -> saveProducts(products));
+        return products.size();
     }
 
-    private String validateSameBaseYearMonth(List<SalesRankingProductRow> products, List<SalesRankingStoreRow> stores) {
-        String productMonth = products.get(0).baseYearMonth();
-        String storeMonth = stores.get(0).baseYearMonth();
-        if (products.stream().anyMatch(row -> !productMonth.equals(row.baseYearMonth()))
-                || stores.stream().anyMatch(row -> !storeMonth.equals(row.baseYearMonth()))
-                || !productMonth.equals(storeMonth)) {
-            throw SalesRankingUploadException.of("두 CSV의 기준년월이 일치하지 않습니다.");
-        }
-        return productMonth;
+    public int uploadStores(MultipartFile storeFile) {
+        List<SalesRankingStoreRow> stores = csvParser.parseStores(storeFile);
+        transactionTemplate.executeWithoutResult(status -> saveStores(stores));
+        return stores.size();
     }
 
     private void saveProducts(List<SalesRankingProductRow> rows) {

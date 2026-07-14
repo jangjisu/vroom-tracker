@@ -1,7 +1,6 @@
 package com.restroute.service.salesranking;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -53,71 +52,35 @@ class SalesRankingUploadServiceTest {
     }
 
     @Test
-    void uploadsBothFilesInOneTransactionAndUpsertsNaturalKeys() {
+    void uploadsProductsAndUpsertsNaturalKey() {
         SalesRankingProductRow productRow = productRow("2026-06", "상품명");
-        SalesRankingStoreRow storeRow = storeRow("2026-06");
         RestStopProductSalesRankEntity existingProduct = RestStopProductSalesRankEntity.from(productRow);
         existingProduct.updateRestStopServiceAreaCode("A00001");
         RestStopProductSalesRankEntity duplicateProduct = RestStopProductSalesRankEntity.from(productRow);
         when(csvParser.parseProducts(productFile)).thenReturn(List.of(productRow));
-        when(csvParser.parseStores(storeFile)).thenReturn(List.of(storeRow));
         when(productRepository.findAll()).thenReturn(List.of(existingProduct, duplicateProduct));
-        when(storeRepository.findAll()).thenReturn(List.of());
         runTransactionCallback();
 
-        SalesRankingUploadResult result = uploadService.upload(productFile, storeFile);
+        int result = uploadService.uploadProducts(productFile);
 
-        assertThat(result).isEqualTo(new SalesRankingUploadResult("2026-06", 1, 1));
+        assertThat(result).isEqualTo(1);
         assertThat(existingProduct.getProductName()).isEqualTo("상품명");
         assertThat(existingProduct.getRestStopServiceAreaCode()).isEqualTo("A00001");
         assertThat(captureSavedProducts()).containsExactly(existingProduct);
-        assertThat(captureSavedStores()).hasSize(1);
     }
 
     @Test
-    void rejectsMixedMonthsInsideOneFileBeforeStartingTransaction() {
-        when(csvParser.parseProducts(productFile))
-                .thenReturn(List.of(productRow("2026-06", "상품명"), productRow("2026-07", "다른상품")));
-        when(csvParser.parseStores(storeFile)).thenReturn(List.of(storeRow("2026-06")));
-
-        assertThatThrownBy(() -> uploadService.upload(productFile, storeFile))
-                .isInstanceOf(SalesRankingUploadException.class)
-                .hasMessageContaining("기준년월");
-    }
-
-    @Test
-    void rejectsMixedMonthsInsideStoreFile() {
-        when(csvParser.parseProducts(productFile)).thenReturn(List.of(productRow("2026-06", "상품명")));
-        when(csvParser.parseStores(storeFile)).thenReturn(List.of(storeRow("2026-06"), storeRow("2026-07")));
-
-        assertThatThrownBy(() -> uploadService.upload(productFile, storeFile))
-                .isInstanceOf(SalesRankingUploadException.class);
-    }
-
-    @Test
-    void rejectsDifferentMonthsBetweenFiles() {
-        when(csvParser.parseProducts(productFile)).thenReturn(List.of(productRow("2026-06", "상품명")));
-        when(csvParser.parseStores(storeFile)).thenReturn(List.of(storeRow("2026-07")));
-
-        assertThatThrownBy(() -> uploadService.upload(productFile, storeFile))
-                .isInstanceOf(SalesRankingUploadException.class);
-    }
-
-    @Test
-    void insertsNewProductAndUpdatesExistingStore() {
-        SalesRankingProductRow productRow = productRow("2026-06", "상품명");
+    void uploadsStoresAndUpsertsNaturalKey() {
         SalesRankingStoreRow storeRow = storeRow("2026-06");
         RestStopStoreSalesRankEntity existingStore = RestStopStoreSalesRankEntity.from(storeRow);
         RestStopStoreSalesRankEntity duplicateStore = RestStopStoreSalesRankEntity.from(storeRow);
-        when(csvParser.parseProducts(productFile)).thenReturn(List.of(productRow));
         when(csvParser.parseStores(storeFile)).thenReturn(List.of(storeRow));
-        when(productRepository.findAll()).thenReturn(List.of());
         when(storeRepository.findAll()).thenReturn(List.of(existingStore, duplicateStore));
         runTransactionCallback();
 
-        uploadService.upload(productFile, storeFile);
+        int result = uploadService.uploadStores(storeFile);
 
-        assertThat(captureSavedProducts()).hasSize(1);
+        assertThat(result).isEqualTo(1);
         assertThat(captureSavedStores()).containsExactly(existingStore);
     }
 

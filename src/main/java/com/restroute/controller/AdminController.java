@@ -19,11 +19,15 @@ public class AdminController {
         return "admin";
     }
 
-    @PostMapping("/admin/sales-rankings")
-    public String uploadSalesRankings(
-            @RequestParam("productFile") MultipartFile productFile,
-            @RequestParam("storeFile") MultipartFile storeFile) {
-        salesRankingUploadService.upload(productFile, storeFile);
+    @PostMapping("/admin/sales-rankings/products")
+    public String uploadProductSalesRankings(@RequestParam("productFile") MultipartFile productFile) {
+        salesRankingUploadService.uploadProducts(productFile);
+        return "redirect:/admin?upload=success";
+    }
+
+    @PostMapping("/admin/sales-rankings/stores")
+    public String uploadStoreSalesRankings(@RequestParam("storeFile") MultipartFile storeFile) {
+        salesRankingUploadService.uploadStores(storeFile);
         return "redirect:/admin?upload=success";
     }
 }

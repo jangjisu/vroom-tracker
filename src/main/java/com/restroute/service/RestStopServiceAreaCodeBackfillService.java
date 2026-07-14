@@ -21,7 +21,6 @@ import com.restroute.repository.RestStopRepository;
 import com.restroute.repository.RestStopStoreSalesRankRepository;
 import com.restroute.service.evcharger.mapping.EvChargerStationMappingCalculator;
 import com.restroute.service.salesranking.SalesRankingRestStopNameNormalizer;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -70,9 +69,8 @@ public class RestStopServiceAreaCodeBackfillService {
         int restOilMappedCount = backfillRestOils(serviceAreaCodeByOilKey);
         int restOilPriceMappedCount = backfillRestOilPrices(mapByOilStandardRestCode());
         int evChargerMappedCount = backfillEvChargerMappings(restStops);
-        Map<String, List<String>> serviceAreaCodesByName = mapServiceAreaCodesByName(restStops);
-        int productSalesRankMappedCount = backfillProductSalesRanks(serviceAreaCodesByName);
-        int storeSalesRankMappedCount = backfillStoreSalesRanks(serviceAreaCodesByName);
+        int productSalesRankMappedCount = backfillProductSalesRanks(restStops);
+        int storeSalesRankMappedCount = backfillStoreSalesRanks(restStops);
 
         Map<String, Integer> result = Map.of(
                 REST_STOP_DETAIL_MAPPED_COUNT,
@@ -220,24 +218,13 @@ public class RestStopServiceAreaCodeBackfillService {
         return mappedCount;
     }
 
-    private Map<String, List<String>> mapServiceAreaCodesByName(List<RestStopEntity> restStops) {
-        return restStops.stream()
-                .filter(restStop -> StringUtils.hasText(restStop.getUnitName()))
-                .filter(restStop -> StringUtils.hasText(restStop.getServiceAreaCode()))
-                .collect(Collectors.groupingBy(
-                        restStop -> SalesRankingRestStopNameNormalizer.normalize(restStop.getUnitName()),
-                        Collectors.mapping(
-                                RestStopEntity::getServiceAreaCode,
-                                Collectors.collectingAndThen(Collectors.toSet(), ArrayList::new))));
-    }
-
-    private int backfillProductSalesRanks(Map<String, List<String>> serviceAreaCodesByName) {
+    private int backfillProductSalesRanks(List<RestStopEntity> restStops) {
         int mappedCount = 0;
         for (RestStopProductSalesRankEntity rank : productSalesRankRepository.findAll()) {
             if (!rank.isUnmapped()) {
                 continue;
             }
-            String serviceAreaCode = findUniqueServiceAreaCode(serviceAreaCodesByName, rank.getSourceRestStopName());
+            String serviceAreaCode = findUniqueServiceAreaCode(restStops, rank.getSourceRestStopName());
             if (serviceAreaCode == null) {
                 continue;
             }
@@ -247,13 +234,13 @@ public class RestStopServiceAreaCodeBackfillService {
         return mappedCount;
     }
 
-    private int backfillStoreSalesRanks(Map<String, List<String>> serviceAreaCodesByName) {
+    private int backfillStoreSalesRanks(List<RestStopEntity> restStops) {
         int mappedCount = 0;
         for (RestStopStoreSalesRankEntity rank : storeSalesRankRepository.findAll()) {
             if (!rank.isUnmapped()) {
                 continue;
             }
-            String serviceAreaCode = findUniqueServiceAreaCode(serviceAreaCodesByName, rank.getSourceRestStopName());
+            String serviceAreaCode = findUniqueServiceAreaCode(restStops, rank.getSourceRestStopName());
             if (serviceAreaCode == null) {
                 continue;
             }
@@ -263,9 +250,16 @@ public class RestStopServiceAreaCodeBackfillService {
         return mappedCount;
     }
 
-    private String findUniqueServiceAreaCode(Map<String, List<String>> serviceAreaCodesByName, String name) {
-        List<String> serviceAreaCodes = serviceAreaCodesByName.get(SalesRankingRestStopNameNormalizer.normalize(name));
-        if (serviceAreaCodes == null || serviceAreaCodes.size() != 1) {
+    private String findUniqueServiceAreaCode(List<RestStopEntity> restStops, String name) {
+        List<String> serviceAreaCodes = restStops.stream()
+                .filter(restStop -> StringUtils.hasText(restStop.getUnitName()))
+                .filter(restStop -> StringUtils.hasText(restStop.getServiceAreaCode()))
+                .filter(restStop -> SalesRankingRestStopNameNormalizer.normalize(restStop.getUnitName())
+                        .equals(SalesRankingRestStopNameNormalizer.normalize(name)))
+                .map(RestStopEntity::getServiceAreaCode)
+                .distinct()
+                .toList();
+        if (serviceAreaCodes.size() != 1) {
             return null;
         }
         return serviceAreaCodes.get(0);

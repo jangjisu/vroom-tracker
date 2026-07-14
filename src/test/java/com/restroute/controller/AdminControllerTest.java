@@ -20,13 +20,23 @@ class AdminControllerTest {
 
     @Test
     @DisplayName("판매순위 업로드 후 관리자 화면으로 돌아간다")
-    void uploadSalesRankings_redirectsToAdmin() {
+    void uploadProductSalesRankings_redirectsToAdmin() {
         SalesRankingUploadService service = mock(SalesRankingUploadService.class);
         AdminController controller = new AdminController(service);
         MockMultipartFile product = new MockMultipartFile("productFile", "product.csv", "text/csv", new byte[] {1});
+
+        assertThat(controller.uploadProductSalesRankings(product)).isEqualTo("redirect:/admin?upload=success");
+        verify(service).uploadProducts(product);
+    }
+
+    @Test
+    @DisplayName("매장 판매순위 업로드 후 관리자 화면으로 돌아간다")
+    void uploadStoreSalesRankings_redirectsToAdmin() {
+        SalesRankingUploadService service = mock(SalesRankingUploadService.class);
+        AdminController controller = new AdminController(service);
         MockMultipartFile store = new MockMultipartFile("storeFile", "store.csv", "text/csv", new byte[] {1});
 
-        assertThat(controller.uploadSalesRankings(product, store)).isEqualTo("redirect:/admin?upload=success");
-        verify(service).upload(product, store);
+        assertThat(controller.uploadStoreSalesRankings(store)).isEqualTo("redirect:/admin?upload=success");
+        verify(service).uploadStores(store);
     }
 }
