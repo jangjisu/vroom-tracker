@@ -12,6 +12,7 @@ import {
     formatOperationTime,
     formatParkingCount,
     formatRefreshedAt,
+    formatSalesRankingMonth,
     formatText,
     hasFoodMenu,
     hasFoodSections,
@@ -19,6 +20,7 @@ import {
     hasParkingInfo,
     isMissingValue,
     orderFoodMenus,
+    sortSalesRankingProducts,
     parseConvenience
 } from '../../main/resources/static/js/rest-stop-detail-formatters.js';
 
@@ -123,6 +125,28 @@ test('formatFoodCost adds thousands separator and won unit for numeric prices', 
     assert.equal(formatFoodCost('시가'), '시가');
     assert.equal(formatFoodCost(null), '가격 정보 없음');
     assert.equal(formatFoodCost('   '), '가격 정보 없음');
+});
+
+test('formatSalesRankingMonth formats a monthly sales ranking label', () => {
+    assert.equal(formatSalesRankingMonth('2026-06'), '2026년 06월 기준');
+    assert.equal(formatSalesRankingMonth('2026/06'), '2026/06 기준');
+});
+
+test('sortSalesRankingProducts returns valid products in top-five rank order', () => {
+    assert.deepEqual(
+        sortSalesRankingProducts([
+            { rank: 6, productName: '여섯번째' },
+            { rank: 2, productName: '두번째' },
+            { rank: 1, productName: '첫번째' },
+            { rank: 0, productName: '잘못된 순위' },
+            { rank: 3, productName: '세번째' },
+            { rank: 4, productName: '네번째' },
+            { rank: 5, productName: '다섯번째' },
+            { rank: 7, productName: '일곱번째' },
+            { rank: 8, productName: '' }
+        ]).map((product) => product.productName),
+        ['첫번째', '두번째', '세번째', '네번째', '다섯번째']
+    );
 });
 
 test('formatFoodBadges uses backend seasonLabel instead of frontend season code mapping', () => {

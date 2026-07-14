@@ -10,12 +10,14 @@ import {
     formatOperationTime,
     formatParkingCount,
     formatRefreshedAt,
+    formatSalesRankingMonth,
     formatText,
     hasFoodMenu,
     hasFoodSections,
     isMissingValue,
     orderFoodMenus,
-    parseConvenience
+    parseConvenience,
+    sortSalesRankingProducts
 } from './rest-stop-detail-formatters.js';
 import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
 import { createRouteRestStopRequest } from './route-rest-stop-request.js';
@@ -611,8 +613,48 @@ function renderDetail(detail) {
         formatParkingCount
     );
     renderEvChargerInfo(detail.evChargerCount);
+    renderSalesRanking(detail.salesRanking);
     renderOilInfo(detail.oilInfo);
     renderFoodMenu(detail.foodMenu);
+}
+
+function renderSalesRanking(salesRanking) {
+    const section = document.getElementById('restStopSalesRankingSection');
+    const month = document.getElementById('restStopSalesRankingMonth');
+    const list = document.getElementById('restStopSalesRankingList');
+    if (!section || !month || !list) {
+        return;
+    }
+
+    const products = Array.isArray(salesRanking?.products) ? salesRanking.products : [];
+    const visibleProducts = sortSalesRankingProducts(products);
+    const hasRanking = visibleProducts.length > 0 && !isMissingValue(salesRanking?.baseYearMonth);
+    section.classList.toggle('d-none', !hasRanking);
+    if (!hasRanking) {
+        list.replaceChildren();
+        month.textContent = '';
+        return;
+    }
+
+    month.textContent = formatSalesRankingMonth(salesRanking.baseYearMonth);
+    list.replaceChildren(...visibleProducts.map(createSalesRankingItem));
+}
+
+function createSalesRankingItem(product) {
+    const item = document.createElement('li');
+    item.className = 'rest-stop-sales-ranking-item';
+
+    const rank = document.createElement('span');
+    rank.className = 'rest-stop-sales-ranking-rank';
+    rank.textContent = `${product.rank}`;
+    item.appendChild(rank);
+
+    const name = document.createElement('span');
+    name.className = 'rest-stop-sales-ranking-name';
+    name.textContent = product.productName;
+    item.appendChild(name);
+
+    return item;
 }
 
 function setDetailName(value, fallbackValue) {

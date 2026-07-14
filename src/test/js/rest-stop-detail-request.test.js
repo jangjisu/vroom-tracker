@@ -46,6 +46,14 @@ function sectionResponseFor(url, sections = {}) {
         return sections.foodMenu ?? successSectionResponse({ menus: [], sections: [] });
     }
 
+    if (url.endsWith('/sales-rankings')) {
+        return sections.salesRanking ?? response({
+            ok: false,
+            status: 404,
+            body: { code: 'NOT_FOUND', data: null }
+        });
+    }
+
     return response({
         ok: false,
         status: 404,
@@ -92,8 +100,37 @@ test('a later selection ignores an earlier successful response', async () => {
             }
         }
     ]);
-    assert.equal(signals.slice(0, 4).every((signal) => signal.aborted), true);
-    assert.equal(signals.slice(4).every((signal) => !signal.aborted), true);
+    assert.equal(signals.slice(0, 5).every((signal) => signal.aborted), true);
+    assert.equal(signals.slice(5).every((signal) => !signal.aborted), true);
+});
+
+test('loads sales rankings as an optional detail feature', async () => {
+    const states = [];
+    const request = createRestStopDetailRequest({
+        fetchImpl: (url) => Promise.resolve(sectionResponseFor(url, {
+            basicInfo: successSectionResponse({ unitName: '휴게소' }),
+            salesRanking: successSectionResponse({
+                baseYearMonth: '2026-06',
+                products: [{ rank: 1, productName: '대표 메뉴' }]
+            })
+        })),
+        onState: (state) => states.push(state)
+    });
+
+    await request.load('A00001');
+
+    assert.deepEqual(states.at(-1), {
+        status: 'success',
+        data: {
+            unitName: '휴게소',
+            oilInfo: {},
+            foodMenu: { menus: [], sections: [] },
+            salesRanking: {
+                baseYearMonth: '2026-06',
+                products: [{ rank: 1, productName: '대표 메뉴' }]
+            }
+        }
+    });
 });
 
 test('a later selection ignores an earlier request error', async () => {
@@ -338,7 +375,8 @@ test('load fetches feature detail APIs with a trimmed serviceAreaCode', async ()
         '/api/rest-stops/A00001/basic-info',
         '/api/rest-stops/A00001/facilities',
         '/api/rest-stops/A00001/oil-info',
-        '/api/rest-stops/A00001/foods'
+        '/api/rest-stops/A00001/foods',
+        '/api/rest-stops/A00001/sales-rankings'
     ]);
     assert.deepEqual(states.at(-1), {
         status: 'success',

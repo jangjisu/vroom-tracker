@@ -3,7 +3,8 @@ const DETAIL_SECTION_REQUESTS = [
     { key: 'basicInfo', path: 'basic-info', required: true },
     { key: 'facilities', path: 'facilities', required: false },
     { key: 'oilInfo', path: 'oil-info', required: false },
-    { key: 'foodMenu', path: 'foods', required: false }
+    { key: 'foodMenu', path: 'foods', required: false },
+    { key: 'salesRanking', path: 'sales-rankings', required: false }
 ];
 
 export function createRestStopDetailRequest({ fetchImpl = fetch, onState = () => {} } = {}) {
@@ -169,13 +170,20 @@ function buildDetailData(sectionResults) {
     const facilities = optionalSectionData(sectionResults, 'facilities', {});
     const oilInfo = optionalSectionData(sectionResults, 'oilInfo', null);
     const foodMenu = optionalSectionData(sectionResults, 'foodMenu', emptyFoodMenu());
+    const salesRanking = optionalSectionData(sectionResults, 'salesRanking', null);
 
-    return {
+    const detail = {
         ...basicInfo,
         ...facilities,
         oilInfo,
         foodMenu
     };
+
+    if (salesRanking !== null) {
+        detail.salesRanking = salesRanking;
+    }
+
+    return detail;
 }
 
 function optionalSectionData(sectionResults, key, fallback) {

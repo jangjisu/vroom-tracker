@@ -117,6 +117,22 @@ export function formatFoodCost(value) {
     return text;
 }
 
+export function formatSalesRankingMonth(baseYearMonth) {
+    const match = String(baseYearMonth).match(/^(\d{4})-(\d{2})$/);
+    return match ? `${match[1]}년 ${match[2]}월 기준` : `${baseYearMonth} 기준`;
+}
+
+export function sortSalesRankingProducts(products) {
+    if (!Array.isArray(products)) {
+        return [];
+    }
+
+    return products
+        .filter((product) => Number.isInteger(product?.rank) && product.rank > 0 && !isMissingValue(product?.productName))
+        .sort((first, second) => first.rank - second.rank)
+        .slice(0, 5);
+}
+
 export const DATA_TAG_DEFINITIONS = [
     { key: 'food', label: '먹거리' },
     { key: 'parking', label: '주차' },
