@@ -275,7 +275,11 @@ function renderRestStops(restStops) {
         const position = new naverMaps.LatLng(latitude, longitude);
         const marker = new naverMaps.Marker({
             map,
-            position
+            position,
+            icon: {
+                content: '<div class="route-rest-stop-marker"></div>',
+                anchor: new naverMaps.Point(7, 7)
+            }
         });
         const infoWindow = new naverMaps.InfoWindow({
             content: createPopupContent(restStop)
