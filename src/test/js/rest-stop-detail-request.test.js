@@ -29,6 +29,20 @@ function successSectionResponse(data = {}) {
     return response({ body: { code: 'SUCCESS', data } });
 }
 
+function csrfDocument({ token = 'csrf-token', headerName = 'X-CSRF-TOKEN' } = {}) {
+    const contentBySelector = {
+        'meta[name="_csrf"]': token,
+        'meta[name="_csrf_header"]': headerName
+    };
+
+    return {
+        querySelector: (selector) => {
+            const content = contentBySelector[selector];
+            return content ? { content } : null;
+        }
+    };
+}
+
 function sectionResponseFor(url, sections = {}) {
     if (url.endsWith('/basic-info')) {
         return sections.basicInfo ?? successSectionResponse({ unitName: '휴게소' });
@@ -462,6 +476,7 @@ test('refreshOilPrice posts to the refresh endpoint and returns oil info', async
     let requestedUrl;
     let requestedOptions;
     const request = createRestStopDetailRequest({
+        document: csrfDocument({ token: 'request-token', headerName: 'X-REST-ROUTE-CSRF' }),
         fetchImpl: async (url, options) => {
             requestedUrl = url;
             requestedOptions = options;
@@ -481,6 +496,7 @@ test('refreshOilPrice posts to the refresh endpoint and returns oil info', async
 
     assert.equal(requestedUrl, '/api/rest-stops/A00001/oil-price/refresh');
     assert.equal(requestedOptions.method, 'POST');
+    assert.deepEqual(requestedOptions.headers, { 'X-REST-ROUTE-CSRF': 'request-token' });
     assert.deepEqual(result, {
         status: 'success',
         data: {
@@ -493,6 +509,7 @@ test('refreshOilPrice posts to the refresh endpoint and returns oil info', async
 test('refreshOilPrice encodes serviceAreaCode before building the request URL', async () => {
     let requestedUrl;
     const request = createRestStopDetailRequest({
+        document: csrfDocument(),
         fetchImpl: async (url) => {
             requestedUrl = url;
             return response({ body: { code: 'SUCCESS', data: {} } });
@@ -506,6 +523,7 @@ test('refreshOilPrice encodes serviceAreaCode before building the request URL', 
 
 test('refreshOilPrice returns not-found for 404 NOT_FOUND', async () => {
     const request = createRestStopDetailRequest({
+        document: csrfDocument(),
         fetchImpl: async () => response({
             ok: false,
             status: 404,
@@ -520,6 +538,7 @@ test('refreshOilPrice returns not-found for 404 NOT_FOUND', async () => {
 
 test('refreshOilPrice returns external-unavailable for EXTERNAL_API_UNAVAILABLE', async () => {
     const request = createRestStopDetailRequest({
+        document: csrfDocument(),
         fetchImpl: async () => response({
             ok: false,
             status: 503,
@@ -545,4 +564,33 @@ test('refreshOilPrice returns error for empty serviceAreaCode without fetching',
 
     assert.equal(fetchCount, 0);
     assert.deepEqual(result, { status: 'error' });
+});
+
+test('refreshOilPrice returns error without fetching when CSRF metadata is missing', async () => {
+    let fetchCount = 0;
+    const request = createRestStopDetailRequest({
+        document: csrfDocument({ token: '' }),
+        fetchImpl: async () => {
+            fetchCount += 1;
+            return response();
+        }
+    });
+
+    const result = await request.refreshOilPrice('A00001');
+
+    assert.equal(fetchCount, 0);
+    assert.deepEqual(result, { status: 'error' });
+});
+
+test('load does not read CSRF metadata for GET requests', async () => {
+    const request = createRestStopDetailRequest({
+        document: {
+            querySelector: () => {
+                throw new Error('GET requests must not read CSRF metadata');
+            }
+        },
+        fetchImpl: async (url) => sectionResponseFor(url)
+    });
+
+    await request.load('A00001');
 });

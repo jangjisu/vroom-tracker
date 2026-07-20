@@ -7,7 +7,11 @@ const DETAIL_SECTION_REQUESTS = [
     { key: 'salesRanking', path: 'sales-rankings', required: false }
 ];
 
-export function createRestStopDetailRequest({ fetchImpl = fetch, onState = () => {} } = {}) {
+export function createRestStopDetailRequest({
+    document: documentRef = globalThis.document,
+    fetchImpl = fetch,
+    onState = () => {}
+} = {}) {
     let currentRequestId = 0;
     let activeRequestController;
 
@@ -88,7 +92,10 @@ export function createRestStopDetailRequest({ fetchImpl = fetch, onState = () =>
         try {
             const response = await fetchImpl(
                 `${REST_STOPS_ENDPOINT}/${encodeURIComponent(normalizedServiceAreaCode)}/oil-price/refresh`,
-                { method: 'POST' }
+                {
+                    method: 'POST',
+                    headers: csrfHeadersFrom(documentRef)
+                }
             );
             const body = await response.json();
 
@@ -120,6 +127,16 @@ export function createRestStopDetailRequest({ fetchImpl = fetch, onState = () =>
     }
 
     return { invalidate, load, refreshOilPrice };
+}
+
+function csrfHeadersFrom(documentRef) {
+    const token = documentRef?.querySelector('meta[name="_csrf"]')?.content?.trim();
+    const headerName = documentRef?.querySelector('meta[name="_csrf_header"]')?.content?.trim();
+    if (!token || !headerName) {
+        throw new Error('CSRF metadata is missing');
+    }
+
+    return { [headerName]: token };
 }
 
 async function fetchDetailSection(fetchImpl, serviceAreaCode, section, signal) {
