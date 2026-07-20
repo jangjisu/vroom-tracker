@@ -1,12 +1,15 @@
 package com.restroute.common;
 
 import com.restroute.client.exception.KakaoApiException;
+import com.restroute.service.image.InvalidRestStopImageException;
+import com.restroute.service.image.RestStopNotFoundException;
 import com.restroute.service.route.RouteRestStopNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @Slf4j
 @RestControllerAdvice
@@ -24,6 +27,27 @@ public class GlobalExceptionHandler {
         log.warn("Route rest stops not found: {}", e.getMessage());
         return ResponseEntity.status(ResponseCode.NOT_FOUND.getHttpStatus())
                 .body(ApiResponse.error(ResponseCode.NOT_FOUND, e.getMessage()));
+    }
+
+    @ExceptionHandler(RestStopNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRestStopNotFound(RestStopNotFoundException e) {
+        log.warn("Rest stop not found: {}", e.getMessage());
+        return ResponseEntity.status(ResponseCode.NOT_FOUND.getHttpStatus())
+                .body(ApiResponse.error(ResponseCode.NOT_FOUND, e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidRestStopImageException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRestStopImage(InvalidRestStopImageException e) {
+        log.warn("Invalid rest stop image: {}", e.getMessage());
+        return ResponseEntity.status(ResponseCode.INVALID_PARAMETER.getHttpStatus())
+                .body(ApiResponse.error(ResponseCode.INVALID_PARAMETER, e.getMessage()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
+        log.warn("Rest stop image upload exceeds the maximum size: {}", e.getMessage());
+        return ResponseEntity.status(ResponseCode.INVALID_PARAMETER.getHttpStatus())
+                .body(ApiResponse.error(ResponseCode.INVALID_PARAMETER));
     }
 
     @ExceptionHandler(KakaoApiException.class)

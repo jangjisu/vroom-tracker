@@ -1,7 +1,11 @@
 package com.restroute.config;
 
+import static com.restroute.support.RestStopTestFixtures.restStopItem;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -11,7 +15,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.restroute.domain.AdminRole;
 import com.restroute.domain.AdminUserEntity;
+import com.restroute.domain.RestStopEntity;
 import com.restroute.repository.AdminUserRepository;
+import com.restroute.repository.RestStopRepository;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,11 +47,15 @@ class SecurityConfigTest {
     private AdminUserRepository adminUserRepository;
 
     @Autowired
+    private RestStopRepository restStopRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
         adminUserRepository.deleteAll();
+        restStopRepository.deleteAll();
         adminUserRepository.saveAndFlush(
                 AdminUserEntity.of("admin", passwordEncoder.encode("password"), AdminRole.ADMIN));
     }
@@ -130,5 +144,93 @@ class SecurityConfigTest {
     void loginWithoutCsrf_returnsForbidden() throws Exception {
         mockMvc.perform(post("/login").param("username", "admin").param("password", "password"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("비로그인 사용자는 관리자 이미지 변경 요청에서 거부된다")
+    void anonymousAdminImageUpdate_isRejected() throws Exception {
+        mockMvc.perform(multipart("/api/admin/rest-stops/A00001/image")
+                        .file(imageFile())
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        }))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("ADMIN 사용자의 CSRF 포함 이미지 PUT은 204를 반환한다")
+    void adminImageUploadWithCsrf_returnsNoContent() throws Exception {
+        saveRestStop();
+
+        mockMvc.perform(multipart("/api/admin/rest-stops/A00001/image")
+                        .file(imageFile())
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        })
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("ADMIN 사용자의 CSRF 없는 이미지 PUT은 403을 반환한다")
+    void adminImageUploadWithoutCsrf_returnsForbidden() throws Exception {
+        mockMvc.perform(multipart("/api/admin/rest-stops/A00001/image")
+                        .file(imageFile())
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        })
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("ADMIN 사용자의 CSRF 포함 이미지 DELETE는 204를 반환한다")
+    void adminImageDeleteWithCsrf_returnsNoContent() throws Exception {
+        saveRestStop();
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(
+                                "/api/admin/rest-stops/A00001/image")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("ADMIN 사용자의 CSRF 없는 이미지 DELETE는 403을 반환한다")
+    void adminImageDeleteWithoutCsrf_returnsForbidden() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(
+                                "/api/admin/rest-stops/A00001/image")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("ADMIN이 아닌 사용자는 CSRF 토큰이 있어도 관리자 이미지 변경 요청에서 403을 받는다")
+    void nonAdminImageUpdate_returnsForbidden() throws Exception {
+        mockMvc.perform(multipart("/api/admin/rest-stops/A00001/image")
+                        .file(imageFile())
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        })
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+    }
+
+    private void saveRestStop() {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소")));
+    }
+
+    private org.springframework.mock.web.MockMultipartFile imageFile() throws IOException {
+        BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return new org.springframework.mock.web.MockMultipartFile(
+                "file", "image.png", "image/png", output.toByteArray());
     }
 }

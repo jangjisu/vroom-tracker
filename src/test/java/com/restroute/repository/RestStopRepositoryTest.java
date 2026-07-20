@@ -38,4 +38,13 @@ class RestStopRepositoryTest {
 
         assertThat(restStopRepository.findByServiceAreaCode("A00001")).contains(restStop);
     }
+
+    @Test
+    @DisplayName("serviceAreaCode 기준 휴게소 존재 여부를 확인한다")
+    void existsByServiceAreaCode_returnsWhetherRestStopExists() {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소")));
+
+        assertThat(restStopRepository.existsByServiceAreaCode("A00001")).isTrue();
+        assertThat(restStopRepository.existsByServiceAreaCode("UNKNOWN")).isFalse();
+    }
 }

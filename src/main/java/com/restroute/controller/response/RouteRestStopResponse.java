@@ -33,7 +33,8 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
             boolean hasEvCharger,
             long distanceFromRouteMeters,
             ComparisonSummary comparisonSummary,
-            List<RecommendationTag> recommendationTags) {
+            List<RecommendationTag> recommendationTags,
+            String listImageUrl) {
 
         public RouteRestStopItem(
                 String serviceAreaCode,
@@ -52,7 +53,8 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     false,
                     distanceFromRouteMeters,
                     ComparisonSummary.empty(),
-                    List.of());
+                    List.of(),
+                    null);
         }
 
         public static RouteRestStopItem of(
@@ -72,7 +74,8 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     false,
                     distanceFromRouteMeters,
                     ComparisonSummary.empty(),
-                    List.of());
+                    List.of(),
+                    null);
         }
 
         public RouteRestStopItem withDirectionAlternative(boolean hasDirectionAlternative) {
@@ -86,7 +89,8 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     hasEvCharger,
                     distanceFromRouteMeters,
                     comparisonSummary,
-                    recommendationTags);
+                    recommendationTags,
+                    listImageUrl);
         }
 
         public RouteRestStopItem withComparison(
@@ -101,7 +105,8 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     hasEvCharger,
                     distanceFromRouteMeters,
                     comparisonSummary,
-                    List.copyOf(recommendationTags));
+                    List.copyOf(recommendationTags),
+                    listImageUrl);
         }
 
         public RouteRestStopItem withEvCharger(boolean hasEvCharger) {
@@ -115,7 +120,23 @@ public record RouteRestStopResponse(Destination destination, RouteSummary route,
                     hasEvCharger,
                     distanceFromRouteMeters,
                     comparisonSummary,
-                    recommendationTags);
+                    recommendationTags,
+                    listImageUrl);
+        }
+
+        public RouteRestStopItem withListImageUrl(String listImageUrl) {
+            return new RouteRestStopItem(
+                    serviceAreaCode,
+                    unitName,
+                    routeName,
+                    latitude,
+                    longitude,
+                    hasDirectionAlternative,
+                    hasEvCharger,
+                    distanceFromRouteMeters,
+                    comparisonSummary,
+                    recommendationTags,
+                    listImageUrl);
         }
     }
 

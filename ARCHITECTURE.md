@@ -30,10 +30,14 @@
 - `RestStopServiceAreaCodeBackfillService`는 저장된 휴게소·상세·EV 충전기 데이터를 기준으로 `EvChargerStationMappingCalculator`를 호출해 좌표 300m 및 이름·주소 조건을 만족하는 매핑을 갱신한다.
 - 경로 조회는 매핑된 휴게소 코드 존재 여부로 `hasEvCharger`를 만들고, 상세 조회는 매핑된 충전소의 active `chgerId` 개수를 `evChargerCount`로 반환한다.
 - 휴게소 상세 조회는 `basic-info`, `facilities`, `oil-info`, `foods` feature API가 각자 필요한 Entity를 조회하고 응답 DTO가 화면용 표현으로 변환한다. 프론트엔드의 상세 요청 모듈은 이 API들을 병렬로 호출하며, 기본 정보는 필수로 취급하고 시설·주유·먹거리는 독립적인 선택 영역으로 처리한다.
+- 관리자는 `PUT /api/admin/rest-stops/{serviceAreaCode}/image`로 JPEG/PNG 하나를 등록·교체하고 `DELETE /api/admin/rest-stops/{serviceAreaCode}/image`로 삭제한다. 업로드 처리기는 JPEG/PNG를 WebP 상세용(긴 변 최대 1600px)과 목록용(긴 변 최대 480px)으로 변환한 뒤 두 BLOB만 저장하며 원본은 보관하지 않는다.
+- 공개 `GET /api/rest-stops/{serviceAreaCode}/images/detail|list`는 저장된 WebP 바이너리를 반환한다. 휴게소가 없으면 `404`, 휴게소는 있지만 이미지가 없으면 `204 No Content`이며, 성공 응답은 데이터 기반 ETag와 `Cache-Control: public, no-cache`로 브라우저 재검증을 지원한다.
+- 기존 JSON은 BLOB을 포함하지 않는다. `basic-info`의 nullable `detailImageUrl`과 경로 휴게소 항목의 nullable `listImageUrl`만 이미지가 있을 때 해당 공개 URL을 제공한다. 경로 조회는 이미지가 있는 코드만 일괄 조회해 목록별 BLOB 조회를 피한다.
 - 전국 평균 유가 요약은 `/api/national-oil-prices/summary`가 별도로 조회·반환한다. 경로 Service는 이 요약을 휴게소별 `comparisonSummary` 계산에 사용할 수 있지만, `RouteRestStopResponse`의 최상위 응답에는 포함하지 않는다.
 - 경로 탐색은 카카오 장소 검색 후보에서 선택한 좌표로 길찾기를 호출하고, 저장된 휴게소 좌표와 경로 사이 거리를 계산한다.
 - 카카오 API 예외는 `GlobalExceptionHandler`가 공통 응답으로 변환하고, 정기 동기화 예외는 스케줄러가 항목별로 기록한다.
 - EV API 요청은 페이지 번호와 건수 중심으로 로그를 남기며 API key와 응답 payload는 로그에 남기지 않는다. EV API 전용 read timeout은 60초이고 다른 Feign client의 기본 timeout은 유지한다.
+- 이 기능은 내부 관리자·공개 조회 계약만 추가하며, 한국도로공사·카카오·오피넷·환경공단 외부 API의 요청·응답과 호출 정책은 변경하지 않는다.
 
 ## 제어 흐름 원칙
 

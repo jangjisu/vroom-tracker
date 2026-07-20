@@ -1,5 +1,6 @@
 package com.restroute.controller;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,7 +47,8 @@ class RestStopBasicInfoControllerTest {
                 "경기 성남시",
                 "02-573-7430",
                 "투썸플레이스",
-                2);
+                2,
+                "/api/rest-stops/A00001/images/detail");
         when(restStopBasicInfoQueryService.findByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
 
         mockMvc.perform(get("/api/rest-stops/A00001/basic-info"))
@@ -64,7 +66,32 @@ class RestStopBasicInfoControllerTest {
                 .andExpect(jsonPath("$.data.address").value("경기 성남시"))
                 .andExpect(jsonPath("$.data.telNo").value("02-573-7430"))
                 .andExpect(jsonPath("$.data.brand").value("투썸플레이스"))
-                .andExpect(jsonPath("$.data.evChargerCount").value(2));
+                .andExpect(jsonPath("$.data.evChargerCount").value(2))
+                .andExpect(jsonPath("$.data.detailImageUrl").value("/api/rest-stops/A00001/images/detail"));
+    }
+
+    @Test
+    @DisplayName("GET /api/rest-stops/{serviceAreaCode}/basic-info는 이미지가 없으면 null 상세 이미지 URL을 반환한다")
+    void getRestStopBasicInfo_returnsNullDetailImageUrlWhenImageIsMissing() throws Exception {
+        RestStopBasicInfoResponse response = new RestStopBasicInfoResponse(
+                "A00001",
+                "001",
+                "서울만남(부산)휴게소",
+                "0010",
+                "경부선",
+                "127.042514",
+                "37.459939",
+                "000001",
+                "경기 성남시",
+                "02-573-7430",
+                "투썸플레이스",
+                2,
+                null);
+        when(restStopBasicInfoQueryService.findByServiceAreaCode("A00001")).thenReturn(Optional.of(response));
+
+        mockMvc.perform(get("/api/rest-stops/A00001/basic-info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.detailImageUrl").value(nullValue()));
     }
 
     @Test

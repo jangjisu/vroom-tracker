@@ -33,6 +33,12 @@ erDiagram
         string truck_sa_yn
     }
 
+    REST_STOP_IMAGE {
+        string service_area_code PK "REST_STOP과 연결"
+        blob detail_image_data "상세용 WebP"
+        blob list_image_data "목록용 WebP"
+    }
+
     HIGHWAY_SERVICE_AREA_INFO {
         bigint id PK
         string business_facility_code "REST_STOP과 연결"
@@ -95,6 +101,7 @@ erDiagram
     }
 
     REST_STOP ||--o| REST_STOP_DETAIL : "service_area_code"
+    REST_STOP ||--o| REST_STOP_IMAGE : "service_area_code (1:0..1)"
     REST_STOP ||--o{ HIGHWAY_SERVICE_AREA_INFO : "service_area_code = business_facility_code"
     REST_STOP ||--o{ REST_FOOD : "std_rest_cd"
     REST_STOP ||--o{ REST_OIL : "route_no + normalized unit_name"
@@ -107,6 +114,7 @@ erDiagram
 | 기준 테이블 | 연결 테이블 | 현재 코드의 연결 조건 | 사용 위치 |
 |---|---|---|---|
 | `REST_STOP` | `REST_STOP_DETAIL` | `REST_STOP.service_area_code = REST_STOP_DETAIL.service_area_code` | `RestStopRelatedInfoQueryService`, 기본정보/상세 응답 |
+| `REST_STOP` | `REST_STOP_IMAGE` | `REST_STOP.service_area_code = REST_STOP_IMAGE.service_area_code` (휴게소 1건당 이미지 0 또는 1건) | 대표 이미지 URL·바이너리 조회 |
 | `REST_STOP` | `HIGHWAY_SERVICE_AREA_INFO` | `REST_STOP.service_area_code = HIGHWAY_SERVICE_AREA_INFO.business_facility_code` | `RestStopRelatedInfoQueryService`, 시설/주차 응답 |
 | `REST_STOP` | `REST_FOOD` | `REST_STOP.std_rest_cd = REST_FOOD.std_rest_cd` | `RestStopRelatedInfoQueryService`, 음식 응답 |
 | `REST_STOP` | `REST_OIL` | `REST_STOP.route_no = REST_OIL.route_code` + `REST_STOP.unit_name` 정규화 값과 `REST_OIL.normalized_station_name` 일치 | `RestStopRelatedInfoQueryService`, 주유 편의시설 응답 |
@@ -125,6 +133,19 @@ erDiagram
 
 `STD_REST_CD`가 근본 키처럼 보일 수 있지만, 현재 코드의 public lookup 기준은
 `SERVICE_AREA_CODE`다. 음식 메뉴는 예외적으로 `STD_REST_CD`로 직접 연결된다.
+
+## 대표 이미지
+
+`REST_STOP_IMAGE`는 `service_area_code`, `detail_image_data`, `list_image_data` 세 컬럼만 가진다.
+각 휴게소는 이 테이블의 이미지 행을 0개 또는 1개 가진다. 두 BLOB에는 업로드한 JPEG/PNG 원본이 아닌
+WebP 변형만 저장한다. 상세용은 긴 변 최대 1600px, 목록용은 긴 변 최대 480px다. 약 200장의 현재
+범위에서는 DB BLOB 저장을 사용하며 원본과 음식 이미지는 보관하지 않는다.
+
+`basic-info`의 nullable `detailImageUrl`과 경로 항목의 nullable `listImageUrl`은 이미지가 있을 때만
+각각 detail/list 바이너리 URL을 가리킨다. 이미지 BLOB은 공개
+`GET /api/rest-stops/{serviceAreaCode}/images/detail|list`에서 `image/webp`로 별도 반환한다. 휴게소가
+없으면 `404`, 휴게소는 있지만 이미지가 없으면 `204 No Content`이며, 성공 응답은 ETag와
+`Cache-Control: public, no-cache`로 재검증한다.
 
 ## 상세/시설 정보
 

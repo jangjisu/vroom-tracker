@@ -32,8 +32,10 @@ import com.restroute.service.NationalOilPriceService;
 import com.restroute.service.RestStopRelatedInfo;
 import com.restroute.service.RestStopRelatedInfoQueryService;
 import com.restroute.service.evcharger.EvChargerQueryService;
+import com.restroute.service.image.RestStopImageQueryService;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -65,6 +67,9 @@ class RouteRestStopServiceTest {
     @Mock
     private EvChargerQueryService evChargerQueryService;
 
+    @Mock
+    private RestStopImageQueryService restStopImageQueryService;
+
     private RouteRestStopService service;
 
     @BeforeEach
@@ -73,6 +78,9 @@ class RouteRestStopServiceTest {
         lenient()
                 .when(evChargerQueryService.findChargerMappedServiceAreaCodes(any()))
                 .thenReturn(List.of());
+        lenient()
+                .when(restStopImageQueryService.findExistingServiceAreaCodes(any()))
+                .thenReturn(Set.of());
         lenient()
                 .when(restStopRelatedInfoQueryService.findByRestStop(any(RestStopEntity.class)))
                 .thenReturn(emptyRelatedInfo());
@@ -85,7 +93,8 @@ class RouteRestStopServiceTest {
                 routeRestStopComparisonSummaryService,
                 routeRestStopRecommendationTagService,
                 nationalOilPriceService,
-                evChargerQueryService);
+                evChargerQueryService,
+                restStopImageQueryService);
     }
 
     private KakaoLocalSearchResponse searchResult(String x, String y, String placeName, String addressName) {
@@ -256,6 +265,28 @@ class RouteRestStopServiceTest {
                 .singleElement()
                 .extracting(RouteRestStopResponse.RouteRestStopItem::hasEvCharger)
                 .isEqualTo(true);
+    }
+
+    @Test
+    @DisplayName("경로 후보의 목록 이미지 코드를 한 번만 조회하고 이미지가 있는 항목에만 URL을 붙인다")
+    void success_attachesListImageUrlsFromSingleBulkLookup() {
+        when(kakaoMapClient.searchKeyword("부산")).thenReturn(searchResult("129.0", "35.0", "부산역", null));
+        when(kakaoMapClient.getDirections("127.0,37.0", "129.0,35.0"))
+                .thenReturn(directions(0, new Summary(100L, 200L), VERTEXES));
+        RestStopEntity first = restStop("A", "A휴게소", "경부선", "127.0001", "37.0001");
+        RestStopEntity second = restStop("B", "B휴게소", "경부선", "127.5001", "37.5001");
+        when(restStopRepository.findAll()).thenReturn(List.of(first, second));
+        when(restStopImageQueryService.findExistingServiceAreaCodes(List.of("A", "B")))
+                .thenReturn(Set.of("A"));
+
+        RouteRestStopResponse response = service.findRouteRestStops(37.0, 127.0, "부산", null, null, null, 1000);
+
+        assertThat(response.restStops())
+                .extracting(RouteRestStopResponse.RouteRestStopItem::listImageUrl)
+                .containsExactly("/api/rest-stops/A/images/list", null);
+        verify(restStopImageQueryService).findExistingServiceAreaCodes(List.of("A", "B"));
+        verify(restStopImageQueryService, never()).findDetailImage(anyString());
+        verify(restStopImageQueryService, never()).findListImage(anyString());
     }
 
     @Test
