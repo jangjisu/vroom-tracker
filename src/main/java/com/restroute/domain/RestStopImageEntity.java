@@ -17,11 +17,11 @@ public class RestStopImageEntity {
     private String serviceAreaCode;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "MEDIUMBLOB")
     private byte[] detailImageData;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "MEDIUMBLOB")
     private byte[] listImageData;
 
     private RestStopImageEntity(String serviceAreaCode, byte[] detailImageData, byte[] listImageData) {
