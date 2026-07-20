@@ -34,6 +34,7 @@
 | `rest_stop` | `rest_oil` | `route_no = route_code` + 시설명에서 `휴게소`/`주유소`와 공백을 제거한 정규화 이름 일치 | 2026-06-15 실측 |
 | `rest_oil` | `rest_oil_price` | `standard_rest_code = service_area_code2` | 2026-06-16 실측 |
 | `rest_stop` | `rest_food` | `std_rest_cd = std_rest_cd` | 2026-06-16 실측 |
+| `rest_stop` | `rest_stop_image` | `service_area_code = service_area_code` (휴게소 1건당 이미지 0 또는 1건) | 코드 적용 |
 
 `rest_stop.std_rest_cd`와 `rest_oil.standard_rest_code`는 같은 장소의 휴게소와 주유소에도
 서로 다른 시설 코드가 발급된다. 서울만남(부산)의 경우 각각 `000001`, `000002`이며,
@@ -75,6 +76,31 @@
 `rest_stop.std_rest_cd`와 직접 일치함을 확인했다. 서울만남(부산)휴게소가 양쪽 모두 `000001`이며,
 주유소(`rest_oil`)와 달리 정규화 이름 매칭 없이 `std_rest_cd`로 바로 조인한다.
 음식 API 전용 코드 `restCd`(`S000001`)는 연결에 사용하지 않는다.
+
+## 대표 이미지
+
+`rest_stop_image`는 관리자 등록 휴게소 대표 이미지를 저장하는 테이블이다. 정확히
+`service_area_code`, `detail_image_data`, `list_image_data` 세 컬럼으로 구성하며,
+`service_area_code`는 `rest_stop.service_area_code`와 연결된다. 휴게소 하나에는 이미지 행이
+0개 또는 1개만 존재한다.
+
+업로드한 JPEG 또는 PNG는 원본을 보관하지 않고 WebP 두 변형으로 변환해 저장한다. 상세용은 긴 변을
+최대 1600px, 목록용은 긴 변을 최대 480px로 제한한다. 이번 약 200장 범위에서는 두 WebP BLOB을 DB에
+저장해 운영하며, 원본 보관이나 더 큰 이미지 범위는 이번 범위 밖이다.
+
+이미지 존재 여부는 기존 JSON 응답의 nullable URL로 전달한다. `basic-info`의
+`detailImageUrl`과 경로 휴게소 항목의 `listImageUrl`은 이미지가 없으면 `null`이다. 실제 BLOB은
+별도 공개 바이너리 API에서만 반환하므로 목록 조회가 BLOB을 읽지 않는다.
+
+이미지가 있는 휴게소의 상세·목록 바이너리는 각각
+`GET /api/rest-stops/{serviceAreaCode}/images/detail`와
+`GET /api/rest-stops/{serviceAreaCode}/images/list`에서 `image/webp`로 반환한다. 존재하는 휴게소에
+이미지가 없으면 이 API는 `204 No Content`를 반환하고, 휴게소 자체가 없으면 `404`를 반환한다. 성공
+응답은 이미지 데이터 기반 ETag와 `Cache-Control: public, no-cache`를 제공해 브라우저가 재검증할 수
+있다.
+
+한국도로공사, 카카오, 오피넷, 환경공단 등 외부 API의 요청·응답과 동기화 정책은 이 이미지 기능으로
+변경하지 않는다.
 
 `rest_stop_detail`과 `highway_service_area_info` 연결은 현재 상세 조회에 적용되어 있지만,
 대표 표본과 전체 일치율을 확인한 실측 기록은 아직 없다. 연결 조건을 변경하기 전에 실제 응답으로 검증한다.
