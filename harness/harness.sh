@@ -13,7 +13,7 @@ Usage:
 Steps:
   plan     - planning gate
   spec     - API/spec impact gate
-  review   - finalized plan and review gate
+  review   - finalized plan and user approval gate
   code     - code and test writing gate
   verify   - verification evidence gate
   commit   - git commit readiness gate
