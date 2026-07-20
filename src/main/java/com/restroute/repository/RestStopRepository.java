@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface RestStopRepository extends JpaRepository<RestStopEntity, Long> {
 
     Optional<RestStopEntity> findByServiceAreaCode(String serviceAreaCode);
+
+    boolean existsByServiceAreaCode(String serviceAreaCode);
 }
