@@ -12,6 +12,7 @@ import com.restroute.domain.RestStopDetailEntity;
 import com.restroute.domain.RestStopEntity;
 import com.restroute.repository.RestStopRepository;
 import com.restroute.service.evcharger.EvChargerQueryService;
+import com.restroute.service.image.RestStopImageQueryService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,12 +35,15 @@ class RestStopBasicInfoQueryServiceTest {
     @Mock
     private EvChargerQueryService evChargerQueryService;
 
+    @Mock
+    private RestStopImageQueryService restStopImageQueryService;
+
     private RestStopBasicInfoQueryService restStopBasicInfoQueryService;
 
     @BeforeEach
     void setUp() {
         restStopBasicInfoQueryService = new RestStopBasicInfoQueryService(
-                restStopRepository, restStopRelatedInfoQueryService, evChargerQueryService);
+                restStopRepository, restStopRelatedInfoQueryService, evChargerQueryService, restStopImageQueryService);
         org.mockito.Mockito.lenient()
                 .when(evChargerQueryService.findActiveChargerCount("A00001"))
                 .thenReturn(0);
@@ -54,6 +58,7 @@ class RestStopBasicInfoQueryServiceTest {
         when(restStopRelatedInfoQueryService.findByRestStop(restStop))
                 .thenReturn(RestStopRelatedInfo.of(
                         Optional.of(detail), List.of(), List.of(), Optional.empty(), Optional.empty(), List.of()));
+        when(restStopImageQueryService.findDetailImageUrl("A00001")).thenReturn("/api/rest-stops/A00001/images/detail");
 
         Optional<RestStopBasicInfoResponse> result = restStopBasicInfoQueryService.findByServiceAreaCode("A00001");
 
@@ -71,6 +76,7 @@ class RestStopBasicInfoQueryServiceTest {
         assertThat(response.telNo()).isEqualTo("02-573-7430");
         assertThat(response.brand()).isEqualTo("투썸플레이스");
         assertThat(response.evChargerCount()).isZero();
+        assertThat(response.detailImageUrl()).isEqualTo("/api/rest-stops/A00001/images/detail");
     }
 
     @Test
@@ -100,6 +106,22 @@ class RestStopBasicInfoQueryServiceTest {
         assertThat(result.get().address()).isNull();
         assertThat(result.get().telNo()).isNull();
         assertThat(result.get().brand()).isNull();
+    }
+
+    @Test
+    @DisplayName("이미지가 없으면 기본정보의 상세 이미지 URL은 null이다")
+    void findByServiceAreaCode_returnsNullDetailImageUrlWhenImageIsMissing() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
+        when(restStopRelatedInfoQueryService.findByRestStop(restStop))
+                .thenReturn(RestStopRelatedInfo.of(
+                        Optional.empty(), List.of(), List.of(), Optional.empty(), Optional.empty(), List.of()));
+        when(restStopImageQueryService.findDetailImageUrl("A00001")).thenReturn(null);
+
+        Optional<RestStopBasicInfoResponse> result = restStopBasicInfoQueryService.findByServiceAreaCode("A00001");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().detailImageUrl()).isNull();
     }
 
     @Test

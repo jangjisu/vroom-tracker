@@ -1,5 +1,6 @@
 package com.restroute.controller;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -49,7 +50,18 @@ class RouteRestStopControllerTest {
         RouteRestStopResponse response = new RouteRestStopResponse(
                 new Destination("부산역", 35.0, 129.0),
                 new RouteSummary(100L, 200L, List.of(List.of(127.0, 37.0))),
-                List.of(new RouteRestStopItem("A", "A휴게소", "경부선", 37.0, 127.0, 12L)));
+                List.of(new RouteRestStopItem(
+                        "A",
+                        "A휴게소",
+                        "경부선",
+                        37.0,
+                        127.0,
+                        false,
+                        false,
+                        12L,
+                        RouteRestStopResponse.ComparisonSummary.empty(),
+                        List.of(),
+                        "/api/rest-stops/A/images/list")));
         when(routeRestStopService.findRouteRestStops(eq(37.0), eq(127.0), eq("부산"), any(), any(), any(), eq(1000)))
                 .thenReturn(response);
 
@@ -66,7 +78,26 @@ class RouteRestStopControllerTest {
                 .andExpect(
                         jsonPath("$.data.restStops[0].hasDirectionAlternative").value(false))
                 .andExpect(
-                        jsonPath("$.data.restStops[0].distanceFromRouteMeters").value(12));
+                        jsonPath("$.data.restStops[0].distanceFromRouteMeters").value(12))
+                .andExpect(jsonPath("$.data.restStops[0].listImageUrl").value("/api/rest-stops/A/images/list"));
+    }
+
+    @Test
+    @DisplayName("GET /api/route-rest-stops는 목록 이미지가 없으면 null 목록 이미지 URL을 반환한다")
+    void getRouteRestStops_returnsNullListImageUrlWhenImageIsMissing() throws Exception {
+        RouteRestStopResponse response = new RouteRestStopResponse(
+                new Destination("부산역", 35.0, 129.0),
+                new RouteSummary(100L, 200L, List.of(List.of(127.0, 37.0))),
+                List.of(new RouteRestStopItem("A", "A휴게소", "경부선", 37.0, 127.0, 12L)));
+        when(routeRestStopService.findRouteRestStops(eq(37.0), eq(127.0), eq("부산"), any(), any(), any(), eq(1000)))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/api/route-rest-stops")
+                        .param("originLat", "37.0")
+                        .param("originLng", "127.0")
+                        .param("destinationQuery", "부산"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.restStops[0].listImageUrl").value(nullValue()));
     }
 
     @Test

@@ -12,11 +12,13 @@ import com.restroute.domain.RestStopEntity;
 import com.restroute.repository.RestStopRepository;
 import com.restroute.service.NationalOilPriceService;
 import com.restroute.service.evcharger.EvChargerQueryService;
+import com.restroute.service.image.RestStopImageQueryService;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 public class RouteRestStopService {
 
     private static final int MAX_POLYLINE_POINTS = 300;
+    private static final String LIST_IMAGE_URL_FORMAT = "/api/rest-stops/%s/images/list";
 
     private final KakaoMapClient kakaoMapClient;
     private final RestStopRepository restStopRepository;
@@ -34,6 +37,7 @@ public class RouteRestStopService {
     private final RouteRestStopRecommendationTagService routeRestStopRecommendationTagService;
     private final NationalOilPriceService nationalOilPriceService;
     private final EvChargerQueryService evChargerQueryService;
+    private final RestStopImageQueryService restStopImageQueryService;
 
     public RouteRestStopResponse findRouteRestStops(
             double originLatitude,
@@ -131,6 +135,9 @@ public class RouteRestStopService {
                 evChargerQueryService.findChargerMappedServiceAreaCodes(candidates.stream()
                         .map(candidate -> candidate.restStop().getServiceAreaCode())
                         .toList());
+        Set<String> imageServiceAreaCodes = restStopImageQueryService.findExistingServiceAreaCodes(candidates.stream()
+                .map(candidate -> candidate.restStop().getServiceAreaCode())
+                .toList());
         List<RouteRestStopComparison> comparisons = candidates.stream()
                 .map(candidate -> RouteRestStopComparison.of(
                         candidate,
@@ -144,6 +151,8 @@ public class RouteRestStopService {
                 .map(comparison -> comparison
                         .candidate()
                         .item()
+                        .withListImageUrl(listImageUrl(
+                                comparison.candidate().restStop().getServiceAreaCode(), imageServiceAreaCodes))
                         .withEvCharger(mappedServiceAreaCodes.contains(
                                 comparison.candidate().restStop().getServiceAreaCode()))
                         .withDirectionAlternative(
@@ -152,6 +161,13 @@ public class RouteRestStopService {
                                 comparison.summary(),
                                 routeRestStopRecommendationTagService.create(comparison, recommendationStandards)))
                 .toList();
+    }
+
+    private String listImageUrl(String serviceAreaCode, Set<String> imageServiceAreaCodes) {
+        if (!imageServiceAreaCodes.contains(serviceAreaCode)) {
+            return null;
+        }
+        return LIST_IMAGE_URL_FORMAT.formatted(serviceAreaCode);
     }
 
     private RouteSummary routeSummary(KakaoDirectionsResponse.Route route, RoutePolyline polyline) {

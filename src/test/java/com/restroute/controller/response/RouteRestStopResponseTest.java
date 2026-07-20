@@ -22,4 +22,17 @@ class RouteRestStopResponseTest {
                 .doesNotContain("nationalOilPriceSummary");
         assertThat(response.restStops()).isEmpty();
     }
+
+    @Test
+    @DisplayName("경로 휴게소의 목록 이미지 URL은 후속 응답 변환에서도 보존한다")
+    void routeRestStopItem_preservesListImageUrlAcrossResponseTransformations() {
+        RouteRestStopResponse.RouteRestStopItem item = RouteRestStopResponse.RouteRestStopItem.of(
+                        "A", "A휴게소", "경부선", 37.0, 127.0, 12L)
+                .withListImageUrl("/api/rest-stops/A/images/list")
+                .withEvCharger(true)
+                .withDirectionAlternative(true)
+                .withComparison(RouteRestStopResponse.ComparisonSummary.empty(), List.of());
+
+        assertThat(item.listImageUrl()).isEqualTo("/api/rest-stops/A/images/list");
+    }
 }

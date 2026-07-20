@@ -17,10 +17,11 @@ public record RestStopBasicInfoResponse(
         String address,
         String telNo,
         String brand,
-        int evChargerCount) {
+        int evChargerCount,
+        String detailImageUrl) {
 
     public static RestStopBasicInfoResponse of(
-            RestStopEntity restStop, Optional<RestStopDetailEntity> detail, int evChargerCount) {
+            RestStopEntity restStop, Optional<RestStopDetailEntity> detail, int evChargerCount, String detailImageUrl) {
         return new RestStopBasicInfoResponse(
                 restStop.getServiceAreaCode(),
                 restStop.getUnitCode(),
@@ -33,7 +34,8 @@ public record RestStopBasicInfoResponse(
                 textOf(detail, RestStopDetailEntity::getSvarAddr),
                 textOf(detail, RestStopDetailEntity::getTelNo),
                 textOf(detail, RestStopDetailEntity::getBrand),
-                evChargerCount);
+                evChargerCount,
+                detailImageUrl);
     }
 
     private static String textOf(Optional<RestStopDetailEntity> detail, Function<RestStopDetailEntity, String> getter) {
