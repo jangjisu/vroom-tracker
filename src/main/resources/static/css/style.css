@@ -458,8 +458,8 @@ body.global-loading-open {
     max-height: min(80vh, 36rem);
     padding: 0;
     border: none;
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+    border-radius: var(--rr-radius-card);
+    box-shadow: var(--rr-shadow-card);
 }
 
 #routeResultModal.route-result-modal {
@@ -468,7 +468,7 @@ body.global-loading-open {
 }
 
 .route-result-modal::backdrop {
-    background-color: rgba(15, 23, 42, 0.5);
+    background-color: oklch(20% 0.02 60 / 0.5);
 }
 
 .route-result-modal[open] {
@@ -483,7 +483,7 @@ body.global-loading-open {
     gap: 0.75rem;
     min-height: 4.5rem;
     padding: 1rem 1.25rem 0.9rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid oklch(91% 0.01 75);
 }
 
 .route-result-modal-header .btn-close {
@@ -497,6 +497,7 @@ body.global-loading-open {
 
 .route-result-modal-title {
     margin: 0;
+    color: var(--rr-color-text);
     font-size: 1rem;
     font-weight: 700;
 }
@@ -615,12 +616,12 @@ body.global-loading-open {
     width: min(92vw, 28rem);
     padding: 0;
     border: none;
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+    border-radius: var(--rr-radius-card);
+    box-shadow: var(--rr-shadow-card);
 }
 
 .route-point-modal::backdrop {
-    background-color: rgba(15, 23, 42, 0.5);
+    background-color: oklch(20% 0.02 60 / 0.5);
 }
 
 .route-point-modal[open] {
@@ -632,19 +633,51 @@ body.global-loading-open {
     padding: 1.25rem;
 }
 
+.route-point-modal-body .btn-primary {
+    border-color: transparent;
+    background-color: var(--rr-color-primary);
+    color: #fff;
+}
+
+.route-point-modal-body .btn-outline-primary {
+    border-color: oklch(88% 0.04 220);
+    background-color: oklch(97% 0.02 220);
+    color: oklch(42% 0.09 220);
+}
+
+.route-point-modal-body .btn-outline-primary:hover,
+.route-point-modal-body .btn-outline-primary:focus {
+    border-color: oklch(88% 0.04 220);
+    background-color: oklch(93% 0.03 220);
+    color: oklch(42% 0.09 220);
+}
+
+.route-point-modal-body .btn-outline-secondary {
+    border-color: oklch(90% 0.01 75);
+    background-color: var(--rr-color-surface);
+    color: oklch(40% 0.02 60);
+}
+
+.route-point-modal-body .btn-outline-secondary:hover,
+.route-point-modal-body .btn-outline-secondary:focus {
+    border-color: oklch(90% 0.01 75);
+    background-color: oklch(93% 0.01 75);
+    color: oklch(40% 0.02 60);
+}
+
 .route-point-modal-divider {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     margin: 1rem 0;
-    color: #868e96;
+    color: var(--rr-color-text-secondary);
     font-size: 0.75rem;
 }
 
 .route-point-modal-divider::before,
 .route-point-modal-divider::after {
     height: 1px;
-    background-color: #e2e8f0;
+    background-color: oklch(91% 0.01 75);
     content: '';
     flex: 1;
 }
@@ -714,8 +747,8 @@ body.global-loading-open {
 
 .route-candidate-button:hover,
 .route-candidate-button:focus-visible {
-    background-color: #f3f7fd;
-    outline: 2px solid #86b7fe;
+    background-color: oklch(96% 0.01 75);
+    outline: 2px solid var(--rr-color-primary);
     outline-offset: 1px;
 }
 
@@ -1254,7 +1287,7 @@ body.global-loading-open {
 
 .rest-stop-food-section-title {
     margin: 0;
-    color: #1f2937;
+    color: var(--rr-color-text);
     font-size: 0.88rem;
     font-weight: 800;
 }
@@ -1269,9 +1302,9 @@ body.global-loading-open {
 
 .rest-stop-food-item {
     padding: 0.7rem 0.75rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background-color: #fbfcfe;
+    border: 1px solid oklch(92% 0.01 75);
+    border-radius: 10px;
+    background-color: var(--rr-color-surface);
 }
 
 .rest-stop-food-name {
@@ -1280,30 +1313,30 @@ body.global-loading-open {
     flex-wrap: wrap;
     gap: 0.4rem;
     margin: 0;
-    color: #212529;
+    color: var(--rr-color-text);
     font-size: 0.88rem;
     font-weight: 700;
 }
 
 .rest-stop-food-badge {
     padding: 0.05rem 0.4rem;
-    border-radius: 999px;
-    background-color: #e7f1ff;
-    color: #0d6efd;
+    border-radius: var(--rr-radius-pill);
+    background-color: oklch(94% 0.03 220);
+    color: oklch(42% 0.09 220);
     font-size: 0.7rem;
     font-weight: 600;
 }
 
 .rest-stop-food-cost {
     margin: 0.3rem 0 0;
-    color: #0d6efd;
+    color: var(--rr-color-primary);
     font-size: 0.84rem;
     font-weight: 600;
 }
 
 .rest-stop-food-description {
     margin: 0.3rem 0 0;
-    color: #495057;
+    color: var(--rr-color-text-secondary);
     font-size: 0.8rem;
 }
 
@@ -1320,12 +1353,12 @@ body.global-loading-open {
     max-height: min(80vh, 36rem);
     padding: 0;
     border: none;
-    border-radius: 12px;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+    border-radius: var(--rr-radius-card);
+    box-shadow: var(--rr-shadow-card);
 }
 
 .rest-stop-food-modal::backdrop {
-    background-color: rgba(15, 23, 42, 0.5);
+    background-color: oklch(20% 0.02 60 / 0.5);
 }
 
 .rest-stop-food-modal[open] {
@@ -1339,11 +1372,12 @@ body.global-loading-open {
     justify-content: space-between;
     gap: 0.75rem;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid oklch(91% 0.01 75);
 }
 
 .rest-stop-food-modal-title {
     margin: 0;
+    color: var(--rr-color-text);
     font-size: 1rem;
     font-weight: 700;
 }
@@ -1351,6 +1385,19 @@ body.global-loading-open {
 .rest-stop-food-modal-body {
     padding: 1rem 1.25rem 1.25rem;
     overflow-y: auto;
+}
+
+.rest-stop-food-modal-body .btn-outline-primary {
+    border-color: oklch(88% 0.04 220);
+    background-color: oklch(97% 0.02 220);
+    color: oklch(42% 0.09 220);
+}
+
+.rest-stop-food-modal-body .btn-outline-primary:hover,
+.rest-stop-food-modal-body .btn-outline-primary:focus {
+    border-color: oklch(88% 0.04 220);
+    background-color: oklch(93% 0.03 220);
+    color: oklch(42% 0.09 220);
 }
 
 @media (max-width: 991.98px) {
