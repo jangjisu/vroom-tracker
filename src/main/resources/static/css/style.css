@@ -923,12 +923,13 @@ body.global-loading-open {
 }
 
 .route-rest-stop-marker {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    border: 3px solid #fff;
+    border-radius: 50% 50% 50% 0;
     background-color: var(--rr-color-primary);
-    border: 2.5px solid #fff;
     box-shadow: 0 2px 6px oklch(30% 0.02 60 / 0.3);
+    transform: rotate(-45deg);
 }
 
 .rest-stop-detail-panel {
@@ -1173,10 +1174,12 @@ body.global-loading-open {
 
 .rest-stop-sales-ranking-name {
     min-width: 0;
+    overflow: hidden;
     color: #343a40;
     font-size: 0.9rem;
     line-height: 1.35;
-    overflow-wrap: anywhere;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (max-width: 991.98px) {
@@ -1440,7 +1443,6 @@ body.global-loading-open {
     }
 
     .rest-stop-detail-header {
-        position: relative;
         border-radius: 20px 20px 0 0;
         padding-top: 1.15rem;
     }

@@ -278,7 +278,7 @@ function renderRestStops(restStops) {
             position,
             icon: {
                 content: '<div class="route-rest-stop-marker"></div>',
-                anchor: new naverMaps.Point(7, 7)
+                anchor: new naverMaps.Point(14, 28)
             }
         });
         const infoWindow = new naverMaps.InfoWindow({
@@ -1671,7 +1671,7 @@ function renderRoute(data) {
             position,
             icon: {
                 content: '<div class="route-rest-stop-marker"></div>',
-                anchor: new naverMaps.Point(7, 7)
+                anchor: new naverMaps.Point(14, 28)
             },
             zIndex: 900
         });
