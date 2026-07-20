@@ -150,6 +150,19 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("ADMIN 사용자의 CSRF 없는 이미지 PUT은 403을 반환한다")
+    void adminImageUploadWithoutCsrf_returnsForbidden() throws Exception {
+        mockMvc.perform(multipart("/api/admin/rest-stops/A00001/image")
+                        .file(imageFile())
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        })
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("ADMIN 사용자의 CSRF 포함 이미지 DELETE는 204를 반환한다")
     void adminImageDeleteWithCsrf_returnsNoContent() throws Exception {
         saveRestStop();
@@ -159,6 +172,15 @@ class SecurityConfigTest {
                         .with(user("admin").roles("ADMIN"))
                         .with(csrf()))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("ADMIN 사용자의 CSRF 없는 이미지 DELETE는 403을 반환한다")
+    void adminImageDeleteWithoutCsrf_returnsForbidden() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(
+                                "/api/admin/rest-stops/A00001/image")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isForbidden());
     }
 
     @Test

@@ -66,6 +66,53 @@ class RestStopImageControllerTest {
     }
 
     @Test
+    @DisplayName("GET detail 이미지는 If-None-Match 목록의 일치하는 ETag에 304를 반환한다")
+    void getDetailImage_returnsNotModifiedWhenETagMatchesInAList() throws Exception {
+        byte[] image = new byte[] {1, 2, 3};
+        String eTag = "\"" + DigestUtils.md5DigestAsHex(image) + "\"";
+        when(queryService.findDetailImage("A00001")).thenReturn(Optional.of(image));
+
+        mockMvc.perform(get("/api/rest-stops/A00001/images/detail")
+                        .header("If-None-Match", "\"another-version\", " + eTag))
+                .andExpect(status().isNotModified())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    @DisplayName("GET detail 이미지는 약한 If-None-Match ETag에 304를 반환한다")
+    void getDetailImage_returnsNotModifiedWhenWeakETagMatches() throws Exception {
+        byte[] image = new byte[] {1, 2, 3};
+        String eTag = "\"" + DigestUtils.md5DigestAsHex(image) + "\"";
+        when(queryService.findDetailImage("A00001")).thenReturn(Optional.of(image));
+
+        mockMvc.perform(get("/api/rest-stops/A00001/images/detail").header("If-None-Match", "W/" + eTag))
+                .andExpect(status().isNotModified())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    @DisplayName("GET detail 이미지는 wildcard If-None-Match에 304를 반환한다")
+    void getDetailImage_returnsNotModifiedWhenETagWildcardMatches() throws Exception {
+        byte[] image = new byte[] {1, 2, 3};
+        when(queryService.findDetailImage("A00001")).thenReturn(Optional.of(image));
+
+        mockMvc.perform(get("/api/rest-stops/A00001/images/detail").header("If-None-Match", "*"))
+                .andExpect(status().isNotModified())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    @DisplayName("GET detail 이미지는 일치하지 않는 If-None-Match에 200과 본문을 반환한다")
+    void getDetailImage_returnsBodyWhenETagDoesNotMatch() throws Exception {
+        byte[] image = new byte[] {1, 2, 3};
+        when(queryService.findDetailImage("A00001")).thenReturn(Optional.of(image));
+
+        mockMvc.perform(get("/api/rest-stops/A00001/images/detail").header("If-None-Match", "\"other\""))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(image));
+    }
+
+    @Test
     @DisplayName("GET list 이미지는 목록 변형 WebP 본문을 반환한다")
     void getListImage_returnsListImage() throws Exception {
         byte[] image = new byte[] {4, 5, 6};

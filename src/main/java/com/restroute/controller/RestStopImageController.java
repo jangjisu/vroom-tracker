@@ -10,9 +10,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.context.request.ServletWebRequest;
 
 @Controller
 @ResponseBody
@@ -26,26 +26,22 @@ public class RestStopImageController {
     private final RestStopImageQueryService queryService;
 
     @GetMapping("/{serviceAreaCode}/images/detail")
-    public ResponseEntity<byte[]> getDetailImage(
-            @PathVariable String serviceAreaCode,
-            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
-        return imageResponse(queryService.findDetailImage(serviceAreaCode), ifNoneMatch);
+    public ResponseEntity<byte[]> getDetailImage(@PathVariable String serviceAreaCode, ServletWebRequest webRequest) {
+        return imageResponse(queryService.findDetailImage(serviceAreaCode), webRequest);
     }
 
     @GetMapping("/{serviceAreaCode}/images/list")
-    public ResponseEntity<byte[]> getListImage(
-            @PathVariable String serviceAreaCode,
-            @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
-        return imageResponse(queryService.findListImage(serviceAreaCode), ifNoneMatch);
+    public ResponseEntity<byte[]> getListImage(@PathVariable String serviceAreaCode, ServletWebRequest webRequest) {
+        return imageResponse(queryService.findListImage(serviceAreaCode), webRequest);
     }
 
-    private ResponseEntity<byte[]> imageResponse(Optional<byte[]> image, String ifNoneMatch) {
+    private ResponseEntity<byte[]> imageResponse(Optional<byte[]> image, ServletWebRequest webRequest) {
         if (image.isEmpty()) {
             return ResponseEntity.noContent().build();
         }
         byte[] imageData = image.get();
         String eTag = "\"" + DigestUtils.md5DigestAsHex(imageData) + "\"";
-        if (eTag.equals(ifNoneMatch)) {
+        if ("*".equals(webRequest.getHeader(HttpHeaders.IF_NONE_MATCH)) || webRequest.checkNotModified(eTag)) {
             return ResponseEntity.status(304)
                     .eTag(eTag)
                     .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_VALUE)
