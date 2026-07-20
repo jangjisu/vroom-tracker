@@ -572,6 +572,33 @@ DB에 저장된 전체 휴게소 위치 목록을 반환한다. 각 항목에는
 
 해당 `serviceAreaCode`가 없으면 HTTP 404와 `NOT_FOUND`를 반환한다.
 
+### 휴게소 대표 이미지 API
+
+`GET /api/rest-stops/{serviceAreaCode}/basic-info`의 `data.detailImageUrl`과
+`GET /api/route-rest-stops`의 `data.restStops[].listImageUrl`은 이미지가 있을 때 각각 상세용·목록용
+바이너리 URL을 반환하고, 이미지가 없으면 `null`이다. JSON 응답에는 이미지 BLOB을 포함하지 않는다.
+
+#### GET /api/rest-stops/{serviceAreaCode}/images/detail
+
+#### GET /api/rest-stops/{serviceAreaCode}/images/list
+
+저장된 상세용 또는 목록용 WebP 바이너리를 `Content-Type: image/webp`로 반환한다. 성공 응답은
+데이터 기반 `ETag`와 `Cache-Control: public, no-cache`를 포함하며, 일치하는 `If-None-Match` 요청에는
+`304 Not Modified`를 반환한다. 휴게소는 있지만 이미지가 없으면 `204 No Content`, 휴게소 자체가 없으면
+`404 Not Found`를 반환한다. 이 두 바이너리 응답은 `ApiResponse<T>` 형식을 사용하지 않는다.
+
+#### PUT /api/admin/rest-stops/{serviceAreaCode}/image
+
+관리자 인증과 CSRF 토큰이 필요한 등록·교체 API다. `multipart/form-data`의 `file` 필드로 최대 20MB
+JPEG 또는 PNG 한 장을 보낸다. 서버는 상세용 1600px와 목록용 480px WebP로 변환해 기존 이미지가
+있으면 교체하며 성공 시 `204 No Content`를 반환한다. 파일 형식·크기·이미지 해석이 유효하지 않으면
+`400 Bad Request`, 휴게소가 없으면 `404 Not Found`를 반환한다.
+
+#### DELETE /api/admin/rest-stops/{serviceAreaCode}/image
+
+관리자 인증과 CSRF 토큰이 필요한 삭제 API다. 이미지가 있거나 이미 없는 경우 모두 멱등적으로
+`204 No Content`를 반환하고, 휴게소 자체가 없으면 `404 Not Found`를 반환한다.
+
 ### POST /api/rest-stops/{serviceAreaCode}/oil-price/refresh
 
 특정 휴게소의 주유소 가격을 한국도로공사 `curStateStation` API에서 단건 조회해

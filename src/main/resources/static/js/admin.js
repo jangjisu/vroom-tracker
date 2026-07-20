@@ -1,3 +1,5 @@
+import { initializeAdminRestStopImage } from './admin-rest-stop-image.js';
+
 const ADMIN_DASHBOARD_API = '/api/admin/dashboard';
 const TOAST_DURATION_MS = 3200;
 
@@ -140,6 +142,14 @@ export function initializeAdminDashboard(document, fetchImpl = fetch) {
     }
 }
 
+export function initializeAdminPage(document, fetchImpl = fetch) {
+    initializeAdminDashboard(document, fetchImpl);
+    initializeAdminRestStopImage(document, {
+        fetchImpl,
+        onNotice: (message, type) => showToast(document, message, type)
+    });
+}
+
 if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => initializeAdminDashboard(document));
+    document.addEventListener('DOMContentLoaded', () => initializeAdminPage(document));
 }

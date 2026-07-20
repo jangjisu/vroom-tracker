@@ -33,6 +33,7 @@
 - 관리자는 `PUT /api/admin/rest-stops/{serviceAreaCode}/image`로 JPEG/PNG 하나를 등록·교체하고 `DELETE /api/admin/rest-stops/{serviceAreaCode}/image`로 삭제한다. 업로드 처리기는 JPEG/PNG를 WebP 상세용(긴 변 최대 1600px)과 목록용(긴 변 최대 480px)으로 변환한 뒤 두 BLOB만 저장하며 원본은 보관하지 않는다.
 - 공개 `GET /api/rest-stops/{serviceAreaCode}/images/detail|list`는 저장된 WebP 바이너리를 반환한다. 휴게소가 없으면 `404`, 휴게소는 있지만 이미지가 없으면 `204 No Content`이며, 성공 응답은 데이터 기반 ETag와 `Cache-Control: public, no-cache`로 브라우저 재검증을 지원한다.
 - 기존 JSON은 BLOB을 포함하지 않는다. `basic-info`의 nullable `detailImageUrl`과 경로 휴게소 항목의 nullable `listImageUrl`만 이미지가 있을 때 해당 공개 URL을 제공한다. 경로 조회는 이미지가 있는 코드만 일괄 조회해 목록별 BLOB 조회를 피한다.
+- 관리자 프론트엔드는 기존 휴게소 목록으로 대상을 선택하고 이미지 조회·등록·교체·삭제 API를 독립 모듈에서 호출한다. 사용자 프론트엔드는 `detailImageUrl`과 `listImageUrl`이 있을 때만 이미지 요소를 표시하며, 값이 없으면 요소를 숨겨 기존 레이아웃을 보존한다.
 - 전국 평균 유가 요약은 `/api/national-oil-prices/summary`가 별도로 조회·반환한다. 경로 Service는 이 요약을 휴게소별 `comparisonSummary` 계산에 사용할 수 있지만, `RouteRestStopResponse`의 최상위 응답에는 포함하지 않는다.
 - 경로 탐색은 카카오 장소 검색 후보에서 선택한 좌표로 길찾기를 호출하고, 저장된 휴게소 좌표와 경로 사이 거리를 계산한다.
 - 카카오 API 예외는 `GlobalExceptionHandler`가 공통 응답으로 변환하고, 정기 동기화 예외는 스케줄러가 항목별로 기록한다.
