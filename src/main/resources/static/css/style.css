@@ -520,9 +520,9 @@ body.global-loading-open {
 .route-national-oil-summary {
     margin: 1rem 1.25rem 0;
     padding: 0.75rem 0.85rem;
-    border: 1px solid #dbe5f3;
-    border-radius: 8px;
-    background-color: #f8fafc;
+    border: 1px solid oklch(91% 0.01 75);
+    border-radius: 14px;
+    background-color: oklch(97% 0.01 75);
 }
 
 .route-direction-alternative-notice:not(.d-none) + .route-national-oil-summary:not(.d-none) {
@@ -543,13 +543,13 @@ body.global-loading-open {
 }
 
 .route-national-oil-summary-title {
-    color: #343a40;
+    color: var(--rr-color-text);
     font-size: 0.82rem;
     font-weight: 700;
 }
 
 .route-national-oil-summary-date {
-    color: #6c757d;
+    color: var(--rr-color-text-secondary);
     font-size: 0.74rem;
     white-space: nowrap;
 }
@@ -564,14 +564,14 @@ body.global-loading-open {
 .route-national-oil-chip {
     min-width: 0;
     padding: 0.5rem 0.55rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    background-color: #f8fafc;
+    border: 1px solid oklch(92% 0.01 75);
+    border-radius: 10px;
+    background-color: var(--rr-color-surface);
 }
 
 .route-national-oil-chip dt {
     margin: 0 0 0.18rem;
-    color: #5c6773;
+    color: var(--rr-color-text-secondary);
     font-size: 0.74rem;
     font-weight: 700;
 }
@@ -659,10 +659,10 @@ body.global-loading-open {
 
 .route-result-item {
     padding: 0.85rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background-color: #fff;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    border: 1px solid oklch(92% 0.01 75);
+    border-radius: 14px;
+    background-color: var(--rr-color-surface);
+    box-shadow: none;
     cursor: pointer;
     transition: border-color 0.1s ease, box-shadow 0.1s ease;
 }
@@ -739,7 +739,8 @@ body.global-loading-open {
 
 .route-result-name {
     margin: 0;
-    font-weight: 700;
+    color: var(--rr-color-text);
+    font-weight: 800;
     font-size: 0.95rem;
     line-height: 1.35;
 }
@@ -758,7 +759,7 @@ body.global-loading-open {
     width: 1.55rem;
     height: 1.55rem;
     border-radius: 50%;
-    background-color: #0d6efd;
+    background-color: var(--rr-color-primary);
     color: #fff;
     font-size: 0.82rem;
     font-weight: 800;
@@ -767,7 +768,7 @@ body.global-loading-open {
 
 .route-result-meta {
     margin: 0.35rem 0 0;
-    color: #6c757d;
+    color: var(--rr-color-text-secondary);
     font-size: 0.8rem;
 }
 
@@ -799,10 +800,10 @@ body.global-loading-open {
     align-items: center;
     min-height: 1.35rem;
     padding: 0.1rem 0.4rem;
-    border: 1px solid #cfe2ff;
-    border-radius: 999px;
-    background-color: #eef5ff;
-    color: #0b5ed7;
+    border: 1px solid oklch(88% 0.04 220);
+    border-radius: var(--rr-radius-pill);
+    background-color: oklch(94% 0.03 220);
+    color: oklch(42% 0.09 220);
     font-size: 0.72rem;
     font-weight: 700;
     line-height: 1.2;
@@ -814,8 +815,8 @@ body.global-loading-open {
     gap: 0.45rem;
     margin-top: 0.65rem;
     padding-top: 0.65rem;
-    border-top: 1px solid #eef1f6;
-    color: #212529;
+    border-top: 1px solid oklch(93% 0.01 75);
+    color: var(--rr-color-text);
     font-size: 0.8rem;
     line-height: 1.35;
 }
@@ -826,13 +827,13 @@ body.global-loading-open {
     gap: 0.1rem;
     min-width: 0;
     padding: 0.45rem 0.5rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    background-color: #f8fafc;
+    border: none;
+    border-radius: 8px;
+    background-color: oklch(97% 0.01 75);
 }
 
 .route-result-fuel-label {
-    color: #5c6773;
+    color: var(--rr-color-text-secondary);
     font-size: 0.7rem;
     font-weight: 700;
 }
@@ -1376,8 +1377,8 @@ body.global-loading-open {
         height: auto;
         max-height: 72vh;
         border: 0;
-        border-radius: 16px 16px 0 0;
-        box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.28);
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -8px 24px oklch(30% 0.02 60 / 0.16);
         overscroll-behavior: contain;
     }
 
@@ -1391,8 +1392,21 @@ body.global-loading-open {
     }
 
     .rest-stop-detail-header {
-        border-radius: 16px 16px 0 0;
-        padding-top: 0.95rem;
+        position: relative;
+        border-radius: 20px 20px 0 0;
+        padding-top: 1.15rem;
+    }
+
+    .rest-stop-detail-header::before {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        background-color: oklch(88% 0.01 75);
+        content: '';
+        transform: translateX(-50%);
     }
 
     .rest-stop-food-open {
@@ -1566,7 +1580,24 @@ body.global-loading-open {
         max-width: none;
         max-height: 72vh;
         margin: auto 0 0;
-        border-radius: 16px 16px 0 0;
+        border-radius: 20px 20px 0 0;
+    }
+
+    #routeResultModal .route-result-modal-header {
+        position: relative;
+        padding-top: 1.15rem;
+    }
+
+    #routeResultModal .route-result-modal-header::before {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        width: 36px;
+        height: 4px;
+        border-radius: 2px;
+        background-color: oklch(88% 0.01 75);
+        content: '';
+        transform: translateX(-50%);
     }
 
     .route-national-oil-summary {
