@@ -1,3 +1,21 @@
+/* ===== Design Tokens (rest-route redesign) =====
+   design_handoff_rest_route 목업(README Design Tokens) 기준.
+   Phase 0에서는 토큰 정의 + body/nav 전역 적용까지만 진행하고,
+   개별 컴포넌트 색상 교체는 이후 Phase에서 이 토큰을 참조한다. */
+:root {
+    --rr-color-bg: oklch(96.5% 0.014 75);
+    --rr-color-surface: oklch(99% 0.006 75);
+    --rr-color-text: oklch(23% 0.02 60);
+    --rr-color-text-secondary: oklch(50% 0.02 60);
+    --rr-color-primary: oklch(52% 0.11 220);
+    --rr-color-accent: oklch(72% 0.14 55);
+    --rr-radius-card: 16px;
+    --rr-radius-pill: 99px;
+    --rr-radius-button: 9px;
+    --rr-shadow-card: 0 24px 60px -20px oklch(30% 0.02 60 / 0.35);
+    --rr-font-family: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+}
+
 /* ===== Page Loader Overlay ===== */
 #pageLoader {
     position: fixed;
@@ -30,8 +48,9 @@
 
 /* ===== Layout ===== */
 body {
-    background-color: #f5f6fa;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--rr-color-bg);
+    font-family: var(--rr-font-family);
+    -webkit-font-smoothing: antialiased;
 }
 
 body.rest-stop-detail-sheet-open {
@@ -72,8 +91,55 @@ body.global-loading-open {
 }
 
 /* ===== Navbar ===== */
-.navbar {
-    border-bottom: 1px solid #2d2d2d;
+.rr-navbar {
+    display: flex;
+    align-items: center;
+    background-color: var(--rr-color-surface);
+    border-bottom: 1px solid oklch(91% 0.01 75);
+}
+
+.rr-navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.rr-logo-mark {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background-color: var(--rr-color-primary);
+}
+
+.rr-logo-mark-ring {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    border: 2.5px solid #fff;
+    border-radius: 50%;
+}
+
+.rr-logo-mark-ring::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 1.5px;
+    background-color: #fff;
+    content: '';
+    transform: translate(-50%, -50%) rotate(45deg);
+    transform-origin: left center;
+}
+
+.rr-navbar-wordmark {
+    color: var(--rr-color-text);
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
 }
 
 /* ===== Rest Stop Map ===== */
