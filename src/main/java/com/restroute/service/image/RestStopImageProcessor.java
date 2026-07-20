@@ -25,8 +25,8 @@ public class RestStopImageProcessor {
     private static final int DETAIL_MAX_LONG_SIDE = 1600;
     private static final int LIST_MAX_LONG_SIDE = 480;
     private static final long MAX_PIXEL_COUNT = 30_000_000;
-    private static final float DETAIL_QUALITY = 0.80f;
-    private static final float LIST_QUALITY = 0.75f;
+    static final float DETAIL_QUALITY = 0.80f;
+    static final float LIST_QUALITY = 0.75f;
     private static final Set<String> SUPPORTED_FORMATS = Set.of("jpeg", "png");
 
     public RestStopImageData process(MultipartFile file) {

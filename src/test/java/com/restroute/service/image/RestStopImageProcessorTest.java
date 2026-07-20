@@ -10,7 +10,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +28,16 @@ class RestStopImageProcessorTest {
 
         assertDimensions(result.detailImageData(), 1600, 800);
         assertDimensions(result.listImageData(), 480, 240);
+    }
+
+    @Test
+    void usesWebpForBothVariantsAtTheConfiguredQualities() throws IOException {
+        RestStopImageData result = processor.process(image("jpeg", 2400, 1200));
+
+        assertWebp(result.detailImageData());
+        assertWebp(result.listImageData());
+        assertThat(RestStopImageProcessor.DETAIL_QUALITY).isEqualTo(0.80f);
+        assertThat(RestStopImageProcessor.LIST_QUALITY).isEqualTo(0.75f);
     }
 
     @Test
@@ -117,5 +130,19 @@ class RestStopImageProcessorTest {
         assertThat(image).isNotNull();
         assertThat(image.getWidth()).isEqualTo(width);
         assertThat(image.getHeight()).isEqualTo(height);
+    }
+
+    private void assertWebp(byte[] data) throws IOException {
+        try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(data))) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            assertThat(readers.hasNext()).isTrue();
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input);
+                assertThat(reader.getFormatName()).isEqualToIgnoringCase("webp");
+            } finally {
+                reader.dispose();
+            }
+        }
     }
 }
