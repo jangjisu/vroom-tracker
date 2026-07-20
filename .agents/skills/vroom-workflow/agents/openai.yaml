@@ -1,6 +1,6 @@
 interface:
   display_name: "Vroom Workflow"
-  short_description: "vroom-tracker 구현과 역할별 리뷰를 조율합니다"
+  short_description: "vroom-tracker 구현과 단일 리뷰를 조율합니다"
   default_prompt: "Use $vroom-workflow to implement this vroom-tracker change through the six-step harness."
 
 policy:
