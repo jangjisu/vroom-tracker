@@ -695,9 +695,9 @@ function renderParkingInfo(compactCount, fullSizeCount, disabledCount) {
 
     const breakdownElement = document.getElementById('restStopDetailParkingBreakdown');
     if (breakdownElement) {
-        const bothMissing = isMissingValue(fullSizeCount) && isMissingValue(compactCount);
-        breakdownElement.textContent = formatParkingBreakdown(fullSizeCount, compactCount);
-        breakdownElement.classList.toggle('rest-stop-detail-missing', bothMissing);
+        const allMissing = isMissingValue(fullSizeCount) && isMissingValue(compactCount) && isMissingValue(disabledCount);
+        breakdownElement.textContent = formatParkingBreakdown(fullSizeCount, compactCount, disabledCount);
+        breakdownElement.classList.toggle('rest-stop-detail-missing', allMissing);
     }
 }
 
