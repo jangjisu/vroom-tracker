@@ -8,8 +8,9 @@ import {
     formatFreightOperation,
     formatOilPrice,
     formatOperationTime,
-    formatParkingCount,
+    formatParkingBreakdown,
     formatRefreshedAt,
+    formatTotalParkingCount,
     formatSalesRankingMonth,
     formatText,
     hasFoodMenu,
@@ -278,7 +279,7 @@ function renderRestStops(restStops) {
             position,
             icon: {
                 content: '<div class="route-rest-stop-marker"></div>',
-                anchor: new naverMaps.Point(14, 28)
+                anchor: new naverMaps.Point(7, 7)
             }
         });
         const infoWindow = new naverMaps.InfoWindow({
@@ -602,24 +603,7 @@ function renderDetail(detail) {
     renderConvenience(detail.convenience);
     setDetailValue('restStopDetailMaintenance', detail.maintenanceYn, '알 수 없음', formatAvailability);
     setDetailValue('restStopDetailFreight', detail.truckSaYn, '알 수 없음', formatFreightOperation);
-    setDetailValue(
-        'restStopDetailCompactParking',
-        detail.compactCarParkingCount,
-        '정보 없음',
-        formatParkingCount
-    );
-    setDetailValue(
-        'restStopDetailFullSizeParking',
-        detail.fullSizeCarParkingCount,
-        '정보 없음',
-        formatParkingCount
-    );
-    setDetailValue(
-        'restStopDetailDisabledParking',
-        detail.disabledParkingCount,
-        '정보 없음',
-        formatParkingCount
-    );
+    renderParkingInfo(detail.compactCarParkingCount, detail.fullSizeCarParkingCount, detail.disabledParkingCount);
     renderEvChargerInfo(detail.evChargerCount);
     renderSalesRanking(detail.salesRanking);
     renderOilInfo(detail.oilInfo);
@@ -699,6 +683,22 @@ function setDetailValue(id, rawValue, fallback, formatter = (value) => formatTex
     const formattedValue = formatter(rawValue);
     element.textContent = formattedValue;
     element.classList.toggle('rest-stop-detail-missing', isMissingValue(rawValue));
+}
+
+function renderParkingInfo(compactCount, fullSizeCount, disabledCount) {
+    const totalElement = document.getElementById('restStopDetailTotalParking');
+    if (totalElement) {
+        const allMissing = isMissingValue(compactCount) && isMissingValue(fullSizeCount) && isMissingValue(disabledCount);
+        totalElement.textContent = formatTotalParkingCount(compactCount, fullSizeCount, disabledCount);
+        totalElement.classList.toggle('rest-stop-detail-missing', allMissing);
+    }
+
+    const breakdownElement = document.getElementById('restStopDetailParkingBreakdown');
+    if (breakdownElement) {
+        const bothMissing = isMissingValue(fullSizeCount) && isMissingValue(compactCount);
+        breakdownElement.textContent = formatParkingBreakdown(fullSizeCount, compactCount);
+        breakdownElement.classList.toggle('rest-stop-detail-missing', bothMissing);
+    }
 }
 
 function renderConvenience(value) {
@@ -1671,7 +1671,7 @@ function renderRoute(data) {
             position,
             icon: {
                 content: '<div class="route-rest-stop-marker"></div>',
-                anchor: new naverMaps.Point(14, 28)
+                anchor: new naverMaps.Point(7, 7)
             },
             zIndex: 900
         });
@@ -2112,7 +2112,7 @@ function createRouteResultItem(restStop, index) {
             }
             fuelList.appendChild(fuelItem);
         });
-        appendTarget.appendChild(fuelList);
+        item.appendChild(fuelList);
     }
 
     const countSummary = formatRouteComparisonSummary(restStop).at(1);

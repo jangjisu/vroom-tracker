@@ -49,6 +49,22 @@ export function formatParkingCount(value) {
     return isNumber || isNumericString ? `${normalizedValue}대` : '정보 없음';
 }
 
+export function formatTotalParkingCount(compactCount, fullSizeCount, disabledCount) {
+    const values = [compactCount, fullSizeCount, disabledCount].filter((value) => !isMissingValue(value));
+    if (values.length === 0) {
+        return '정보 없음';
+    }
+    const total = values.reduce((sum, value) => sum + Number(value), 0);
+    return `${total.toLocaleString()}대`;
+}
+
+export function formatParkingBreakdown(fullSizeCount, compactCount) {
+    if (isMissingValue(fullSizeCount) && isMissingValue(compactCount)) {
+        return '정보 없음';
+    }
+    return `${formatParkingCount(fullSizeCount)} · ${formatParkingCount(compactCount)}`;
+}
+
 export function formatOilPrice(value) {
     return formatText(value, '정보 없음');
 }

@@ -712,6 +712,10 @@ body.global-loading-open {
     gap: 0.85rem;
 }
 
+.route-result-item-with-image > .route-result-fuels {
+    grid-column: 1 / -1;
+}
+
 .route-result-image-wrapper {
     align-self: start;
     aspect-ratio: 4 / 3;
@@ -923,13 +927,12 @@ body.global-loading-open {
 }
 
 .route-rest-stop-marker {
-    width: 28px;
-    height: 28px;
-    border: 3px solid #fff;
-    border-radius: 50% 50% 50% 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
     background-color: var(--rr-color-primary);
+    border: 2.5px solid #fff;
     box-shadow: 0 2px 6px oklch(30% 0.02 60 / 0.3);
-    transform: rotate(-45deg);
 }
 
 .rest-stop-detail-panel {
@@ -1098,6 +1101,10 @@ body.global-loading-open {
     color: var(--rr-color-text);
     font-size: 0.88rem;
     font-weight: 800;
+}
+
+.rest-stop-detail-section-icon {
+    margin-right: 0.35rem;
 }
 
 .rest-stop-detail-section-header {
@@ -1682,6 +1689,70 @@ body.global-loading-open {
 
     .route-result-fuel-price {
         font-size: 0.74rem;
+    }
+
+    .rest-stop-detail-name {
+        font-size: 0.95rem;
+    }
+
+    .rest-stop-detail-section-title {
+        font-size: 0.8rem;
+    }
+
+    .rest-stop-detail-subtitle {
+        font-size: 0.74rem;
+    }
+
+    .rest-stop-detail-meta {
+        font-size: 0.72rem;
+    }
+
+    .rest-stop-detail-list dt {
+        font-size: 0.76rem;
+    }
+
+    .rest-stop-detail-list dd {
+        font-size: 0.82rem;
+    }
+
+    .rest-stop-detail-tags li {
+        font-size: 0.68rem;
+    }
+
+    .rest-stop-sales-ranking-name {
+        font-size: 0.72rem;
+    }
+
+    .route-result-name {
+        font-size: 0.86rem;
+    }
+
+    .route-result-meta {
+        font-size: 0.74rem;
+    }
+
+    .route-result-tag {
+        font-size: 0.68rem;
+    }
+
+    .route-result-fuel-label {
+        font-size: 0.66rem;
+    }
+
+    .route-national-oil-summary-title {
+        font-size: 0.76rem;
+    }
+
+    .route-national-oil-summary-date {
+        font-size: 0.68rem;
+    }
+
+    .route-national-oil-chip dt {
+        font-size: 0.68rem;
+    }
+
+    .route-national-oil-chip dd {
+        font-size: 0.72rem;
     }
 }
 

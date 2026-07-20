@@ -128,20 +128,22 @@
                         <img id="restStopDetailImage" class="rest-stop-detail-image" alt="">
                     </figure>
                     <section class="rest-stop-detail-section" aria-labelledby="restStopDetailParkingHeading">
-                        <h3 id="restStopDetailParkingHeading" class="rest-stop-detail-section-title">주차 정보</h3>
+                        <h3 id="restStopDetailParkingHeading" class="rest-stop-detail-section-title">
+                            <span class="rest-stop-detail-section-icon" aria-hidden="true">🅿️</span>주차 정보
+                        </h3>
                         <dl class="rest-stop-detail-list">
-                            <dt>소형차</dt>
-                            <dd id="restStopDetailCompactParking"></dd>
-                            <dt>대형차</dt>
-                            <dd id="restStopDetailFullSizeParking"></dd>
-                            <dt>장애인</dt>
-                            <dd id="restStopDetailDisabledParking"></dd>
+                            <dt>총 주차 대수</dt>
+                            <dd id="restStopDetailTotalParking"></dd>
+                            <dt>대형 / 소형</dt>
+                            <dd id="restStopDetailParkingBreakdown"></dd>
                         </dl>
                     </section>
                     <section id="restStopOilSection" class="rest-stop-detail-section"
                              aria-labelledby="restStopDetailOilHeading">
                         <div class="rest-stop-detail-section-header">
-                            <h3 id="restStopDetailOilHeading" class="rest-stop-detail-section-title">주유 정보</h3>
+                            <h3 id="restStopDetailOilHeading" class="rest-stop-detail-section-title">
+                                <span class="rest-stop-detail-section-icon" aria-hidden="true">⛽</span>주유 정보
+                            </h3>
                             <button id="restStopOilRefreshButton" class="btn btn-sm btn-outline-primary" type="button">
                                 실시간 요금 갱신
                             </button>
@@ -171,7 +173,9 @@
                     <section id="restStopSalesRankingSection" class="rest-stop-detail-section d-none"
                              aria-labelledby="restStopSalesRankingHeading">
                         <div class="rest-stop-detail-section-header">
-                            <h3 id="restStopSalesRankingHeading" class="rest-stop-detail-section-title">인기 판매</h3>
+                            <h3 id="restStopSalesRankingHeading" class="rest-stop-detail-section-title">
+                                <span class="rest-stop-detail-section-icon" aria-hidden="true">🛍️</span>인기 판매
+                            </h3>
                             <span id="restStopSalesRankingMonth" class="rest-stop-detail-meta"></span>
                         </div>
                         <p class="rest-stop-sales-ranking-caption">휴게소 내 판매순위</p>
@@ -189,7 +193,9 @@
                         </div>
                     </section>
                     <section class="rest-stop-detail-section" aria-labelledby="restStopDetailLocationHeading">
-                        <h3 id="restStopDetailLocationHeading" class="rest-stop-detail-section-title">위치 정보</h3>
+                        <h3 id="restStopDetailLocationHeading" class="rest-stop-detail-section-title">
+                            <span class="rest-stop-detail-section-icon" aria-hidden="true">📍</span>위치 정보
+                        </h3>
                         <dl class="rest-stop-detail-list">
                             <dt>노선</dt>
                             <dd id="restStopDetailRoute"></dd>
@@ -200,7 +206,9 @@
                         </dl>
                     </section>
                     <section class="rest-stop-detail-section" aria-labelledby="restStopDetailConvenienceHeading">
-                        <h3 id="restStopDetailConvenienceHeading" class="rest-stop-detail-section-title">편의시설</h3>
+                        <h3 id="restStopDetailConvenienceHeading" class="rest-stop-detail-section-title">
+                            <span class="rest-stop-detail-section-icon" aria-hidden="true">👥</span>편의시설
+                        </h3>
                         <ul id="restStopDetailConvenience" class="rest-stop-detail-tags"></ul>
                         <p id="restStopDetailConvenienceFallback"
                            class="rest-stop-detail-missing d-none"></p>
