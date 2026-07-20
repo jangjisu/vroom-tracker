@@ -25,6 +25,7 @@ import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
 import { createRouteRestStopRequest } from './route-rest-stop-request.js';
 import { createNationalOilPriceRequest } from './national-oil-price-request.js';
 import { createPlaceSearchRequest } from './place-search-request.js';
+import { createRouteRestStopImage, renderDetailImage } from './rest-stop-images.js';
 import {
     ROUTE_POINT_TARGET,
     createRoutePointSelection
@@ -589,6 +590,7 @@ function detailStatusMessage(status) {
 
 function renderDetail(detail) {
     currentDetail = detail;
+    renderDetailImage(document, detail);
     setDetailName(detail.unitName, selectedRestStopName);
     setDetailValue('restStopDetailRoute', detail.routeName, '노선 정보 없음');
     setDetailValue('restStopDetailDirection', detail.direction, '방향 정보 없음');
@@ -2019,6 +2021,20 @@ function createRouteResultItem(restStop, index) {
     const item = document.createElement('li');
     item.className = 'route-result-item';
 
+    let appendTarget = item;
+    const image = createRouteRestStopImage(document, restStop);
+    if (image) {
+        item.classList.add('route-result-item-with-image');
+        const imageWrapper = document.createElement('div');
+        imageWrapper.className = 'route-result-image-wrapper';
+        imageWrapper.appendChild(image);
+        item.appendChild(imageWrapper);
+
+        appendTarget = document.createElement('div');
+        appendTarget.className = 'route-result-content';
+        item.appendChild(appendTarget);
+    }
+
     const header = document.createElement('div');
     header.className = 'route-result-item-header';
 
@@ -2031,13 +2047,13 @@ function createRouteResultItem(restStop, index) {
     name.className = 'route-result-name';
     name.textContent = formatText(restStop?.unitName, '이름 정보 없음');
     header.appendChild(name);
-    item.appendChild(header);
+    appendTarget.appendChild(header);
 
     if (restStop?.hasDirectionAlternative === true) {
         const badge = document.createElement('span');
         badge.className = 'route-direction-alternative-badge';
         badge.textContent = '상·하행 후보';
-        item.appendChild(badge);
+        appendTarget.appendChild(badge);
     }
 
     const recommendationLabels = routeRecommendationLabels(restStop);
@@ -2050,20 +2066,20 @@ function createRouteResultItem(restStop, index) {
             tag.textContent = label;
             tags.appendChild(tag);
         });
-        item.appendChild(tags);
+        appendTarget.appendChild(tags);
     }
 
     const meta = document.createElement('p');
     meta.className = 'route-result-meta';
     meta.textContent = formatText(restStop?.routeName, '노선 정보 없음');
-    item.appendChild(meta);
+    appendTarget.appendChild(meta);
 
     const evChargerLabel = formatEvChargerAvailability(restStop);
     if (evChargerLabel) {
         const evCharger = document.createElement('span');
         evCharger.className = 'route-result-ev-charger';
         evCharger.textContent = evChargerLabel;
-        item.appendChild(evCharger);
+        appendTarget.appendChild(evCharger);
     }
 
     const fuels = routeResultFuelItems(restStop);
@@ -2092,7 +2108,7 @@ function createRouteResultItem(restStop, index) {
             }
             fuelList.appendChild(fuelItem);
         });
-        item.appendChild(fuelList);
+        appendTarget.appendChild(fuelList);
     }
 
     const countSummary = formatRouteComparisonSummary(restStop).at(1);
@@ -2100,7 +2116,7 @@ function createRouteResultItem(restStop, index) {
         const summary = document.createElement('p');
         summary.className = 'route-result-summary';
         summary.textContent = countSummary;
-        item.appendChild(summary);
+        appendTarget.appendChild(summary);
     }
 
     item.addEventListener('click', () => selectRouteRestStop(restStop));
