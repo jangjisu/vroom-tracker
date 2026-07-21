@@ -1211,7 +1211,8 @@ function selectRestStopSearchResult(restStop) {
     const latitude = Number.parseFloat(restStop.yValue);
     const longitude = Number.parseFloat(restStop.xValue);
     if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
-        map?.panTo(new naverMaps.LatLng(latitude, longitude));
+        openRestStopPopupAt(restStop, new naverMaps.LatLng(latitude, longitude));
+        return;
     }
     openDetailPanel(restStop);
 }
