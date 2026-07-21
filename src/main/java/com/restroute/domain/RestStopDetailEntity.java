@@ -1,6 +1,7 @@
 package com.restroute.domain;
 
 import com.restroute.client.response.RestStopDetailItem;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -40,6 +41,9 @@ public class RestStopDetailEntity {
     private String truckSaYn;
     private String restStopServiceAreaCode;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean adminOverridden;
+
     private RestStopDetailEntity(RestStopDetailItem item) {
         this.routeName = item.getRouteName();
         this.serviceAreaCode = item.getServiceAreaCode();
@@ -73,5 +77,33 @@ public class RestStopDetailEntity {
 
     public static RestStopDetailEntity from(RestStopDetailItem item) {
         return new RestStopDetailEntity(item);
+    }
+
+    public static RestStopDetailEntity createEmpty(String serviceAreaCode) {
+        RestStopDetailEntity entity = new RestStopDetailEntity();
+        entity.serviceAreaCode = serviceAreaCode;
+        return entity;
+    }
+
+    public void applyAdminEdit(
+            String telNo,
+            String brand,
+            String routeCode,
+            String svarAddr,
+            String convenience,
+            String maintenanceYn,
+            String truckSaYn) {
+        this.telNo = telNo;
+        this.brand = brand;
+        this.routeCode = routeCode;
+        this.svarAddr = svarAddr;
+        this.convenience = convenience;
+        this.maintenanceYn = maintenanceYn;
+        this.truckSaYn = truckSaYn;
+        this.adminOverridden = true;
+    }
+
+    public void clearAdminOverride() {
+        this.adminOverridden = false;
     }
 }

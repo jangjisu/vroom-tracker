@@ -1,6 +1,7 @@
 package com.restroute.common;
 
 import com.restroute.client.exception.KakaoApiException;
+import com.restroute.service.admin.InvalidRestStopEditException;
 import com.restroute.service.image.InvalidRestStopImageException;
 import com.restroute.service.image.RestStopNotFoundException;
 import com.restroute.service.route.RouteRestStopNotFoundException;
@@ -39,6 +40,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidRestStopImageException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidRestStopImage(InvalidRestStopImageException e) {
         log.warn("Invalid rest stop image: {}", e.getMessage());
+        return ResponseEntity.status(ResponseCode.INVALID_PARAMETER.getHttpStatus())
+                .body(ApiResponse.error(ResponseCode.INVALID_PARAMETER, e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidRestStopEditException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRestStopEdit(InvalidRestStopEditException e) {
+        log.warn("Invalid rest stop edit: {}", e.getMessage());
         return ResponseEntity.status(ResponseCode.INVALID_PARAMETER.getHttpStatus())
                 .body(ApiResponse.error(ResponseCode.INVALID_PARAMETER, e.getMessage()));
     }

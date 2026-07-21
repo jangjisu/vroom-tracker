@@ -23,7 +23,17 @@ public class AdminController {
 
     @GetMapping("/admin")
     public String admin() {
-        return "admin";
+        return "admin-dashboard";
+    }
+
+    @GetMapping("/admin/rest-stops/images")
+    public String restStopImages() {
+        return "admin-rest-stop-images";
+    }
+
+    @GetMapping("/admin/rest-stops/edit")
+    public String restStopEdit() {
+        return "admin-rest-stop-edit";
     }
 
     @GetMapping("/api/admin/dashboard")

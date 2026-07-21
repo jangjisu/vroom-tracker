@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<aside th:fragment="sidebar(active)">
+    <div class="brand">rest-route<small>운영자 콘솔</small></div>
+    <nav>
+        <div class="nav-label">Overview</div>
+        <a th:classappend="${active == 'dashboard'} ? 'active'" href="/admin"><span class="nav-icon">▦</span>대시보드</a>
+        <div class="nav-label">Content</div>
+        <a class="disabled" href="#"><span class="nav-icon">↥</span>판매순위 관리<span>준비중</span></a>
+        <a th:classappend="${active == 'images'} ? 'active'" href="/admin/rest-stops/images"><span class="nav-icon">▣</span>휴게소 이미지</a>
+        <a th:classappend="${active == 'edit'} ? 'active'" href="/admin/rest-stops/edit"><span class="nav-icon">✎</span>휴게소 정보 관리</a>
+        <a class="disabled" href="#"><span class="nav-icon">◇</span>상품·메뉴 관리<span>준비중</span></a>
+        <div class="nav-label">System</div>
+        <a class="disabled" href="#"><span class="nav-icon">↻</span>데이터 동기화<span>준비중</span></a>
+    </nav>
+    <div class="account"><strong>관리자 계정</strong>현재 로그인됨<form th:action="@{/logout}" method="post"><input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"><button class="logout" type="submit">로그아웃</button></form></div>
+</aside>
+<header th:fragment="header(title)">
+    <div class="breadcrumb">관리자 콘솔 <strong th:text="${title}"></strong></div>
+    <div class="header-right">
+        <button class="status-button" type="button"><span class="dot"></span>서비스 정상</button>
+        <div class="header-meta">운영 환경</div>
+    </div>
+</header>
+<th:block th:fragment="chrome">
+    <div id="adminLoadingOverlay" class="admin-loading-overlay" aria-hidden="true">
+        <div class="admin-loading-panel" role="status" aria-live="polite">
+            <span class="admin-loading-spinner" aria-hidden="true"></span>
+            <strong id="adminLoadingMessage">처리 중입니다.</strong>
+            <span>잠시만 기다려주세요.</span>
+        </div>
+    </div>
+    <div id="adminToast" class="admin-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+</th:block>
+</body>
+</html>

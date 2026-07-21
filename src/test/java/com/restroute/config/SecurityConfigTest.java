@@ -80,7 +80,7 @@ class SecurityConfigTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("ADMIN 사용자는 관리자 경로의 보안 필터를 통과한다")
     void adminRequest_passesAuthorization() throws Exception {
-        mockMvc.perform(get("/admin")).andExpect(status().isOk()).andExpect(view().name("admin"));
+        mockMvc.perform(get("/admin")).andExpect(status().isOk()).andExpect(view().name("admin-dashboard"));
     }
 
     @Test
@@ -101,6 +101,26 @@ class SecurityConfigTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("action=\"/logout\"")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("name=\"_csrf\"")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("ADMIN 사용자는 휴게소 이미지 관리 페이지를 조회할 수 있다")
+    void adminRestStopImagesView_rendersSuccessfully() throws Exception {
+        mockMvc.perform(get("/admin/rest-stops/images"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin-rest-stop-images"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("nav-icon")));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("ADMIN 사용자는 휴게소 정보 관리 페이지를 조회할 수 있다")
+    void adminRestStopEditView_rendersSuccessfully() throws Exception {
+        mockMvc.perform(get("/admin/rest-stops/edit"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin-rest-stop-edit"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("restStopEditForm")));
     }
 
     @Test

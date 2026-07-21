@@ -98,7 +98,9 @@ public class RestStopSyncService {
             return created;
         }
 
-        existing.updateFrom(item);
+        if (!existing.isAdminOverridden()) {
+            existing.updateFrom(item);
+        }
         return existing;
     }
 }

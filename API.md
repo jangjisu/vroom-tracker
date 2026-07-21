@@ -599,6 +599,22 @@ JPEG 또는 PNG 한 장을 보낸다. 서버는 상세용 1600px와 목록용 48
 관리자 인증과 CSRF 토큰이 필요한 삭제 API다. 이미지가 있거나 이미 없는 경우 모두 멱등적으로
 `204 No Content`를 반환하고, 휴게소 자체가 없으면 `404 Not Found`를 반환한다.
 
+### 관리자 휴게소 정보 편집 API
+
+관리자 인증(`ROLE_ADMIN`)이 필요한 API 3종으로, `rest_stop`/`rest_stop_detail`의 편집 대상 필드를 조회·저장·잠금해제한다. 응답은 `ApiResponse<AdminRestStopEditableResponse>` 형식이며 필드는 다음과 같다: `serviceAreaCode`, `unitCode`(읽기 전용), `unitName`, `routeNo`, `routeName`, `xValue`, `yValue`, `telNo`, `brand`, `routeCode`, `svarAddr`, `convenience`, `maintenanceYn`, `truckSaYn`, `adminOverridden`(동기화 잠금 여부).
+
+#### GET /api/admin/rest-stops/{serviceAreaCode}/editable
+
+편집 대상 필드의 현재 값과 `adminOverridden` 상태를 반환한다. `rest_stop` 자체가 없으면 `404 Not Found`. `rest_stop_detail` 행이 아직 없으면(위치정보 API와 편의시설 API의 동기화 시점 차이로 발생 가능) 상세 관련 필드는 모두 `null`로 반환하고 `adminOverridden`은 `rest_stop` 기준으로만 판단한다.
+
+#### PUT /api/admin/rest-stops/{serviceAreaCode}/editable
+
+JSON 바디로 편집 대상 필드 전체를 받아 저장한다. `rest_stop_detail` 행이 없으면 `serviceAreaCode`만 채운 새 행을 만들어 저장한다(관리자가 상세 정보를 직접 생성하는 경로). 저장에 성공하면 `rest_stop`/`rest_stop_detail` 두 행 모두 `admin_overridden=true`로 바뀌어 이후 자동 동기화 대상에서 제외된다. `xValue`/`yValue`는 비어 있지 않다면 실수로 파싱 가능해야 하며, 실패하면 `400 Bad Request`. `rest_stop` 자체가 없으면 `404 Not Found`.
+
+#### DELETE /api/admin/rest-stops/{serviceAreaCode}/editable/override
+
+`admin_overridden`을 false로 되돌려 다음 자동 동기화부터 다시 갱신 대상이 되게 한다. `rest_stop` 또는 `rest_stop_detail` 행이 없으면 `404 Not Found`(저장을 한 번도 하지 않아 잠글 대상 자체가 없는 경우).
+
 ### POST /api/rest-stops/{serviceAreaCode}/oil-price/refresh
 
 특정 휴게소의 주유소 가격을 한국도로공사 `curStateStation` API에서 단건 조회해
