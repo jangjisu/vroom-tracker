@@ -38,6 +38,7 @@
 - 관리자 페이지는 대시보드(`/admin`)·휴게소 이미지 관리(`/admin/rest-stops/images`)·휴게소 정보 관리(`/admin/rest-stops/edit`) 3개의 독립된 Thymeleaf 템플릿/라우트로 나뉜다. nav·헤더·로딩 오버레이·토스트처럼 3개 페이지가 공유하는 조각은 `templates/fragments/admin-shell.html`의 `th:fragment`(`sidebar`/`header`/`chrome`)로 분리하고 각 페이지가 `th:replace`로 삽입한다. 공용 토스트·로딩 오버레이 헬퍼(`showToast`/`setGlobalLoading`)는 `admin-common.js`로 분리해 대시보드·이미지·정보관리 JS가 공통으로 import한다.
 - 전국 평균 유가 요약은 `/api/national-oil-prices/summary`가 별도로 조회·반환한다. 경로 Service는 이 요약을 휴게소별 `comparisonSummary` 계산에 사용할 수 있지만, `RouteRestStopResponse`의 최상위 응답에는 포함하지 않는다.
 - 경로 탐색은 카카오 장소 검색 후보에서 선택한 좌표로 길찾기를 호출하고, 저장된 휴게소 좌표와 경로 사이 거리를 계산한다.
+- 휴게소 이름 검색은 `GET /api/rest-stops/search?name=`이 `RestStopRepository.findByUnitNameContainingIgnoreCase`로 DB를 직접 조회해 `serviceAreaCode`를 포함한 `RestStopItemResponse` 목록을 반환한다. 카카오 지오코딩 기반 `/api/place-search`(출발지·도착지 검색용, `serviceAreaCode` 없음)와는 별도 경로다. 프론트엔드는 결과가 1건이면 바로, 여러 건이면 목적지 검색과 동일한 스타일의 후보 모달(`restStopSearchModal`, `placeCandidateModal`과 별도 인스턴스)에서 고른 뒤 기존 마커 클릭과 동일한 `openDetailPanel`로 상세 정보를 연다 — 경로 탐색 사이드이펙트(엔드포인트 마커 생성, 경로 재요청)는 발생시키지 않는다.
 - 카카오 API 예외는 `GlobalExceptionHandler`가 공통 응답으로 변환하고, 정기 동기화 예외는 스케줄러가 항목별로 기록한다.
 - EV API 요청은 페이지 번호와 건수 중심으로 로그를 남기며 API key와 응답 payload는 로그에 남기지 않는다. EV API 전용 read timeout은 60초이고 다른 Feign client의 기본 timeout은 유지한다.
 - 이 기능은 내부 관리자·공개 조회 계약만 추가하며, 한국도로공사·카카오·오피넷·환경공단 외부 API의 요청·응답과 호출 정책은 변경하지 않는다.

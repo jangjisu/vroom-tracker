@@ -84,6 +84,18 @@
         <div class="rest-stop-map-layout">
             <div class="rest-stop-map-stage">
                 <div id="restStopMap" class="rest-stop-map" tabindex="0" aria-label="휴게소 위치 지도"></div>
+                <div class="rest-stop-name-search">
+                    <div class="rest-stop-name-search-box">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input id="restStopNameSearchInput" class="rest-stop-name-search-input" type="text"
+                               placeholder="휴게소명 검색" aria-label="휴게소명 검색">
+                        <button id="restStopNameSearchButton" class="rest-stop-name-search-submit" type="button"
+                                aria-label="휴게소 검색">
+                            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <p id="restStopNameSearchStatus" class="rest-stop-name-search-status" aria-live="polite" hidden></p>
+                </div>
                 <div id="routeMapSelectionToolbar" class="route-map-selection-toolbar d-none"
                      role="group" aria-label="지도 위치 선택">
                     <p id="routeMapSelectionMessage" class="route-map-selection-message" aria-live="polite"></p>
@@ -282,6 +294,14 @@
                         aria-label="위치 후보 닫기"></button>
             </div>
             <ol id="placeCandidateList" class="route-result-list"></ol>
+        </dialog>
+        <dialog id="restStopSearchModal" class="route-result-modal" aria-labelledby="restStopSearchModalTitle">
+            <div class="route-result-modal-header">
+                <h3 id="restStopSearchModalTitle" class="route-result-modal-title">휴게소 선택</h3>
+                <button id="restStopSearchModalClose" class="btn-close" type="button"
+                        aria-label="휴게소 검색 결과 닫기"></button>
+            </div>
+            <ol id="restStopSearchList" class="route-result-list"></ol>
         </dialog>
         <div id="restStopMapError" class="alert alert-warning mt-3 mb-0 d-none" role="alert"></div>
     </section>

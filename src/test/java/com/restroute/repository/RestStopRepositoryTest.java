@@ -47,4 +47,19 @@ class RestStopRepositoryTest {
         assertThat(restStopRepository.existsByServiceAreaCode("A00001")).isTrue();
         assertThat(restStopRepository.existsByServiceAreaCode("UNKNOWN")).isFalse();
     }
+
+    @Test
+    @DisplayName("휴게소명 부분일치·대소문자 무시로 조회한다")
+    void findByUnitNameContainingIgnoreCase_returnsMatchingRestStops() {
+        restStopRepository.save(RestStopEntity.from(restStopItem("001", "서울만남(서울)휴게소", "A00001")));
+        restStopRepository.save(RestStopEntity.from(restStopItem("002", "서울만남(부산)휴게소", "A00002")));
+        restStopRepository.save(RestStopEntity.from(restStopItem("003", "죽전휴게소", "A00003")));
+
+        List<RestStopEntity> matches = restStopRepository.findByUnitNameContainingIgnoreCase("서울만남");
+
+        assertThat(matches)
+                .hasSize(2)
+                .extracting(RestStopEntity::getUnitName)
+                .containsExactlyInAnyOrder("서울만남(서울)휴게소", "서울만남(부산)휴게소");
+    }
 }
