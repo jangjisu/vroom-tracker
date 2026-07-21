@@ -1,10 +1,6 @@
-import { initializeAdminRestStopEdit } from './admin-rest-stop-edit.js';
-import { initializeAdminRestStopImage } from './admin-rest-stop-image.js';
+import { setGlobalLoading, showToast } from './admin-common.js';
 
 const ADMIN_DASHBOARD_API = '/api/admin/dashboard';
-const TOAST_DURATION_MS = 3200;
-
-let toastTimer;
 
 function setDashboardValue(document, id, value) {
     const element = document.getElementById(id);
@@ -26,35 +22,6 @@ export function renderDashboardError(document) {
     setDashboardValue(document, 'latestSalesRankingMonth', '확인 불가');
     setDashboardValue(document, 'lastSyncStatus', '준비중');
     setDashboardValue(document, 'salesRankingMonthTag', '조회 실패');
-}
-
-export function showToast(document, message, type = 'success', duration = TOAST_DURATION_MS) {
-    const toast = document.getElementById('adminToast');
-    if (!toast) {
-        return;
-    }
-
-    clearTimeout(toastTimer);
-    toast.textContent = message;
-    toast.className = `admin-toast is-visible is-${type}`;
-    toastTimer = setTimeout(() => {
-        toast.className = 'admin-toast';
-        toast.textContent = '';
-    }, duration);
-}
-
-export function setGlobalLoading(document, isLoading, message = '처리 중입니다.') {
-    const overlay = document.getElementById('adminLoadingOverlay');
-    if (!overlay) {
-        return;
-    }
-
-    overlay.setAttribute('aria-hidden', String(!isLoading));
-    overlay.classList.toggle('is-visible', isLoading);
-    const messageElement = document.getElementById('adminLoadingMessage');
-    if (messageElement) {
-        messageElement.textContent = message;
-    }
 }
 
 function submitButton(form) {
@@ -143,18 +110,6 @@ export function initializeAdminDashboard(document, fetchImpl = fetch) {
     }
 }
 
-export function initializeAdminPage(document, fetchImpl = fetch) {
-    initializeAdminDashboard(document, fetchImpl);
-    initializeAdminRestStopImage(document, {
-        fetchImpl,
-        onNotice: (message, type) => showToast(document, message, type)
-    });
-    initializeAdminRestStopEdit(document, {
-        fetchImpl,
-        onNotice: (message, type) => showToast(document, message, type)
-    });
-}
-
 if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => initializeAdminPage(document));
+    document.addEventListener('DOMContentLoaded', () => initializeAdminDashboard(document));
 }

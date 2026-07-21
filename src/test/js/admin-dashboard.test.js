@@ -6,9 +6,8 @@ import {
     fetchAdminDashboard,
     handleRedirectNotice,
     renderDashboard,
-    renderDashboardError,
-    showToast
-} from '../../main/resources/static/js/admin.js';
+    renderDashboardError
+} from '../../main/resources/static/js/admin-dashboard.js';
 
 function documentWithDashboardElements() {
     const elements = new Map([
@@ -98,16 +97,4 @@ test('shows the backfill loading overlay and locks the page while submitting', (
     assert.equal(button.textContent, '매핑 실행 중...');
     assert.equal(overlay.visible, true);
     assert.equal(message.textContent, '휴게소명 매핑을 실행하고 있습니다.');
-});
-
-test('shows and removes a toast through the shared toast helper', async () => {
-    const toast = { textContent: '', className: '' };
-    const document = { getElementById: () => toast };
-
-    showToast(document, '완료되었습니다.', 'success', 1);
-    assert.equal(toast.textContent, '완료되었습니다.');
-    assert.match(toast.className, /is-visible/);
-    await new Promise((resolve) => setTimeout(resolve, 5));
-    assert.equal(toast.textContent, '');
-    assert.equal(toast.className, 'admin-toast');
 });

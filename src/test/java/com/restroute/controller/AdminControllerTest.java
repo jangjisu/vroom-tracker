@@ -16,8 +16,8 @@ import org.springframework.mock.web.MockMultipartFile;
 class AdminControllerTest {
 
     @Test
-    @DisplayName("GET /admin은 관리자 템플릿을 반환한다")
-    void admin_returnsAdminView() {
+    @DisplayName("GET /admin은 관리자 대시보드 템플릿을 반환한다")
+    void admin_returnsAdminDashboardView() {
         AdminDashboardService dashboardService = mock(AdminDashboardService.class);
         when(dashboardService.getSummary()).thenReturn(new AdminDashboardSummary(203, "2026-06", "준비중"));
 
@@ -26,7 +26,29 @@ class AdminControllerTest {
                                 mock(RestStopServiceAreaCodeBackfillService.class),
                                 dashboardService)
                         .admin())
-                .isEqualTo("admin");
+                .isEqualTo("admin-dashboard");
+    }
+
+    @Test
+    @DisplayName("GET /admin/rest-stops/images는 휴게소 이미지 관리 템플릿을 반환한다")
+    void restStopImages_returnsAdminRestStopImagesView() {
+        AdminController controller = new AdminController(
+                mock(SalesRankingUploadService.class),
+                mock(RestStopServiceAreaCodeBackfillService.class),
+                mock(AdminDashboardService.class));
+
+        assertThat(controller.restStopImages()).isEqualTo("admin-rest-stop-images");
+    }
+
+    @Test
+    @DisplayName("GET /admin/rest-stops/edit는 휴게소 정보 관리 템플릿을 반환한다")
+    void restStopEdit_returnsAdminRestStopEditView() {
+        AdminController controller = new AdminController(
+                mock(SalesRankingUploadService.class),
+                mock(RestStopServiceAreaCodeBackfillService.class),
+                mock(AdminDashboardService.class));
+
+        assertThat(controller.restStopEdit()).isEqualTo("admin-rest-stop-edit");
     }
 
     @Test
