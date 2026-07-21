@@ -1,3 +1,4 @@
+import { initializeAdminRestStopEdit } from './admin-rest-stop-edit.js';
 import { initializeAdminRestStopImage } from './admin-rest-stop-image.js';
 
 const ADMIN_DASHBOARD_API = '/api/admin/dashboard';
@@ -145,6 +146,10 @@ export function initializeAdminDashboard(document, fetchImpl = fetch) {
 export function initializeAdminPage(document, fetchImpl = fetch) {
     initializeAdminDashboard(document, fetchImpl);
     initializeAdminRestStopImage(document, {
+        fetchImpl,
+        onNotice: (message, type) => showToast(document, message, type)
+    });
+    initializeAdminRestStopEdit(document, {
         fetchImpl,
         onNotice: (message, type) => showToast(document, message, type)
     });
