@@ -1,6 +1,10 @@
 import { setGlobalLoading, showToast } from './admin-common.js';
 
 const ADMIN_DASHBOARD_API = '/api/admin/dashboard';
+const ACTIVITY_LIST_INLINE_LIMIT = 5;
+const ACTIVITY_EMPTY_MESSAGE = '최근 실행한 작업이 없습니다.';
+
+let latestActivityLogs = [];
 
 function setDashboardValue(document, id, value) {
     const element = document.getElementById(id);
@@ -9,12 +13,74 @@ function setDashboardValue(document, id, value) {
     }
 }
 
+function createActivityItem(document, log) {
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+
+    const main = document.createElement('div');
+    main.className = 'activity-item-main';
+    const actor = document.createElement('span');
+    actor.className = 'activity-item-actor';
+    actor.textContent = log.actor;
+    const message = document.createElement('span');
+    message.className = 'activity-item-message';
+    message.textContent = log.message;
+    main.appendChild(actor);
+    main.appendChild(message);
+
+    const time = document.createElement('span');
+    time.className = 'activity-item-time';
+    time.textContent = log.occurredAt;
+
+    item.appendChild(main);
+    item.appendChild(time);
+    return item;
+}
+
+function renderActivityList(document, elementId, logs) {
+    const container = document.getElementById(elementId);
+    if (!container) {
+        return;
+    }
+
+    if (logs.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'activity-empty';
+        empty.textContent = ACTIVITY_EMPTY_MESSAGE;
+        container.replaceChildren(empty);
+        return;
+    }
+
+    container.replaceChildren(...logs.map((log) => createActivityItem(document, log)));
+}
+
+export function openActivityModal(document) {
+    renderActivityList(document, 'adminActivityModalList', latestActivityLogs);
+    const modal = document.getElementById('adminActivityModal');
+    if (modal && !modal.open) {
+        modal.showModal();
+    }
+}
+
+export function bindActivityModal(document) {
+    document.getElementById('showActivityNotice')?.addEventListener('click', () => openActivityModal(document));
+    document.getElementById('adminActivityModalClose')?.addEventListener('click', () => {
+        const modal = document.getElementById('adminActivityModal');
+        if (modal?.open) {
+            modal.close();
+        }
+    });
+}
+
 export function renderDashboard(document, summary) {
     const latestMonth = summary.latestSalesRankingMonth || '준비중';
     setDashboardValue(document, 'restStopCount', summary.restStopCount ?? '확인 불가');
     setDashboardValue(document, 'latestSalesRankingMonth', latestMonth);
     setDashboardValue(document, 'lastSyncStatus', summary.lastSyncStatus || '준비중');
     setDashboardValue(document, 'salesRankingMonthTag', latestMonth === '준비중' ? '기준월 없음' : `${latestMonth} 기준`);
+
+    latestActivityLogs = summary.recentActivityLogs || [];
+    renderActivityList(document, 'adminActivityList', latestActivityLogs.slice(0, ACTIVITY_LIST_INLINE_LIMIT));
 }
 
 export function renderDashboardError(document) {
@@ -95,19 +161,13 @@ export async function fetchAdminDashboard(fetchImpl = fetch) {
 export function initializeAdminDashboard(document, fetchImpl = fetch) {
     handleRedirectNotice(document);
     attachAdminForms(document);
+    bindActivityModal(document);
     fetchAdminDashboard(fetchImpl)
         .then((summary) => renderDashboard(document, summary))
         .catch((error) => {
             console.error('관리자 대시보드 조회에 실패했습니다.', error);
             renderDashboardError(document);
         });
-
-    const activityButton = document.getElementById('showActivityNotice');
-    if (activityButton) {
-        activityButton.addEventListener('click', () => {
-            window.alert('최근 작업 이력은 준비중입니다.');
-        });
-    }
 }
 
 if (typeof document !== 'undefined') {

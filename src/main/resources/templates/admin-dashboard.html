@@ -27,13 +27,22 @@
                     </div>
                 </section>
                 <section class="panel activity">
-                    <div class="panel-head"><div><h2>최근 작업</h2><p>관리자 작업 이력</p></div><span class="ready-tag">준비중</span><button id="showActivityNotice" class="secondary" type="button">전체 보기</button></div>
-                    <div class="activity-list"><div class="activity-empty">최근 실행한 작업이 없습니다.</div></div>
+                    <div class="panel-head"><div><h2>최근 작업</h2><p>관리자 작업 이력</p></div><button id="showActivityNotice" class="secondary" type="button">전체 보기</button></div>
+                    <div id="adminActivityList" class="activity-list"><div class="activity-empty">최근 실행한 작업이 없습니다.</div></div>
                 </section>
             </div>
         </div>
     </main>
 </div>
+<dialog id="adminActivityModal" class="admin-activity-modal" aria-labelledby="adminActivityModalTitle">
+    <div class="admin-activity-modal-header">
+        <h3 id="adminActivityModalTitle">최근 작업 전체 보기</h3>
+        <button id="adminActivityModalClose" class="btn-close" type="button" aria-label="닫기">
+            <i aria-hidden="true">&times;</i>
+        </button>
+    </div>
+    <div id="adminActivityModalList" class="activity-list"></div>
+</dialog>
 <th:block th:replace="~{fragments/admin-shell :: chrome}"></th:block>
 <script type="module" src="/js/admin-dashboard.js" defer></script>
 </body>

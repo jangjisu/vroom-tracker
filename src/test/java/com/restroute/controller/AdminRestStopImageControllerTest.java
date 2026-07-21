@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.restroute.common.GlobalExceptionHandler;
+import com.restroute.service.admin.AdminActivityLogService;
 import com.restroute.service.image.InvalidRestStopImageException;
 import com.restroute.service.image.RestStopImageCommandService;
 import com.restroute.service.image.RestStopNotFoundException;
@@ -18,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -27,22 +30,28 @@ class AdminRestStopImageControllerTest {
     @Mock
     private RestStopImageCommandService commandService;
 
+    @Mock
+    private AdminActivityLogService adminActivityLogService;
+
     private MockMvc mockMvc;
+    private final Authentication authentication = new UsernamePasswordAuthenticationToken("admin", null);
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AdminRestStopImageController(commandService))
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                        new AdminRestStopImageController(commandService, adminActivityLogService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 
     @Test
-    @DisplayName("PUT /api/admin/rest-stops/{serviceAreaCode}/image는 이미지를 저장하고 204를 반환한다")
+    @DisplayName("PUT /api/admin/rest-stops/{serviceAreaCode}/image는 이미지를 저장하고 204를 반환하며 활동 로그를 남긴다")
     void save_returnsNoContent() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "image.jpg", "image/jpeg", new byte[] {1});
 
         mockMvc.perform(multipart("/api/admin/rest-stops/A00001/image")
                         .file(file)
+                        .principal(authentication)
                         .with(request -> {
                             request.setMethod("PUT");
                             return request;
@@ -50,14 +59,17 @@ class AdminRestStopImageControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(commandService).save("A00001", file);
+        verify(adminActivityLogService).logRestStopImageSaved(authentication, "A00001");
     }
 
     @Test
-    @DisplayName("DELETE /api/admin/rest-stops/{serviceAreaCode}/image는 이미지를 삭제하고 204를 반환한다")
+    @DisplayName("DELETE /api/admin/rest-stops/{serviceAreaCode}/image는 이미지를 삭제하고 204를 반환하며 활동 로그를 남긴다")
     void delete_returnsNoContent() throws Exception {
-        mockMvc.perform(delete("/api/admin/rest-stops/A00001/image")).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/admin/rest-stops/A00001/image").principal(authentication))
+                .andExpect(status().isNoContent());
 
         verify(commandService).delete("A00001");
+        verify(adminActivityLogService).logRestStopImageDeleted(authentication, "A00001");
     }
 
     @Test
@@ -68,6 +80,7 @@ class AdminRestStopImageControllerTest {
 
         mockMvc.perform(multipart("/api/admin/rest-stops/UNKNOWN/image")
                         .file(file)
+                        .principal(authentication)
                         .with(request -> {
                             request.setMethod("PUT");
                             return request;
@@ -86,6 +99,7 @@ class AdminRestStopImageControllerTest {
 
         mockMvc.perform(multipart("/api/admin/rest-stops/A00001/image")
                         .file(file)
+                        .principal(authentication)
                         .with(request -> {
                             request.setMethod("PUT");
                             return request;
