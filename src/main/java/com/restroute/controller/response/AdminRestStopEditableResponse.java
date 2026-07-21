@@ -21,6 +21,7 @@ public record AdminRestStopEditableResponse(
         boolean adminOverridden) {
 
     public static AdminRestStopEditableResponse of(RestStopEntity restStop, RestStopDetailEntity detail) {
+        boolean hasDetail = detail != null;
         return new AdminRestStopEditableResponse(
                 restStop.getServiceAreaCode(),
                 restStop.getUnitCode(),
@@ -29,13 +30,13 @@ public record AdminRestStopEditableResponse(
                 restStop.getRouteName(),
                 restStop.getXValue(),
                 restStop.getYValue(),
-                detail.getTelNo(),
-                detail.getBrand(),
-                detail.getRouteCode(),
-                detail.getSvarAddr(),
-                detail.getConvenience(),
-                detail.getMaintenanceYn(),
-                detail.getTruckSaYn(),
-                restStop.isAdminOverridden() || detail.isAdminOverridden());
+                hasDetail ? detail.getTelNo() : null,
+                hasDetail ? detail.getBrand() : null,
+                hasDetail ? detail.getRouteCode() : null,
+                hasDetail ? detail.getSvarAddr() : null,
+                hasDetail ? detail.getConvenience() : null,
+                hasDetail ? detail.getMaintenanceYn() : null,
+                hasDetail ? detail.getTruckSaYn() : null,
+                restStop.isAdminOverridden() || (hasDetail && detail.isAdminOverridden()));
     }
 }

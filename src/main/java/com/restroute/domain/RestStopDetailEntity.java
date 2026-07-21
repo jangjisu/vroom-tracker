@@ -76,6 +76,12 @@ public class RestStopDetailEntity {
         return new RestStopDetailEntity(item);
     }
 
+    public static RestStopDetailEntity createEmpty(String serviceAreaCode) {
+        RestStopDetailEntity entity = new RestStopDetailEntity();
+        entity.serviceAreaCode = serviceAreaCode;
+        return entity;
+    }
+
     public void applyAdminEdit(
             String telNo,
             String brand,

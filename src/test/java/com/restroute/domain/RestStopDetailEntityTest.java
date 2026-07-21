@@ -47,6 +47,17 @@ class RestStopDetailEntityTest {
     }
 
     @Test
+    @DisplayName("createEmpty는 serviceAreaCode만 채운 빈 엔티티를 만든다")
+    void createEmpty_createsEntityWithOnlyServiceAreaCode() {
+        RestStopDetailEntity entity = RestStopDetailEntity.createEmpty("A00099");
+
+        assertThat(entity.getServiceAreaCode()).isEqualTo("A00099");
+        assertThat(entity.getTelNo()).isNull();
+        assertThat(entity.getBrand()).isNull();
+        assertThat(entity.isAdminOverridden()).isFalse();
+    }
+
+    @Test
     @DisplayName("clearAdminOverride를 호출하면 잠금 플래그가 꺼진다")
     void clearAdminOverride_resetsOverrideFlag() {
         RestStopDetailEntity entity = RestStopDetailEntity.from(restStopDetailItem("A00078", "건천(부산)휴게소"));

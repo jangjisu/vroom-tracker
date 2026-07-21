@@ -135,6 +135,7 @@
 - 서버 시작 시 주요 테이블이 비어 있을 때만 초기 동기화를 실행한다.
 - EV 충전기 정보는 서버 시작 시 테이블이 비어 있을 때 초기화하고 매일 자정에 동기화한다.
 - `rest_stop`/`rest_stop_detail`에 `admin_overridden`(boolean, 기본값 false) 컬럼을 둔다. 관리자가 `PUT /api/admin/rest-stops/{serviceAreaCode}/editable`로 편집하면 두 테이블 모두 이 값이 true가 되고, 자연키 upsert 동기화는 이 값이 true인 행을 건너뛴다(자동 갱신에서 제외). `DELETE .../editable/override`로 다시 false가 되면 다음 동기화부터 정상 갱신된다.
+- `rest_stop_detail`은 `rest_stop`과 별도 외부 API(위치정보/편의시설)로 동기화되어 시점이 어긋나면 `rest_stop`만 있고 `rest_stop_detail`이 없는 행이 생길 수 있다. 관리자 편집 API는 이 경우 `serviceAreaCode`만 채운 `rest_stop_detail` 행을 새로 만들어 저장한다(추후 편의시설 API가 같은 자연키로 동기화되어도 `admin_overridden=true`라 덮어쓰지 않는다).
 
 ## 미결정 사항
 

@@ -4,6 +4,7 @@ import static com.restroute.support.RestStopTestFixtures.restStopDetailItem;
 import static com.restroute.support.RestStopTestFixtures.restStopItem;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.restroute.controller.request.AdminRestStopUpdateRequest;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -85,15 +87,18 @@ class AdminRestStopEditServiceTest {
     }
 
     @Test
-    @DisplayName("휴게소 상세 정보가 없으면 빈 결과를 반환한다")
-    void findEditable_returnsEmptyWhenDetailMissing() {
+    @DisplayName("휴게소 상세 정보가 없으면 상세 필드가 비어있는 응답을 반환한다")
+    void findEditable_returnsResponseWithBlankDetailWhenDetailMissing() {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001"));
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
         when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.empty());
 
         Optional<AdminRestStopEditableResponse> result = service.findEditable("A00001");
 
-        assertThat(result).isEmpty();
+        assertThat(result).isPresent();
+        assertThat(result.get().unitName()).isEqualTo("서울만남(부산)휴게소");
+        assertThat(result.get().telNo()).isNull();
+        assertThat(result.get().adminOverridden()).isFalse();
     }
 
     @Test
@@ -123,14 +128,21 @@ class AdminRestStopEditServiceTest {
     }
 
     @Test
-    @DisplayName("상세 정보가 없으면 저장 시 RestStopNotFoundException을 던진다")
-    void update_throwsWhenDetailMissing() {
+    @DisplayName("상세 정보가 없으면 저장 시 새로 만들어 잠긴 상태로 저장한다")
+    void update_createsDetailWhenMissing() {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001"));
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
         when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update("A00001", validRequest()))
-                .isInstanceOf(RestStopNotFoundException.class);
+        AdminRestStopEditableResponse result = service.update("A00001", validRequest());
+
+        assertThat(result.telNo()).isEqualTo("031-000-0000");
+        assertThat(result.adminOverridden()).isTrue();
+        ArgumentCaptor<RestStopDetailEntity> savedDetail = ArgumentCaptor.forClass(RestStopDetailEntity.class);
+        verify(restStopDetailRepository).save(savedDetail.capture());
+        assertThat(savedDetail.getValue().getServiceAreaCode()).isEqualTo("A00001");
+        assertThat(savedDetail.getValue().getTelNo()).isEqualTo("031-000-0000");
+        assertThat(savedDetail.getValue().isAdminOverridden()).isTrue();
     }
 
     @Test

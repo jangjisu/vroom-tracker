@@ -23,15 +23,19 @@ public class AdminRestStopEditService {
     public Optional<AdminRestStopEditableResponse> findEditable(String serviceAreaCode) {
         return restStopRepository
                 .findByServiceAreaCode(serviceAreaCode)
-                .flatMap(restStop -> restStopDetailRepository
-                        .findByServiceAreaCode(serviceAreaCode)
-                        .map(detail -> AdminRestStopEditableResponse.of(restStop, detail)));
+                .map(restStop -> AdminRestStopEditableResponse.of(
+                        restStop,
+                        restStopDetailRepository
+                                .findByServiceAreaCode(serviceAreaCode)
+                                .orElse(null)));
     }
 
     @Transactional
     public AdminRestStopEditableResponse update(String serviceAreaCode, AdminRestStopUpdateRequest request) {
         RestStopEntity restStop = findRestStopOrThrow(serviceAreaCode);
-        RestStopDetailEntity detail = findDetailOrThrow(serviceAreaCode);
+        RestStopDetailEntity detail = restStopDetailRepository
+                .findByServiceAreaCode(serviceAreaCode)
+                .orElseGet(() -> RestStopDetailEntity.createEmpty(serviceAreaCode));
 
         validateCoordinate(request.xValue());
         validateCoordinate(request.yValue());
@@ -46,6 +50,7 @@ public class AdminRestStopEditService {
                 request.convenience(),
                 request.maintenanceYn(),
                 request.truckSaYn());
+        restStopDetailRepository.save(detail);
 
         return AdminRestStopEditableResponse.of(restStop, detail);
     }
