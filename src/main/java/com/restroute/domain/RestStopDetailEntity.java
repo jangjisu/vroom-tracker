@@ -1,6 +1,7 @@
 package com.restroute.domain;
 
 import com.restroute.client.response.RestStopDetailItem;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -39,6 +40,8 @@ public class RestStopDetailEntity {
     private String maintenanceYn;
     private String truckSaYn;
     private String restStopServiceAreaCode;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean adminOverridden;
 
     private RestStopDetailEntity(RestStopDetailItem item) {

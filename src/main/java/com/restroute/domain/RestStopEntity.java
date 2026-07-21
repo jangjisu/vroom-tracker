@@ -1,6 +1,7 @@
 package com.restroute.domain;
 
 import com.restroute.client.response.RestStopItem;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -28,6 +29,8 @@ public class RestStopEntity {
     private String yValue;
     private String stdRestCd;
     private String serviceAreaCode;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean adminOverridden;
 
     private RestStopEntity(RestStopItem item) {
