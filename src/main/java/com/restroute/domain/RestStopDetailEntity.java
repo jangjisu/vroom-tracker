@@ -39,6 +39,7 @@ public class RestStopDetailEntity {
     private String maintenanceYn;
     private String truckSaYn;
     private String restStopServiceAreaCode;
+    private boolean adminOverridden;
 
     private RestStopDetailEntity(RestStopDetailItem item) {
         this.routeName = item.getRouteName();
@@ -73,5 +74,27 @@ public class RestStopDetailEntity {
 
     public static RestStopDetailEntity from(RestStopDetailItem item) {
         return new RestStopDetailEntity(item);
+    }
+
+    public void applyAdminEdit(
+            String telNo,
+            String brand,
+            String routeCode,
+            String svarAddr,
+            String convenience,
+            String maintenanceYn,
+            String truckSaYn) {
+        this.telNo = telNo;
+        this.brand = brand;
+        this.routeCode = routeCode;
+        this.svarAddr = svarAddr;
+        this.convenience = convenience;
+        this.maintenanceYn = maintenanceYn;
+        this.truckSaYn = truckSaYn;
+        this.adminOverridden = true;
+    }
+
+    public void clearAdminOverride() {
+        this.adminOverridden = false;
     }
 }

@@ -28,6 +28,7 @@ public class RestStopEntity {
     private String yValue;
     private String stdRestCd;
     private String serviceAreaCode;
+    private boolean adminOverridden;
 
     private RestStopEntity(RestStopItem item) {
         this.unitCode = item.getUnitCode();
@@ -52,5 +53,18 @@ public class RestStopEntity {
 
     public static RestStopEntity from(RestStopItem item) {
         return new RestStopEntity(item);
+    }
+
+    public void applyAdminEdit(String unitName, String routeNo, String routeName, String xValue, String yValue) {
+        this.unitName = unitName;
+        this.routeNo = routeNo;
+        this.routeName = routeName;
+        this.xValue = xValue;
+        this.yValue = yValue;
+        this.adminOverridden = true;
+    }
+
+    public void clearAdminOverride() {
+        this.adminOverridden = false;
     }
 }

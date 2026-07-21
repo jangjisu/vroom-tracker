@@ -34,6 +34,7 @@
 - 공개 `GET /api/rest-stops/{serviceAreaCode}/images/detail|list`는 저장된 WebP 바이너리를 반환한다. 휴게소가 없으면 `404`, 휴게소는 있지만 이미지가 없으면 `204 No Content`이며, 성공 응답은 데이터 기반 ETag와 `Cache-Control: public, no-cache`로 브라우저 재검증을 지원한다.
 - 기존 JSON은 BLOB을 포함하지 않는다. `basic-info`의 nullable `detailImageUrl`과 경로 휴게소 항목의 nullable `listImageUrl`만 이미지가 있을 때 해당 공개 URL을 제공한다. 경로 조회는 이미지가 있는 코드만 일괄 조회해 목록별 BLOB 조회를 피한다.
 - 관리자 프론트엔드는 기존 휴게소 목록으로 대상을 선택하고 이미지 조회·등록·교체·삭제 API를 독립 모듈에서 호출한다. 사용자 프론트엔드는 `detailImageUrl`과 `listImageUrl`이 있을 때만 이미지 요소를 표시하며, 값이 없으면 요소를 숨겨 기존 레이아웃을 보존한다.
+- 관리자는 `GET/PUT /api/admin/rest-stops/{serviceAreaCode}/editable`로 `RestStopEntity`(휴게소명/노선번호/노선명/좌표)와 `RestStopDetailEntity`(전화번호/브랜드/노선코드/주소/편의시설/경정비·화물휴게소 여부)의 편집 대상 필드를 조회·저장한다. 저장 시 두 엔티티 모두 `adminOverridden` 플래그가 켜지고, `RestStopSyncService`/`RestStopDetailSyncService`는 이 플래그가 켜진 행을 자동 동기화에서 건너뛴다(식별자/조인 키는 갱신하지 않아 관리자 편집이 유지됨). `DELETE .../editable/override`로 잠금을 해제하면 다음 동기화부터 다시 자동 갱신 대상이 된다. 관리자 페이지 UI는 이 API 위에서 별도로 구현한다.
 - 전국 평균 유가 요약은 `/api/national-oil-prices/summary`가 별도로 조회·반환한다. 경로 Service는 이 요약을 휴게소별 `comparisonSummary` 계산에 사용할 수 있지만, `RouteRestStopResponse`의 최상위 응답에는 포함하지 않는다.
 - 경로 탐색은 카카오 장소 검색 후보에서 선택한 좌표로 길찾기를 호출하고, 저장된 휴게소 좌표와 경로 사이 거리를 계산한다.
 - 카카오 API 예외는 `GlobalExceptionHandler`가 공통 응답으로 변환하고, 정기 동기화 예외는 스케줄러가 항목별로 기록한다.

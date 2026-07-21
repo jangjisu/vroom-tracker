@@ -123,6 +123,24 @@ class RestStopSyncServiceTest {
     }
 
     @Test
+    @DisplayName("관리자가 잠근(adminOverridden) 기존 행은 API 값으로 갱신하지 않는다")
+    void refreshRestStops_skipsUpdatingAdminOverriddenRow() {
+        runTransactionCallback();
+        RestStopEntity existing = RestStopEntity.from(restStopItem("001", "관리자수정이름", "A00001"));
+        existing.applyAdminEdit("관리자수정이름", "9999", "관리자노선", "1.1", "2.2");
+        when(restStopRepository.findAll()).thenReturn(List.of(existing));
+        RestStopItem apiItem = restStopItem("001", "API이름", "A00001");
+        when(exApiClient.getLocationInfoRest(1)).thenReturn(restStopResponse("SUCCESS", "1", List.of(apiItem)));
+
+        int savedCount = restStopSyncService.refreshRestStops();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestStopEntity> savedEntities = captureSavedEntities();
+        assertThat(savedEntities.get(0).getUnitName()).isEqualTo("관리자수정이름");
+        assertThat(savedEntities.get(0).getRouteNo()).isEqualTo("9999");
+    }
+
+    @Test
     @DisplayName("DB가 비어 있으면 서버 시작 시 휴게소 목록을 적재한다")
     void initializeRestStopsIfEmpty_refreshesWhenTableIsEmpty() {
         when(restStopRepository.count()).thenReturn(0L);

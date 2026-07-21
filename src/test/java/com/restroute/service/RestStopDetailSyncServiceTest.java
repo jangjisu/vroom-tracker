@@ -123,6 +123,25 @@ class RestStopDetailSyncServiceTest {
     }
 
     @Test
+    @DisplayName("관리자가 잠근(adminOverridden) 기존 행은 API 값으로 갱신하지 않는다")
+    void refreshRestStopDetails_skipsUpdatingAdminOverriddenRow() {
+        runTransactionCallback();
+        RestStopDetailEntity existing = RestStopDetailEntity.from(restStopDetailItem("A00078", "건천(부산)휴게소"));
+        existing.applyAdminEdit("031-000-0000", "관리자브랜드", "9999", "관리자주소", "샤워실", "O", "O");
+        when(restStopDetailRepository.findAll()).thenReturn(List.of(existing));
+        RestStopDetailItem apiItem = restStopDetailItem("A00078", "API이름");
+        when(exApiClient.getConvenienceServiceArea(1))
+                .thenReturn(restStopDetailResponse("SUCCESS", "1", List.of(apiItem)));
+
+        int savedCount = restStopDetailSyncService.refreshRestStopDetails();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestStopDetailEntity> savedEntities = captureSavedEntities();
+        assertThat(savedEntities.get(0).getBrand()).isEqualTo("관리자브랜드");
+        assertThat(savedEntities.get(0).getSvarAddr()).isEqualTo("관리자주소");
+    }
+
+    @Test
     @DisplayName("같은 응답 안에 serviceAreaCode가 중복되면 한 행으로 합쳐 저장한다")
     void refreshRestStopDetails_mergesDuplicateServiceAreaCodesWithinSameBatch() {
         runTransactionCallback();
