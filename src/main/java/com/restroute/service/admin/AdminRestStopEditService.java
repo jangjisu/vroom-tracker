@@ -35,7 +35,7 @@ public class AdminRestStopEditService {
         RestStopEntity restStop = findRestStopOrThrow(serviceAreaCode);
         RestStopDetailEntity detail = restStopDetailRepository
                 .findByServiceAreaCode(serviceAreaCode)
-                .orElseGet(() -> RestStopDetailEntity.createEmpty(serviceAreaCode));
+                .orElseGet(() -> restStopDetailRepository.save(RestStopDetailEntity.createEmpty(serviceAreaCode)));
 
         validateCoordinate(request.xValue());
         validateCoordinate(request.yValue());
@@ -50,7 +50,6 @@ public class AdminRestStopEditService {
                 request.convenience(),
                 request.maintenanceYn(),
                 request.truckSaYn());
-        restStopDetailRepository.save(detail);
 
         return AdminRestStopEditableResponse.of(restStop, detail);
     }

@@ -4,6 +4,7 @@ import static com.restroute.support.RestStopTestFixtures.restStopDetailItem;
 import static com.restroute.support.RestStopTestFixtures.restStopItem;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -133,6 +134,7 @@ class AdminRestStopEditServiceTest {
         RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소", "A00001"));
         when(restStopRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.of(restStop));
         when(restStopDetailRepository.findByServiceAreaCode("A00001")).thenReturn(Optional.empty());
+        when(restStopDetailRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         AdminRestStopEditableResponse result = service.update("A00001", validRequest());
 
