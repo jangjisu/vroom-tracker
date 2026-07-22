@@ -550,6 +550,12 @@ GET https://data.ex.co.kr/openapi/restinfo/restBestfoodList
 DB에 저장된 전체 휴게소 위치 목록을 반환한다. 각 항목에는 휴게소명, 노선, 좌표,
 `stdRestCd`와 상세 조회에 사용하는 `serviceAreaCode`가 포함된다.
 
+### GET /api/rest-stops/search?name={query}
+
+휴게소명 부분일치(대소문자 무시)로 검색해 `GET /api/rest-stops`와 동일한 형태의 목록을 반환한다.
+`name`이 비어있거나 공백만 있으면 DB를 조회하지 않고 빈 배열을 반환한다. 일치하는 휴게소가 없어도
+HTTP 200과 빈 배열을 반환하며 에러로 취급하지 않는다.
+
 ### GET /api/rest-stops/{serviceAreaCode}
 
 휴게소 위치를 기준으로 상세, 영업시설, 주유소 편의시설, 주유 가격과 먹거리 데이터를 조합해 반환한다.

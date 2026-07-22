@@ -89,4 +89,29 @@ class RestStopControllerTest {
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("Resource not found"));
     }
+
+    @Test
+    @DisplayName("GET /api/rest-stops/search는 이름으로 검색한 휴게소 목록을 ApiResponse로 반환한다")
+    void searchRestStops_returnsMatchingRestStops() throws Exception {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        when(restStopQueryService.searchByName("서울만남")).thenReturn(List.of(restStop));
+
+        mockMvc.perform(get("/api/rest-stops/search").param("name", "서울만남"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data[0].unitName").value("서울만남(부산)휴게소"))
+                .andExpect(jsonPath("$.data[0].serviceAreaCode").value("A00001"));
+    }
+
+    @Test
+    @DisplayName("GET /api/rest-stops/search는 일치하는 휴게소가 없으면 빈 배열을 반환한다")
+    void searchRestStops_returnsEmptyArrayWhenNoMatch() throws Exception {
+        when(restStopQueryService.searchByName("없는이름")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/rest-stops/search").param("name", "없는이름"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
+    }
 }
