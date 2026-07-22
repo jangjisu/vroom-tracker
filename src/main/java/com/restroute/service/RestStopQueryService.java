@@ -24,4 +24,13 @@ public class RestStopQueryService {
     public Optional<RestStopDetailViewResponse> findDetailByServiceAreaCode(String serviceAreaCode) {
         return restStopRepository.findByServiceAreaCode(serviceAreaCode).map(RestStopDetailViewResponse::from);
     }
+
+    @Transactional(readOnly = true)
+    public List<RestStopEntity> searchByName(String name) {
+        String trimmed = name.trim();
+        if (trimmed.isEmpty()) {
+            return List.of();
+        }
+        return restStopRepository.findByUnitNameContainingIgnoreCase(trimmed);
+    }
 }

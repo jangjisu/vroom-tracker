@@ -2,6 +2,7 @@ package com.restroute.service;
 
 import static com.restroute.support.RestStopTestFixtures.restStopItem;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.restroute.controller.response.RestStopDetailViewResponse;
@@ -68,5 +69,25 @@ class RestStopQueryServiceTest {
         Optional<RestStopDetailViewResponse> result = restStopQueryService.findDetailByServiceAreaCode("UNKNOWN");
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("휴게소명으로 검색하면 레포지토리 조회 결과를 그대로 반환한다")
+    void searchByName_delegatesToRepository() {
+        RestStopEntity restStop = RestStopEntity.from(restStopItem("001", "서울만남(부산)휴게소"));
+        when(restStopRepository.findByUnitNameContainingIgnoreCase("서울만남")).thenReturn(List.of(restStop));
+
+        List<RestStopEntity> results = restStopQueryService.searchByName("서울만남");
+
+        assertThat(results).containsExactly(restStop);
+    }
+
+    @Test
+    @DisplayName("공백뿐인 검색어는 레포지토리를 조회하지 않고 빈 목록을 반환한다")
+    void searchByName_returnsEmptyForBlankQuery() {
+        List<RestStopEntity> results = restStopQueryService.searchByName("   ");
+
+        assertThat(results).isEmpty();
+        verifyNoInteractions(restStopRepository);
     }
 }
