@@ -26,6 +26,7 @@ import { createRestStopDetailRequest } from './rest-stop-detail-request.js';
 import { createRouteRestStopRequest } from './route-rest-stop-request.js';
 import { createNationalOilPriceRequest } from './national-oil-price-request.js';
 import { createPlaceSearchRequest } from './place-search-request.js';
+import { createRestStopNameSearchRequest } from './rest-stop-name-search-request.js';
 import { createRouteRestStopImage, renderDetailImage } from './rest-stop-images.js';
 import {
     ROUTE_POINT_TARGET,
@@ -65,6 +66,7 @@ let currentFoodMenus = [];
 let currentFoodSections = [];
 let routeRequest;
 let placeSearchRequest;
+let restStopNameSearchRequest;
 let routePolyline;
 let routeMarkers = [];
 let allRestStopMarkers = [];
@@ -98,6 +100,7 @@ export async function initRestStopMap() {
     routeRequest = createRouteRestStopRequest({ onState: renderRouteState });
     nationalOilPriceRequest = createNationalOilPriceRequest({ onState: renderNationalOilPriceState });
     placeSearchRequest = createPlaceSearchRequest({ onState: renderPlaceSearchState });
+    restStopNameSearchRequest = createRestStopNameSearchRequest({ onState: renderRestStopNameSearchState });
     bindDetailPanelEvents();
     bindDetailSheetPresentation();
 
@@ -132,6 +135,7 @@ export async function initRestStopMap() {
         map = createMap(mapElement, naverMaps, initialCenter);
         bindLocateControl();
         bindRouteSearch();
+        bindRestStopNameSearch();
         bindRouteMapClick();
         bindMarkerModeToggle();
         initializeMobileCurrentLocationOrigin();
@@ -1101,6 +1105,130 @@ function bindRouteSearch() {
         }
     }, { signal });
     updateRoutePointSummary();
+}
+
+function bindRestStopNameSearch() {
+    if (!detailPanelEventController) {
+        return;
+    }
+
+    const signal = detailPanelEventController.signal;
+    document.getElementById('restStopNameSearchButton')?.addEventListener('click', searchRestStopByName, { signal });
+    document.getElementById('restStopNameSearchInput')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            searchRestStopByName();
+        }
+    }, { signal });
+    document.getElementById('restStopSearchModalClose')?.addEventListener('click', closeRestStopSearchModal, {
+        signal
+    });
+    document.getElementById('restStopSearchModal')?.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+            closeRestStopSearchModal();
+        }
+    }, { signal });
+}
+
+function setRestStopNameSearchStatus(message) {
+    const status = document.getElementById('restStopNameSearchStatus');
+    if (!status) {
+        return;
+    }
+    status.hidden = message === '';
+    status.textContent = message;
+}
+
+function searchRestStopByName() {
+    const query = document.getElementById('restStopNameSearchInput')?.value.trim() ?? '';
+    if (query === '') {
+        setRestStopNameSearchStatus('휴게소명을 입력해주세요.');
+        return;
+    }
+    restStopNameSearchRequest?.load(query);
+}
+
+function renderRestStopNameSearchState(state) {
+    if (state.status === 'loading') {
+        setRestStopNameSearchStatus('검색하는 중입니다...');
+        return;
+    }
+
+    if (state.status === 'success') {
+        if (state.restStops.length === 0) {
+            setRestStopNameSearchStatus('검색 결과가 없습니다.');
+            return;
+        }
+        if (state.restStops.length === 1) {
+            setRestStopNameSearchStatus('');
+            selectRestStopSearchResult(state.restStops[0]);
+            return;
+        }
+        setRestStopNameSearchStatus('');
+        renderRestStopSearchCandidates(state.restStops);
+        openRestStopSearchModal();
+        return;
+    }
+
+    setRestStopNameSearchStatus('검색에 실패했습니다. 잠시 후 다시 시도해주세요.');
+}
+
+function renderRestStopSearchCandidates(restStops) {
+    const list = document.getElementById('restStopSearchList');
+    if (!list) {
+        return;
+    }
+    list.replaceChildren();
+    restStops.forEach((restStop) => list.appendChild(createRestStopSearchCandidateItem(restStop)));
+}
+
+function createRestStopSearchCandidateItem(restStop) {
+    const item = document.createElement('li');
+    item.className = 'route-result-item route-candidate-item';
+
+    const button = document.createElement('button');
+    button.className = 'route-candidate-button';
+    button.type = 'button';
+
+    const name = document.createElement('p');
+    name.className = 'route-result-name';
+    name.textContent = formatText(restStop?.unitName, '이름 정보 없음');
+    button.appendChild(name);
+
+    const meta = document.createElement('p');
+    meta.className = 'route-result-meta';
+    meta.textContent = formatText(restStop?.routeName, '노선 정보 없음');
+    button.appendChild(meta);
+
+    button.addEventListener('click', () => selectRestStopSearchResult(restStop));
+    item.appendChild(button);
+
+    return item;
+}
+
+function selectRestStopSearchResult(restStop) {
+    closeRestStopSearchModal();
+
+    const latitude = Number.parseFloat(restStop.yValue);
+    const longitude = Number.parseFloat(restStop.xValue);
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+        openRestStopPopupAt(restStop, new naverMaps.LatLng(latitude, longitude));
+        return;
+    }
+    openDetailPanel(restStop);
+}
+
+function openRestStopSearchModal() {
+    const modal = document.getElementById('restStopSearchModal');
+    if (modal && !modal.open) {
+        modal.showModal();
+    }
+}
+
+function closeRestStopSearchModal() {
+    const modal = document.getElementById('restStopSearchModal');
+    if (modal?.open) {
+        modal.close();
+    }
 }
 
 function openRouteOriginModal() {
