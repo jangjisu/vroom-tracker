@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -240,6 +241,20 @@ class SecurityConfigTest {
                         })
                         .with(csrf()))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("ADMIN 사용자가 전체 휴게소명 매핑을 실행하면 대시보드 최근 작업에 실제로 기록된다")
+    void backfill_recordsActivityLogVisibleOnDashboard() throws Exception {
+        mockMvc.perform(post("/admin/sales-rankings/backfill")
+                        .with(user("admin").roles("ADMIN"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/api/admin/dashboard").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.recentActivityLogs[0].actor").value("admin"))
+                .andExpect(jsonPath("$.data.recentActivityLogs[0].message").value("전체 휴게소명 매핑을 실행했습니다."));
     }
 
     private void saveRestStop() {
