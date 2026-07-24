@@ -102,6 +102,14 @@
 한국도로공사, 카카오, 오피넷, 환경공단 등 외부 API의 요청·응답과 동기화 정책은 이 이미지 기능으로
 변경하지 않는다.
 
+`rest_food_image`는 관리자가 메뉴별로 등록하는 이미지를 저장하는 테이블이다. `rest_stop_image`와
+컬럼 구성(`detail_image_data`/`list_image_data` MEDIUMBLOB, 동일한 WebP 변환 규칙)은 같지만 키가
+`service_area_code`가 아니라 `food_id`(`rest_food.id`)다 — 휴게소 1건당 이미지는 0~1개이지만
+메뉴는 휴게소 1건당 여러 개일 수 있어 메뉴 단위 키가 필요하기 때문이다. 메뉴 하나에는 이미지 행이
+0개 또는 1개만 존재한다. 이번 범위는 관리자 화면에서 등록·삭제하는 데까지만 구현하며, 사용자 화면에
+노출하는 공개 조회 API(`GET .../images/detail|list`에 대응하는 메뉴 버전)는 아직 만들지 않는다 —
+표시 여부·크기·위치가 정해지지 않았기 때문이다.
+
 ## 관리자 활동 로그
 
 `admin_activity_log`는 외부 API 데이터가 아니라 관리자 콘솔에서 발생한 쓰기 작업을 기록하는 내부 전용
@@ -145,6 +153,7 @@
 - EV 충전기 정보는 서버 시작 시 테이블이 비어 있을 때 초기화하고 매일 자정에 동기화한다.
 - `rest_stop`/`rest_stop_detail`에 `admin_overridden`(boolean, 기본값 false) 컬럼을 둔다. `@Column(nullable = false, columnDefinition = "boolean default false")`로 선언해, 기존 행이 있는 테이블에 `ddl-auto=update`로 컬럼을 추가할 때도(`ALTER TABLE ... ADD COLUMN`) 기존 행이 `false`로 채워져 `NOT NULL` 제약 위반 없이 반영된다. 관리자가 `PUT /api/admin/rest-stops/{serviceAreaCode}/editable`로 편집하면 두 테이블 모두 이 값이 true가 되고, 자연키 upsert 동기화는 이 값이 true인 행을 건너뛴다(자동 갱신에서 제외). `DELETE .../editable/override`로 다시 false가 되면 다음 동기화부터 정상 갱신된다.
 - `rest_stop_detail`은 `rest_stop`과 별도 외부 API(위치정보/편의시설)로 동기화되어 시점이 어긋나면 `rest_stop`만 있고 `rest_stop_detail`이 없는 행이 생길 수 있다. 관리자 편집 API는 이 경우 `serviceAreaCode`만 채운 `rest_stop_detail` 행을 새로 만들어 저장한다(추후 편의시설 API가 같은 자연키로 동기화되어도 `admin_overridden=true`라 덮어쓰지 않는다).
+- `rest_food`에도 동일한 이유로 `admin_overridden`(boolean, `@Column(nullable = false, columnDefinition = "boolean default false")`) 컬럼을 둔다. 관리자가 기존 동기화 메뉴 값을 고치면(`PUT /api/admin/rest-stops/{serviceAreaCode}/foods/{foodId}`) 이 값이 true가 되고, `restBestfoodList` 동기화의 `(std_rest_cd, seq)` upsert는 이 값이 true인 행을 건너뛴다. `DELETE .../foods/{foodId}/override`로 다시 false가 되면 다음 동기화부터 정상 갱신된다. 관리자가 새로 추가하는 메뉴는 외부 API와 겹치지 않도록 `seq`를 `"ADMIN-" + UUID`로 발급하고 생성 시점부터 `admin_overridden=true`로 시작한다 — 동기화 루프는 외부 응답에 실제로 존재하는 `seq`만 순회하므로 이 행은 애초에 그 루프 대상이 되지 않지만, 플래그도 이중으로 true로 맞춰둔다. 동기화는 사라진 행을 삭제하지 않는 원칙이라 동기화 메뉴 자체는 관리자가 삭제할 수 없고(삭제해도 다음 동기화에 다시 생성됨), 관리자가 직접 추가한 메뉴(`seq`가 `ADMIN-`으로 시작)만 삭제 가능하다.
 
 ## 미결정 사항
 

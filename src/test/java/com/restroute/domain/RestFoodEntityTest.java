@@ -53,4 +53,83 @@ class RestFoodEntityTest {
         assertThat(entity.getSeasonMenu()).isEqualTo("4");
         assertThat(entity.getAppExposeYn()).isEqualTo("Y");
     }
+
+    @Test
+    @DisplayName("applyAdminEdit는 메뉴 필드를 갱신하고 잠금 플래그를 켠다")
+    void applyAdminEdit_updatesFieldsAndSetsOverrideFlag() throws Exception {
+        RestFoodEntity entity = RestFoodEntity.from(sampleItem());
+
+        entity.applyAdminEdit("수정된메뉴", "9000", "수정된 설명");
+
+        assertThat(entity.getFoodName()).isEqualTo("수정된메뉴");
+        assertThat(entity.getFoodCost()).isEqualTo("9000");
+        assertThat(entity.getDescription()).isEqualTo("수정된 설명");
+        assertThat(entity.isAdminOverridden()).isTrue();
+    }
+
+    @Test
+    @DisplayName("clearAdminOverride를 호출하면 잠금 플래그가 꺼진다")
+    void clearAdminOverride_resetsOverrideFlag() throws Exception {
+        RestFoodEntity entity = RestFoodEntity.from(sampleItem());
+        entity.applyAdminEdit("수정된메뉴", "9000", "수정된 설명");
+
+        entity.clearAdminOverride();
+
+        assertThat(entity.isAdminOverridden()).isFalse();
+    }
+
+    @Test
+    @DisplayName("createByAdmin은 처음부터 잠긴 상태로, 외부 API와 겹치지 않는 seq로 새 메뉴를 만든다")
+    void createByAdmin_startsOverriddenWithGeneratedSeq() {
+        RestFoodEntity entity = RestFoodEntity.createByAdmin("A00001", "000001", "커스텀메뉴", "5000", "직접 추가한 메뉴");
+
+        assertThat(entity.getRestStopServiceAreaCode()).isEqualTo("A00001");
+        assertThat(entity.getStdRestCd()).isEqualTo("000001");
+        assertThat(entity.getFoodName()).isEqualTo("커스텀메뉴");
+        assertThat(entity.getFoodCost()).isEqualTo("5000");
+        assertThat(entity.getDescription()).isEqualTo("직접 추가한 메뉴");
+        assertThat(entity.getSeq()).startsWith("ADMIN-");
+        assertThat(entity.isAdminOverridden()).isTrue();
+        assertThat(entity.isAdminCreated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("동기화로 만들어진 메뉴는 관리자가 수정해도 isAdminCreated는 false다")
+    void isAdminCreated_isFalseForSyncedRowEvenAfterAdminEdit() throws Exception {
+        RestFoodEntity entity = RestFoodEntity.from(sampleItem());
+
+        entity.applyAdminEdit("수정된메뉴", "9000", "수정된 설명");
+
+        assertThat(entity.isAdminCreated()).isFalse();
+    }
+
+    @Test
+    @DisplayName("seq가 없는 메뉴는 isAdminCreated가 false다")
+    void isAdminCreated_isFalseWhenSeqIsNull() throws Exception {
+        String json = """
+                {
+                  "stdRestCd": "000001",
+                  "foodNm": "농심어묵우동",
+                  "foodCost": "7000",
+                  "etc": "부산어묵꼬치를 첨가한 우동."
+                }
+                """;
+        RestFoodEntity entity = RestFoodEntity.from(new ObjectMapper().readValue(json, RestBestfoodItem.class));
+
+        assertThat(entity.getSeq()).isNull();
+        assertThat(entity.isAdminCreated()).isFalse();
+    }
+
+    private RestBestfoodItem sampleItem() throws Exception {
+        String json = """
+                {
+                  "stdRestCd": "000001",
+                  "seq": "272",
+                  "foodNm": "농심어묵우동",
+                  "foodCost": "7000",
+                  "etc": "부산어묵꼬치를 첨가한 우동."
+                }
+                """;
+        return new ObjectMapper().readValue(json, RestBestfoodItem.class);
+    }
 }

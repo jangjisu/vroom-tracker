@@ -146,6 +146,24 @@ class RestFoodSyncServiceTest {
     }
 
     @Test
+    @DisplayName("관리자가 잠근(adminOverridden) 기존 메뉴는 API 값으로 갱신하지 않는다")
+    void refreshRestFoods_skipsUpdatingAdminOverriddenRow() throws Exception {
+        runTransactionCallback();
+        RestBestfoodItem originalItem = foodResponse(1, "농심어묵우동").getList().get(0);
+        RestFoodEntity existing = RestFoodEntity.from(originalItem);
+        existing.applyAdminEdit("관리자수정메뉴", "9999", "관리자가 고친 설명");
+        when(restFoodRepository.findAll()).thenReturn(List.of(existing));
+        when(exApiClient.getRestBestfoodList(1)).thenReturn(foodResponse(1, "한우국밥"));
+
+        int savedCount = restFoodSyncService.refreshRestFoods();
+
+        assertThat(savedCount).isEqualTo(1);
+        List<RestFoodEntity> saved = captureSavedEntities();
+        assertThat(saved.get(0).getFoodName()).isEqualTo("관리자수정메뉴");
+        assertThat(saved.get(0).getFoodCost()).isEqualTo("9999");
+    }
+
+    @Test
     @DisplayName("첫 페이지 음식 메뉴 API 호출이 실패하면 예외를 전파하지 않고 DB를 조회하거나 저장하지 않는다")
     void refreshRestFoods_doesNotUpsertRowsWhenFirstPageFails() {
         ExApiException exception =

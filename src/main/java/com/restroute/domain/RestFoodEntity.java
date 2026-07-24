@@ -1,6 +1,7 @@
 package com.restroute.domain;
 
 import com.restroute.client.response.RestBestfoodItem;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -8,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,6 +24,8 @@ import lombok.NoArgsConstructor;
         })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RestFoodEntity {
+
+    private static final String ADMIN_SEQ_PREFIX = "ADMIN-";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,6 +53,9 @@ public class RestFoodEntity {
     private String seasonMenu;
     private String appExposeYn;
     private String restStopServiceAreaCode;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean adminOverridden;
 
     private RestFoodEntity(RestBestfoodItem item) {
         this.stdRestCd = item.getStdRestCd();
@@ -90,7 +97,35 @@ public class RestFoodEntity {
         this.restStopServiceAreaCode = restStopServiceAreaCode;
     }
 
+    public void applyAdminEdit(String foodName, String foodCost, String description) {
+        this.foodName = foodName;
+        this.foodCost = foodCost;
+        this.description = description;
+        this.adminOverridden = true;
+    }
+
+    public void clearAdminOverride() {
+        this.adminOverridden = false;
+    }
+
+    public boolean isAdminCreated() {
+        return seq != null && seq.startsWith(ADMIN_SEQ_PREFIX);
+    }
+
     public static RestFoodEntity from(RestBestfoodItem item) {
         return new RestFoodEntity(item);
+    }
+
+    public static RestFoodEntity createByAdmin(
+            String restStopServiceAreaCode, String stdRestCd, String foodName, String foodCost, String description) {
+        RestFoodEntity entity = new RestFoodEntity();
+        entity.restStopServiceAreaCode = restStopServiceAreaCode;
+        entity.stdRestCd = stdRestCd;
+        entity.seq = ADMIN_SEQ_PREFIX + UUID.randomUUID();
+        entity.foodName = foodName;
+        entity.foodCost = foodCost;
+        entity.description = description;
+        entity.adminOverridden = true;
+        return entity;
     }
 }

@@ -112,6 +112,66 @@ class AdminActivityLogServiceTest {
     }
 
     @Test
+    @DisplayName("커스텀 메뉴 추가를 기록한다")
+    void logCustomFoodAdded_savesEntryWithFoodName() {
+        when(authentication.getName()).thenReturn("admin");
+        adminActivityLogService.logCustomFoodAdded(authentication, "커스텀메뉴");
+
+        AdminActivityLogEntity saved = captureSavedEntity();
+        assertThat(saved.getMessage()).isEqualTo("커스텀메뉴 메뉴를 추가했습니다.");
+    }
+
+    @Test
+    @DisplayName("커스텀 메뉴 수정을 기록한다")
+    void logCustomFoodEdited_savesEntryWithFoodName() {
+        when(authentication.getName()).thenReturn("admin");
+        adminActivityLogService.logCustomFoodEdited(authentication, "커스텀메뉴");
+
+        AdminActivityLogEntity saved = captureSavedEntity();
+        assertThat(saved.getMessage()).isEqualTo("커스텀메뉴 메뉴를 수정했습니다.");
+    }
+
+    @Test
+    @DisplayName("커스텀 메뉴 잠금 해제를 기록한다")
+    void logCustomFoodOverrideCleared_savesEntryWithFoodName() {
+        when(authentication.getName()).thenReturn("admin");
+        adminActivityLogService.logCustomFoodOverrideCleared(authentication, "커스텀메뉴");
+
+        AdminActivityLogEntity saved = captureSavedEntity();
+        assertThat(saved.getMessage()).isEqualTo("커스텀메뉴 메뉴의 동기화 잠금을 해제했습니다.");
+    }
+
+    @Test
+    @DisplayName("커스텀 메뉴 삭제를 기록한다")
+    void logCustomFoodDeleted_savesEntryWithFoodId() {
+        when(authentication.getName()).thenReturn("admin");
+        adminActivityLogService.logCustomFoodDeleted(authentication, 1L);
+
+        AdminActivityLogEntity saved = captureSavedEntity();
+        assertThat(saved.getMessage()).isEqualTo("메뉴(1)를 삭제했습니다.");
+    }
+
+    @Test
+    @DisplayName("커스텀 메뉴 이미지 등록을 기록한다")
+    void logCustomFoodImageSaved_savesEntryWithFoodId() {
+        when(authentication.getName()).thenReturn("admin");
+        adminActivityLogService.logCustomFoodImageSaved(authentication, 1L);
+
+        AdminActivityLogEntity saved = captureSavedEntity();
+        assertThat(saved.getMessage()).isEqualTo("메뉴(1) 이미지를 등록했습니다.");
+    }
+
+    @Test
+    @DisplayName("커스텀 메뉴 이미지 삭제를 기록한다")
+    void logCustomFoodImageDeleted_savesEntryWithFoodId() {
+        when(authentication.getName()).thenReturn("admin");
+        adminActivityLogService.logCustomFoodImageDeleted(authentication, 1L);
+
+        AdminActivityLogEntity saved = captureSavedEntity();
+        assertThat(saved.getMessage()).isEqualTo("메뉴(1) 이미지를 삭제했습니다.");
+    }
+
+    @Test
     @DisplayName("최근 활동 로그를 레포지토리에서 그대로 반환한다")
     void findRecent_delegatesToRepository() {
         AdminActivityLogEntity entity = AdminActivityLogEntity.of("admin", "메시지", java.time.LocalDateTime.now());

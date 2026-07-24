@@ -103,7 +103,9 @@ public class RestFoodSyncService {
             return created;
         }
 
-        existing.updateFrom(item);
+        if (!existing.isAdminOverridden()) {
+            existing.updateFrom(item);
+        }
         return existing;
     }
 

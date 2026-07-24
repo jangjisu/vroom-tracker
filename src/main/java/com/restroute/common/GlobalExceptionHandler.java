@@ -1,8 +1,10 @@
 package com.restroute.common;
 
 import com.restroute.client.exception.KakaoApiException;
+import com.restroute.service.admin.InvalidRestFoodEditException;
 import com.restroute.service.admin.InvalidRestStopEditException;
 import com.restroute.service.image.InvalidRestStopImageException;
+import com.restroute.service.image.RestFoodNotFoundException;
 import com.restroute.service.image.RestStopNotFoundException;
 import com.restroute.service.route.RouteRestStopNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidRestStopEditException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidRestStopEdit(InvalidRestStopEditException e) {
         log.warn("Invalid rest stop edit: {}", e.getMessage());
+        return ResponseEntity.status(ResponseCode.INVALID_PARAMETER.getHttpStatus())
+                .body(ApiResponse.error(ResponseCode.INVALID_PARAMETER, e.getMessage()));
+    }
+
+    @ExceptionHandler(RestFoodNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRestFoodNotFound(RestFoodNotFoundException e) {
+        log.warn("Rest food not found: {}", e.getMessage());
+        return ResponseEntity.status(ResponseCode.NOT_FOUND.getHttpStatus())
+                .body(ApiResponse.error(ResponseCode.NOT_FOUND, e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidRestFoodEditException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRestFoodEdit(InvalidRestFoodEditException e) {
+        log.warn("Invalid rest food edit: {}", e.getMessage());
         return ResponseEntity.status(ResponseCode.INVALID_PARAMETER.getHttpStatus())
                 .body(ApiResponse.error(ResponseCode.INVALID_PARAMETER, e.getMessage()));
     }
