@@ -34,30 +34,49 @@ export function initializeAdminRestFood(document, {
     const status = document.getElementById('restStopFoodStatus');
     const listSection = document.getElementById('restStopFoodListSection');
     const list = document.getElementById('restStopFoodList');
-    const editSection = document.getElementById('restStopFoodEditSection');
+    const editModal = document.getElementById('restStopFoodEditModal');
+    const editModalClose = document.getElementById('restStopFoodEditModalClose');
     const editForm = document.getElementById('restStopFoodEditForm');
+    const editStateLabel = document.getElementById('restStopFoodEditStateLabel');
     const editName = document.getElementById('restStopFoodEditName');
     const editCost = document.getElementById('restStopFoodEditCost');
     const editDescription = document.getElementById('restStopFoodEditDescription');
-    const editCancel = document.getElementById('restStopFoodEditCancel');
+    const editSubmit = document.getElementById('restStopFoodEditSubmit');
+    const editClearOverride = document.getElementById('restStopFoodEditClearOverride');
     const addForm = document.getElementById('restStopFoodAddForm');
     const addName = document.getElementById('restStopFoodAddName');
     const addCost = document.getElementById('restStopFoodAddCost');
     const addDescription = document.getElementById('restStopFoodAddDescription');
-    if (!select || !status || !listSection || !list || !editSection || !editForm || !editName || !editCost
-        || !editDescription || !editCancel || !addForm || !addName || !addCost || !addDescription) {
+    if (!select || !status || !listSection || !list || !editModal || !editModalClose || !editForm
+        || !editStateLabel || !editName || !editCost || !editDescription || !editSubmit || !editClearOverride
+        || !addForm || !addName || !addCost || !addDescription) {
         return;
     }
 
     let editingFoodId = null;
+    let editingWasOverridden = false;
 
     function pageCsrf() {
         return csrfFrom(addForm);
     }
 
-    function hideEditSection() {
-        editSection.hidden = true;
+    function closeEditModal() {
+        editModal.close();
         editingFoodId = null;
+    }
+
+    function openEditModal(food) {
+        editingFoodId = food.id;
+        editingWasOverridden = food.adminOverridden === true;
+        editName.value = food.foodName ?? '';
+        editCost.value = food.foodCost ?? '';
+        editDescription.value = food.description ?? '';
+        editStateLabel.textContent = editingWasOverridden
+            ? '관리자가 수정하여 자동 동기화에서 제외된 메뉴입니다.'
+            : '동기화 중인 메뉴입니다. 저장하면 자동 동기화 대상에서 제외됩니다.';
+        editSubmit.textContent = editingWasOverridden ? '저장' : '동기화 잠금';
+        editClearOverride.hidden = !editingWasOverridden;
+        editModal.showModal();
     }
 
     function createFoodItem(food) {
@@ -86,31 +105,8 @@ export function initializeAdminRestFood(document, {
         editButton.className = 'food-item-edit';
         editButton.type = 'button';
         editButton.textContent = '수정';
-        editButton.addEventListener('click', () => {
-            editingFoodId = food.id;
-            editName.value = food.foodName ?? '';
-            editCost.value = food.foodCost ?? '';
-            editDescription.value = food.description ?? '';
-            editSection.hidden = false;
-        });
+        editButton.addEventListener('click', () => openEditModal(food));
         actions.appendChild(editButton);
-
-        if (food.adminOverridden) {
-            const unlockButton = document.createElement('button');
-            unlockButton.className = 'food-item-unlock';
-            unlockButton.type = 'button';
-            unlockButton.textContent = '잠금 해제';
-            unlockButton.addEventListener('click', async () => {
-                const result = await clearAdminRestFoodOverride(select.value, food.id, pageCsrf(), fetchImpl);
-                if (result.status !== 'success') {
-                    onNotice('동기화 잠금 해제에 실패했습니다.', 'error');
-                    return;
-                }
-                onNotice('동기화 잠금을 해제했습니다.');
-                await loadFoods();
-            });
-            actions.appendChild(unlockButton);
-        }
 
         if (food.adminCreated) {
             const deleteButton = document.createElement('button');
@@ -127,7 +123,7 @@ export function initializeAdminRestFood(document, {
                     return;
                 }
                 if (editingFoodId === food.id) {
-                    hideEditSection();
+                    closeEditModal();
                 }
                 onNotice('메뉴를 삭제했습니다.');
                 await loadFoods();
@@ -198,7 +194,6 @@ export function initializeAdminRestFood(document, {
     async function loadFoods() {
         const serviceAreaCode = select.value;
         listSection.hidden = true;
-        hideEditSection();
         status.textContent = '';
 
         if (serviceAreaCode === '') {
@@ -220,7 +215,7 @@ export function initializeAdminRestFood(document, {
 
     select.addEventListener('change', loadFoods);
 
-    editCancel.addEventListener('click', hideEditSection);
+    editModalClose.addEventListener('click', closeEditModal);
 
     editForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -233,6 +228,7 @@ export function initializeAdminRestFood(document, {
             foodCost: editCost.value,
             description: editDescription.value
         };
+        const wasOverridden = editingWasOverridden;
         const result = await updateAdminRestFood(select.value, editingFoodId, payload, pageCsrf(), fetchImpl);
 
         if (result.status === 'invalid') {
@@ -244,8 +240,24 @@ export function initializeAdminRestFood(document, {
             return;
         }
 
-        hideEditSection();
-        onNotice('메뉴를 수정했습니다.');
+        closeEditModal();
+        onNotice(wasOverridden ? '메뉴를 수정했습니다.' : '메뉴를 잠그고 저장했습니다.');
+        await loadFoods();
+    });
+
+    editClearOverride.addEventListener('click', async () => {
+        if (editingFoodId === null) {
+            return;
+        }
+
+        const result = await clearAdminRestFoodOverride(select.value, editingFoodId, pageCsrf(), fetchImpl);
+        if (result.status !== 'success') {
+            onNotice('동기화 잠금 해제에 실패했습니다.', 'error');
+            return;
+        }
+
+        closeEditModal();
+        onNotice('동기화 잠금을 해제했습니다.');
         await loadFoods();
     });
 

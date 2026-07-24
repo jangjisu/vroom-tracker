@@ -7,6 +7,7 @@ function interactiveElement(initial = {}) {
     return {
         disabled: false,
         hidden: false,
+        open: false,
         textContent: '',
         value: '',
         className: '',
@@ -22,6 +23,12 @@ function interactiveElement(initial = {}) {
         },
         replaceChildren(...children) {
             this.children = children;
+        },
+        showModal() {
+            this.open = true;
+        },
+        close() {
+            this.open = false;
         },
         ...initial
     };
@@ -48,12 +55,15 @@ function foodDocument() {
         ['restStopFoodStatus', interactiveElement()],
         ['restStopFoodListSection', interactiveElement({ hidden: true })],
         ['restStopFoodList', interactiveElement()],
-        ['restStopFoodEditSection', interactiveElement({ hidden: true })],
+        ['restStopFoodEditModal', interactiveElement()],
+        ['restStopFoodEditModalClose', interactiveElement()],
         ['restStopFoodEditForm', editForm],
+        ['restStopFoodEditStateLabel', interactiveElement()],
         ['restStopFoodEditName', interactiveElement()],
         ['restStopFoodEditCost', interactiveElement()],
         ['restStopFoodEditDescription', interactiveElement()],
-        ['restStopFoodEditCancel', interactiveElement()],
+        ['restStopFoodEditSubmit', interactiveElement()],
+        ['restStopFoodEditClearOverride', interactiveElement({ hidden: true })],
         ['restStopFoodAddForm', addForm],
         ['restStopFoodAddName', interactiveElement()],
         ['restStopFoodAddCost', interactiveElement()],
@@ -138,7 +148,7 @@ test('selecting a rest stop with no menus shows the empty state', async () => {
     assert.equal(document.elements.get('restStopFoodListSection').hidden, false);
 });
 
-test('renders a synced menu with no delete button and an overridden menu with unlock and delete buttons', async () => {
+test('renders a synced menu with only an edit button and an admin-created menu with edit and delete buttons', async () => {
     const document = foodDocument();
     const fetchImpl = async (url) => {
         if (url === '/api/rest-stops') {
@@ -165,14 +175,14 @@ test('renders a synced menu with no delete button and an overridden menu with un
     const syncedActions = syncedItem.children[2];
     assert.equal(syncedActions.children.length, 1);
 
-    const overriddenItem = list.children[1];
-    const overriddenHeader = overriddenItem.children[0];
-    assert.equal(overriddenHeader.children[1].dataset.state, 'overridden');
-    const overriddenActions = overriddenItem.children[2];
-    assert.equal(overriddenActions.children.length, 3);
+    const adminItem = list.children[1];
+    const adminHeader = adminItem.children[0];
+    assert.equal(adminHeader.children[1].dataset.state, 'overridden');
+    const adminActions = adminItem.children[2];
+    assert.equal(adminActions.children.length, 2);
 });
 
-test('clicking edit populates the edit form and shows the edit section', async () => {
+test('clicking edit on a synced menu opens the modal with a lock-labeled submit button and no clear-override button', async () => {
     const document = foodDocument();
     const fetchImpl = async (url) => {
         if (url === '/api/rest-stops') {
@@ -193,10 +203,33 @@ test('clicking edit populates the edit form and shows the edit section', async (
     assert.equal(document.elements.get('restStopFoodEditName').value, '김치찌개');
     assert.equal(document.elements.get('restStopFoodEditCost').value, '8000');
     assert.equal(document.elements.get('restStopFoodEditDescription').value, '얼큰한 맛');
-    assert.equal(document.elements.get('restStopFoodEditSection').hidden, false);
+    assert.equal(document.elements.get('restStopFoodEditModal').open, true);
+    assert.equal(document.elements.get('restStopFoodEditSubmit').textContent, '동기화 잠금');
+    assert.equal(document.elements.get('restStopFoodEditClearOverride').hidden, true);
 });
 
-test('clicking cancel hides the edit section', async () => {
+test('clicking edit on an already-overridden menu shows a 저장 submit label and a visible clear-override button', async () => {
+    const document = foodDocument();
+    const fetchImpl = async (url) => {
+        if (url === '/api/rest-stops') {
+            return restStopListResponse();
+        }
+        if (url === '/api/admin/rest-stops/A00001/foods') {
+            return foodsResponse([syncedFood({ adminOverridden: true })]);
+        }
+        throw new Error(`Unexpected request: ${url}`);
+    };
+
+    await selectRestStop(document, fetchImpl);
+
+    const item = document.elements.get('restStopFoodList').children[0];
+    await item.children[2].children[0].handlers.click();
+
+    assert.equal(document.elements.get('restStopFoodEditSubmit').textContent, '저장');
+    assert.equal(document.elements.get('restStopFoodEditClearOverride').hidden, false);
+});
+
+test('clicking the modal close button closes it without saving', async () => {
     const document = foodDocument();
     const fetchImpl = async (url) => {
         if (url === '/api/rest-stops') {
@@ -212,12 +245,12 @@ test('clicking cancel hides the edit section', async () => {
     const item = document.elements.get('restStopFoodList').children[0];
     await item.children[2].children[0].handlers.click();
 
-    await document.elements.get('restStopFoodEditCancel').handlers.click();
+    await document.elements.get('restStopFoodEditModalClose').handlers.click();
 
-    assert.equal(document.elements.get('restStopFoodEditSection').hidden, true);
+    assert.equal(document.elements.get('restStopFoodEditModal').open, false);
 });
 
-test('submitting the edit form saves the menu, hides the edit section, and reloads the list', async () => {
+test('saving the edit form on a synced menu locks it, closes the modal, and reloads the list', async () => {
     const document = foodDocument();
     let savedRequest;
     let foods = [syncedFood()];
@@ -250,9 +283,36 @@ test('submitting the edit form saves the menu, hides the edit section, and reloa
 
     assert.equal(savedRequest.options.headers['X-CSRF-TOKEN'], 'csrf-token');
     assert.equal(JSON.parse(savedRequest.options.body).foodName, '수정된메뉴');
-    assert.equal(document.elements.get('restStopFoodEditSection').hidden, true);
-    assert.deepEqual(notices.at(-1), { message: '메뉴를 수정했습니다.', type: undefined });
+    assert.equal(document.elements.get('restStopFoodEditModal').open, false);
+    assert.deepEqual(notices.at(-1), { message: '메뉴를 잠그고 저장했습니다.', type: undefined });
     assert.equal(document.elements.get('restStopFoodList').children[0].children[0].children[0].textContent, '수정된메뉴');
+});
+
+test('saving the edit form on an already-overridden menu shows a plain edit notice', async () => {
+    const document = foodDocument();
+    let foods = [syncedFood({ adminOverridden: true })];
+    const fetchImpl = async (url, options = {}) => {
+        if (url === '/api/rest-stops') {
+            return restStopListResponse();
+        }
+        if (url === '/api/admin/rest-stops/A00001/foods' && !options.method) {
+            return foodsResponse(foods);
+        }
+        if (url === '/api/admin/rest-stops/A00001/foods/1' && options.method === 'PUT') {
+            foods = [syncedFood({ foodName: '재수정메뉴', adminOverridden: true })];
+            return { ok: true, status: 200, json: async () => ({ code: 'SUCCESS', data: foods[0] }) };
+        }
+        throw new Error(`Unexpected request: ${url} ${options.method}`);
+    };
+    const notices = [];
+
+    await selectRestStop(document, fetchImpl, (message, type) => notices.push({ message, type }));
+    const item = document.elements.get('restStopFoodList').children[0];
+    await item.children[2].children[0].handlers.click();
+
+    await document.elements.get('restStopFoodEditForm').handlers.submit({ preventDefault() {} });
+
+    assert.deepEqual(notices.at(-1), { message: '메뉴를 수정했습니다.', type: undefined });
 });
 
 test('edit save failure with invalid input shows the server message as an error notice', async () => {
@@ -282,6 +342,38 @@ test('edit save failure with invalid input shows the server message as an error 
     await document.elements.get('restStopFoodEditForm').handlers.submit({ preventDefault() {} });
 
     assert.deepEqual(notices.at(-1), { message: '메뉴명을 입력해주세요.', type: 'error' });
+});
+
+test('clicking 동기화 해제 on an overridden menu clears the override, closes the modal, and reloads the list', async () => {
+    const document = foodDocument();
+    let overrideCleared = false;
+    let foods = [syncedFood({ adminOverridden: true })];
+    const fetchImpl = async (url, options = {}) => {
+        if (url === '/api/rest-stops') {
+            return restStopListResponse();
+        }
+        if (url === '/api/admin/rest-stops/A00001/foods' && !options.method) {
+            return foodsResponse(foods);
+        }
+        if (url === '/api/admin/rest-stops/A00001/foods/1/override' && options.method === 'DELETE') {
+            overrideCleared = true;
+            foods = [syncedFood({ adminOverridden: false })];
+            return { ok: true, status: 200, json: async () => ({ code: 'SUCCESS', data: foods[0] }) };
+        }
+        throw new Error(`Unexpected request: ${url} ${options.method}`);
+    };
+    const notices = [];
+
+    await selectRestStop(document, fetchImpl, (message, type) => notices.push({ message, type }));
+    const item = document.elements.get('restStopFoodList').children[0];
+    await item.children[2].children[0].handlers.click();
+
+    await document.elements.get('restStopFoodEditClearOverride').handlers.click();
+
+    assert.equal(overrideCleared, true);
+    assert.equal(document.elements.get('restStopFoodEditModal').open, false);
+    assert.deepEqual(notices.at(-1), { message: '동기화 잠금을 해제했습니다.', type: undefined });
+    assert.equal(document.elements.get('restStopFoodList').children[0].children[0].children[1].dataset.state, 'synced');
 });
 
 test('submitting the add form creates a new menu, clears the fields, and reloads the list', async () => {
@@ -344,7 +436,7 @@ test('clicking delete on an admin-created menu confirms then deletes and reloads
 
     await selectRestStop(document, fetchImpl, (message, type) => notices.push({ message, type }), () => true);
     const item = document.elements.get('restStopFoodList').children[0];
-    const deleteButton = item.children[2].children[2];
+    const deleteButton = item.children[2].children[1];
     await deleteButton.handlers.click();
 
     assert.equal(deleteCalled, true);
@@ -372,40 +464,10 @@ test('clicking delete cancels when the confirmation dialog is declined', async (
 
     await selectRestStop(document, fetchImpl, () => {}, () => false);
     const item = document.elements.get('restStopFoodList').children[0];
-    const deleteButton = item.children[2].children[2];
+    const deleteButton = item.children[2].children[1];
     await deleteButton.handlers.click();
 
     assert.equal(deleteCalled, false);
-});
-
-test('clicking unlock on an overridden menu clears the override and reloads the list', async () => {
-    const document = foodDocument();
-    let overrideCleared = false;
-    let foods = [syncedFood({ adminOverridden: true })];
-    const fetchImpl = async (url, options = {}) => {
-        if (url === '/api/rest-stops') {
-            return restStopListResponse();
-        }
-        if (url === '/api/admin/rest-stops/A00001/foods' && !options.method) {
-            return foodsResponse(foods);
-        }
-        if (url === '/api/admin/rest-stops/A00001/foods/1/override' && options.method === 'DELETE') {
-            overrideCleared = true;
-            foods = [syncedFood({ adminOverridden: false })];
-            return { ok: true, status: 200, json: async () => ({ code: 'SUCCESS', data: foods[0] }) };
-        }
-        throw new Error(`Unexpected request: ${url} ${options.method}`);
-    };
-    const notices = [];
-
-    await selectRestStop(document, fetchImpl, (message, type) => notices.push({ message, type }));
-    const item = document.elements.get('restStopFoodList').children[0];
-    const unlockButton = item.children[2].children[1];
-    await unlockButton.handlers.click();
-
-    assert.equal(overrideCleared, true);
-    assert.deepEqual(notices.at(-1), { message: '동기화 잠금을 해제했습니다.', type: undefined });
-    assert.equal(document.elements.get('restStopFoodList').children[0].children[0].children[1].dataset.state, 'synced');
 });
 
 test('uploading a valid image on a menu row saves it', async () => {

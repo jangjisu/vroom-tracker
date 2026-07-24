@@ -135,7 +135,7 @@ h1 { margin: 0; font-size: 28px; letter-spacing: -.7px; }
 .admin-activity-modal .activity-list { padding: 4px 20px 18px; overflow-y: auto; }
 
 /* ===== Admin custom food ===== */
-.food-list { list-style: none; margin: 10px 0 24px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.food-list { list-style: none; margin: 10px 0 24px; padding: 4px; display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; }
 .food-item { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
 .food-item-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .food-item-name { margin: 0; font-size: 14px; font-weight: 800; }
@@ -147,3 +147,8 @@ h1 { margin: 0; font-size: 28px; letter-spacing: -.7px; }
 .food-item-actions button { padding: 6px 10px; font-size: 11.5px; border-radius: 5px; }
 .food-item-image-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
 .food-item-image-input { flex: 1; min-width: 0; font-size: 11.5px; }
+.food-edit-modal { width: min(92vw, 34rem); max-height: min(85vh, 40rem); padding: 20px 20px 4px; border: none; border-radius: 10px; box-shadow: 0 24px 60px -20px rgba(24, 33, 43, .35); }
+.food-edit-modal::backdrop { background: rgba(24, 33, 43, .45); }
+.food-edit-modal[open] { display: flex; flex-direction: column; }
+.food-edit-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.food-edit-modal-header h3 { margin: 0; font-size: 15px; font-weight: 800; }
