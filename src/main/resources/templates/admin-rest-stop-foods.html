@@ -31,31 +31,8 @@
                         </div>
                         <p id="restStopFoodStatus" class="helper rest-stop-food-status" aria-live="polite"></p>
 
-                        <div class="form-section">
-                            <h3 class="form-section-title">새 메뉴 추가</h3>
-                            <form id="restStopFoodAddForm" th:data-csrf-header="${_csrf.headerName}">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <div class="field-grid">
-                                    <div class="field full">
-                                        <label class="field-label" for="restStopFoodAddName">메뉴명</label>
-                                        <input id="restStopFoodAddName" type="text" required>
-                                    </div>
-                                    <div class="field">
-                                        <label class="field-label" for="restStopFoodAddCost">가격</label>
-                                        <input id="restStopFoodAddCost" type="text">
-                                    </div>
-                                    <div class="field full">
-                                        <label class="field-label" for="restStopFoodAddDescription">설명</label>
-                                        <input id="restStopFoodAddDescription" type="text">
-                                    </div>
-                                </div>
-                                <div class="form-actions">
-                                    <p class="helper">메뉴를 추가한 뒤 목록에서 이미지를 등록할 수 있습니다.</p>
-                                    <div class="form-actions-buttons">
-                                        <button id="restStopFoodAddSubmit" class="primary" type="submit">메뉴 추가</button>
-                                    </div>
-                                </div>
-                            </form>
+                        <div class="form-section-actions">
+                            <button id="restStopFoodAddButton" class="primary" type="button" disabled>새 메뉴 추가</button>
                         </div>
 
                         <div id="restStopFoodListSection" hidden>
@@ -97,6 +74,37 @@
             <div class="form-actions-buttons">
                 <button id="restStopFoodEditClearOverride" class="secondary" type="button" hidden>동기화 해제</button>
                 <button id="restStopFoodEditSubmit" class="primary" type="submit">저장</button>
+            </div>
+        </div>
+    </form>
+</dialog>
+<dialog id="restStopFoodAddModal" class="food-edit-modal" aria-labelledby="restStopFoodAddModalTitle">
+    <div class="food-edit-modal-header">
+        <h3 id="restStopFoodAddModalTitle">새 메뉴 추가</h3>
+        <button id="restStopFoodAddModalClose" class="btn-close" type="button" aria-label="닫기">
+            <i aria-hidden="true">&times;</i>
+        </button>
+    </div>
+    <form id="restStopFoodAddForm" th:data-csrf-header="${_csrf.headerName}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <div class="field-grid">
+            <div class="field full">
+                <label class="field-label" for="restStopFoodAddName">메뉴명</label>
+                <input id="restStopFoodAddName" type="text" required>
+            </div>
+            <div class="field">
+                <label class="field-label" for="restStopFoodAddCost">가격</label>
+                <input id="restStopFoodAddCost" type="text">
+            </div>
+            <div class="field full">
+                <label class="field-label" for="restStopFoodAddDescription">설명</label>
+                <input id="restStopFoodAddDescription" type="text">
+            </div>
+        </div>
+        <div class="form-actions">
+            <p class="helper">메뉴를 추가한 뒤 목록에서 이미지를 등록할 수 있습니다.</p>
+            <div class="form-actions-buttons">
+                <button id="restStopFoodAddSubmit" class="primary" type="submit">메뉴 추가</button>
             </div>
         </div>
     </form>

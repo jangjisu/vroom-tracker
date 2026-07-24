@@ -4,11 +4,15 @@ import com.restroute.controller.request.AdminRestFoodRequest;
 import com.restroute.controller.response.AdminRestFoodResponse;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.RestFoodImageRepository;
 import com.restroute.repository.RestFoodRepository;
 import com.restroute.repository.RestStopRepository;
 import com.restroute.service.image.RestFoodNotFoundException;
 import com.restroute.service.image.RestStopNotFoundException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +23,19 @@ public class AdminRestFoodService {
 
     private final RestFoodRepository restFoodRepository;
     private final RestStopRepository restStopRepository;
+    private final RestFoodImageRepository restFoodImageRepository;
 
     @Transactional(readOnly = true)
     public List<AdminRestFoodResponse> findByServiceAreaCode(String serviceAreaCode) {
-        return restFoodRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc(serviceAreaCode).stream()
-                .map(AdminRestFoodResponse::from)
+        List<RestFoodEntity> foods = restFoodRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc(serviceAreaCode);
+        List<Long> ids = foods.stream()
+                .map(RestFoodEntity::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        Set<Long> withImage =
+                ids.isEmpty() ? new HashSet<>() : new HashSet<>(restFoodImageRepository.findAllFoodIdsIn(ids));
+        return foods.stream()
+                .map(food -> AdminRestFoodResponse.from(food, withImage.contains(food.getId())))
                 .toList();
     }
 
@@ -39,21 +51,22 @@ public class AdminRestFoodService {
                 request.foodName(),
                 request.foodCost(),
                 request.description());
-        return AdminRestFoodResponse.from(restFoodRepository.save(created));
+        RestFoodEntity saved = restFoodRepository.save(created);
+        return AdminRestFoodResponse.from(saved, hasImage(saved.getId()));
     }
 
     @Transactional
     public AdminRestFoodResponse update(String serviceAreaCode, Long foodId, AdminRestFoodRequest request) {
         RestFoodEntity entity = requireFood(serviceAreaCode, foodId);
         entity.applyAdminEdit(request.foodName(), request.foodCost(), request.description());
-        return AdminRestFoodResponse.from(entity);
+        return AdminRestFoodResponse.from(entity, hasImage(entity.getId()));
     }
 
     @Transactional
     public AdminRestFoodResponse clearOverride(String serviceAreaCode, Long foodId) {
         RestFoodEntity entity = requireFood(serviceAreaCode, foodId);
         entity.clearAdminOverride();
-        return AdminRestFoodResponse.from(entity);
+        return AdminRestFoodResponse.from(entity, hasImage(entity.getId()));
     }
 
     @Transactional
@@ -63,6 +76,10 @@ public class AdminRestFoodService {
             throw InvalidRestFoodEditException.forSyncedFoodDeletion(foodId);
         }
         restFoodRepository.delete(entity);
+    }
+
+    private boolean hasImage(Long foodId) {
+        return foodId != null && restFoodImageRepository.existsById(foodId);
     }
 
     private RestFoodEntity requireFood(String serviceAreaCode, Long foodId) {

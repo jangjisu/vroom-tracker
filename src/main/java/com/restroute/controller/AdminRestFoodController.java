@@ -5,10 +5,8 @@ import com.restroute.controller.request.AdminRestFoodRequest;
 import com.restroute.controller.response.AdminRestFoodResponse;
 import com.restroute.service.admin.AdminActivityLogService;
 import com.restroute.service.admin.AdminRestFoodService;
-import com.restroute.service.image.AdminRestFoodImageCommandService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,9 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,7 +24,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class AdminRestFoodController {
 
     private final AdminRestFoodService adminRestFoodService;
-    private final AdminRestFoodImageCommandService adminRestFoodImageCommandService;
     private final AdminActivityLogService adminActivityLogService;
 
     @GetMapping
@@ -71,25 +66,6 @@ public class AdminRestFoodController {
             @PathVariable String serviceAreaCode, @PathVariable Long foodId, Authentication authentication) {
         adminRestFoodService.delete(serviceAreaCode, foodId);
         adminActivityLogService.logCustomFoodDeleted(authentication, foodId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PutMapping(path = "/{foodId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> saveImage(
-            @PathVariable String serviceAreaCode,
-            @PathVariable Long foodId,
-            @RequestPart MultipartFile file,
-            Authentication authentication) {
-        adminRestFoodImageCommandService.save(serviceAreaCode, foodId, file);
-        adminActivityLogService.logCustomFoodImageSaved(authentication, foodId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{foodId}/image")
-    public ResponseEntity<Void> deleteImage(
-            @PathVariable String serviceAreaCode, @PathVariable Long foodId, Authentication authentication) {
-        adminRestFoodImageCommandService.delete(serviceAreaCode, foodId);
-        adminActivityLogService.logCustomFoodImageDeleted(authentication, foodId);
         return ResponseEntity.noContent().build();
     }
 }

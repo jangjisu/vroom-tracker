@@ -4,6 +4,7 @@ import {
     createAdminRestFood,
     deleteAdminRestFood,
     deleteAdminRestFoodImage,
+    fetchAdminRestFoodImage,
     fetchAdminRestFoods,
     saveAdminRestFoodImage,
     updateAdminRestFood
@@ -28,7 +29,8 @@ function csrfFrom(form) {
 export function initializeAdminRestFood(document, {
     fetchImpl = fetch,
     confirmImpl = globalThis.confirm,
-    onNotice = () => {}
+    onNotice = () => {},
+    urlApi = globalThis.URL
 } = {}) {
     const select = document.getElementById('restStopFoodSelect');
     const status = document.getElementById('restStopFoodStatus');
@@ -43,18 +45,22 @@ export function initializeAdminRestFood(document, {
     const editDescription = document.getElementById('restStopFoodEditDescription');
     const editSubmit = document.getElementById('restStopFoodEditSubmit');
     const editClearOverride = document.getElementById('restStopFoodEditClearOverride');
+    const addButton = document.getElementById('restStopFoodAddButton');
+    const addModal = document.getElementById('restStopFoodAddModal');
+    const addModalClose = document.getElementById('restStopFoodAddModalClose');
     const addForm = document.getElementById('restStopFoodAddForm');
     const addName = document.getElementById('restStopFoodAddName');
     const addCost = document.getElementById('restStopFoodAddCost');
     const addDescription = document.getElementById('restStopFoodAddDescription');
     if (!select || !status || !listSection || !list || !editModal || !editModalClose || !editForm
         || !editStateLabel || !editName || !editCost || !editDescription || !editSubmit || !editClearOverride
-        || !addForm || !addName || !addCost || !addDescription) {
+        || !addButton || !addModal || !addModalClose || !addForm || !addName || !addCost || !addDescription) {
         return;
     }
 
     let editingFoodId = null;
     let editingWasOverridden = false;
+    let activeImagePreviewUrls = [];
 
     function pageCsrf() {
         return csrfFrom(addForm);
@@ -74,9 +80,31 @@ export function initializeAdminRestFood(document, {
         editStateLabel.textContent = editingWasOverridden
             ? '관리자가 수정하여 자동 동기화에서 제외된 메뉴입니다.'
             : '동기화 중인 메뉴입니다. 저장하면 자동 동기화 대상에서 제외됩니다.';
-        editSubmit.textContent = editingWasOverridden ? '저장' : '동기화 잠금';
+        editSubmit.textContent = '저장';
         editClearOverride.hidden = !editingWasOverridden;
         editModal.showModal();
+    }
+
+    function revokeImagePreviews() {
+        activeImagePreviewUrls.forEach((url) => urlApi.revokeObjectURL(url));
+        activeImagePreviewUrls = [];
+    }
+
+    function appendImagePreview(imageRow, food) {
+        const preview = document.createElement('img');
+        preview.className = 'food-item-image-preview';
+        preview.alt = `${food.foodName} 이미지 미리보기`;
+        preview.hidden = true;
+        imageRow.appendChild(preview);
+        fetchAdminRestFoodImage(select.value, food.id, fetchImpl).then((result) => {
+            if (result.status !== 'success') {
+                return;
+            }
+            const url = urlApi.createObjectURL(result.blob);
+            activeImagePreviewUrls.push(url);
+            preview.src = url;
+            preview.hidden = false;
+        });
     }
 
     function createFoodItem(food) {
@@ -154,24 +182,31 @@ export function initializeAdminRestFood(document, {
                 return;
             }
             onNotice('메뉴 이미지를 저장했습니다.');
-        });
-        const imageDeleteButton = document.createElement('button');
-        imageDeleteButton.className = 'food-item-image-delete';
-        imageDeleteButton.type = 'button';
-        imageDeleteButton.textContent = '이미지 삭제';
-        imageDeleteButton.addEventListener('click', async () => {
-            if (!confirmImpl('등록된 메뉴 이미지를 삭제할까요?')) {
-                return;
-            }
-            const result = await deleteAdminRestFoodImage(select.value, food.id, pageCsrf(), fetchImpl);
-            if (result.status !== 'success') {
-                onNotice('메뉴 이미지 삭제에 실패했습니다.', 'error');
-                return;
-            }
-            onNotice('메뉴 이미지를 삭제했습니다.');
+            await loadFoods();
         });
         imageRow.appendChild(imageInput);
-        imageRow.appendChild(imageDeleteButton);
+
+        if (food.hasImage) {
+            appendImagePreview(imageRow, food);
+
+            const imageDeleteButton = document.createElement('button');
+            imageDeleteButton.className = 'food-item-image-delete';
+            imageDeleteButton.type = 'button';
+            imageDeleteButton.textContent = '이미지 삭제';
+            imageDeleteButton.addEventListener('click', async () => {
+                if (!confirmImpl('등록된 메뉴 이미지를 삭제할까요?')) {
+                    return;
+                }
+                const result = await deleteAdminRestFoodImage(select.value, food.id, pageCsrf(), fetchImpl);
+                if (result.status !== 'success') {
+                    onNotice('메뉴 이미지 삭제에 실패했습니다.', 'error');
+                    return;
+                }
+                onNotice('메뉴 이미지를 삭제했습니다.');
+                await loadFoods();
+            });
+            imageRow.appendChild(imageDeleteButton);
+        }
 
         item.appendChild(header);
         item.appendChild(meta);
@@ -181,6 +216,7 @@ export function initializeAdminRestFood(document, {
     }
 
     function renderFoodList(foods) {
+        revokeImagePreviews();
         if (foods.length === 0) {
             const empty = document.createElement('li');
             empty.className = 'food-list-empty';
@@ -195,6 +231,7 @@ export function initializeAdminRestFood(document, {
         const serviceAreaCode = select.value;
         listSection.hidden = true;
         status.textContent = '';
+        addButton.disabled = serviceAreaCode === '';
 
         if (serviceAreaCode === '') {
             return;
@@ -261,6 +298,9 @@ export function initializeAdminRestFood(document, {
         await loadFoods();
     });
 
+    addButton.addEventListener('click', () => addModal.showModal());
+    addModalClose.addEventListener('click', () => addModal.close());
+
     addForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const serviceAreaCode = select.value;
@@ -284,6 +324,7 @@ export function initializeAdminRestFood(document, {
             return;
         }
 
+        addModal.close();
         addName.value = '';
         addCost.value = '';
         addDescription.value = '';

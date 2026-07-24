@@ -139,3 +139,21 @@ export async function deleteAdminRestFoodImage(serviceAreaCode, foodId, csrf, fe
         return { status: 'error' };
     }
 }
+
+export async function fetchAdminRestFoodImage(serviceAreaCode, foodId, fetchImpl = fetch) {
+    try {
+        const response = await fetchImpl(imageEndpoint(serviceAreaCode, foodId));
+        if (response.status === 204) {
+            return { status: 'empty' };
+        }
+        if (response.status === 404) {
+            return { status: 'not-found' };
+        }
+        if (!response.ok) {
+            return { status: 'error' };
+        }
+        return { status: 'success', blob: await response.blob() };
+    } catch {
+        return { status: 'error' };
+    }
+}

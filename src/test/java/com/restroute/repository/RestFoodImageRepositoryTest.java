@@ -3,6 +3,8 @@ package com.restroute.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.restroute.domain.RestFoodImageEntity;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,5 +37,34 @@ class RestFoodImageRepositoryTest {
         restFoodImageRepository.deleteById(1L);
 
         assertThat(restFoodImageRepository.existsById(1L)).isFalse();
+    }
+
+    @Test
+    @DisplayName("조회 대상 id 중 실제로 이미지가 있는 id만 반환한다")
+    void findAllFoodIdsIn_returnsOnlyExistingIds() {
+        restFoodImageRepository.save(RestFoodImageEntity.of(1L, new byte[] {1}, new byte[] {2}));
+        restFoodImageRepository.save(RestFoodImageEntity.of(3L, new byte[] {1}, new byte[] {2}));
+
+        List<Long> found = restFoodImageRepository.findAllFoodIdsIn(List.of(1L, 2L, 3L));
+
+        assertThat(found).containsExactlyInAnyOrder(1L, 3L);
+    }
+
+    @Test
+    @DisplayName("foodId로 목록용 이미지 데이터를 조회한다")
+    void findListImageDataByFoodId_returnsStoredListImage() {
+        restFoodImageRepository.save(RestFoodImageEntity.of(1L, new byte[] {1, 2}, new byte[] {3, 4}));
+
+        Optional<byte[]> found = restFoodImageRepository.findListImageDataByFoodId(1L);
+
+        assertThat(found).contains(new byte[] {3, 4});
+    }
+
+    @Test
+    @DisplayName("이미지가 없는 foodId는 빈 값을 반환한다")
+    void findListImageDataByFoodId_returnsEmptyWhenMissing() {
+        Optional<byte[]> found = restFoodImageRepository.findListImageDataByFoodId(99L);
+
+        assertThat(found).isEmpty();
     }
 }

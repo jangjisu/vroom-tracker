@@ -6,6 +6,7 @@ import {
     createAdminRestFood,
     deleteAdminRestFood,
     deleteAdminRestFoodImage,
+    fetchAdminRestFoodImage,
     fetchAdminRestFoods,
     saveAdminRestFoodImage,
     updateAdminRestFood
@@ -141,4 +142,36 @@ test('deleteAdminRestFoodImage는 DELETE로 이미지를 삭제한다', async ()
     });
 
     assert.equal(result.status, 'success');
+});
+
+test('fetchAdminRestFoodImage는 이미지가 있으면 blob을 반환한다', async () => {
+    const blob = { size: 3 };
+    let requestedUrl;
+    const result = await fetchAdminRestFoodImage('A00001', 1, async (url) => {
+        requestedUrl = url;
+        return { status: 200, ok: true, blob: async () => blob };
+    });
+
+    assert.equal(requestedUrl, '/api/admin/rest-stops/A00001/foods/1/image');
+    assert.deepEqual(result, { status: 'success', blob });
+});
+
+test('fetchAdminRestFoodImage는 204면 empty 상태를 낸다', async () => {
+    const result = await fetchAdminRestFoodImage('A00001', 1, async () => ({ status: 204, ok: true }));
+
+    assert.equal(result.status, 'empty');
+});
+
+test('fetchAdminRestFoodImage는 404면 not-found 상태를 낸다', async () => {
+    const result = await fetchAdminRestFoodImage('A00001', 99, async () => ({ status: 404, ok: false }));
+
+    assert.equal(result.status, 'not-found');
+});
+
+test('fetchAdminRestFoodImage는 네트워크 실패 시 error 상태를 낸다', async () => {
+    const result = await fetchAdminRestFoodImage('A00001', 1, async () => {
+        throw new Error('down');
+    });
+
+    assert.equal(result.status, 'error');
 });

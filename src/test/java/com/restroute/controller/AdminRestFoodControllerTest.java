@@ -5,7 +5,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -18,7 +17,6 @@ import com.restroute.controller.response.AdminRestFoodResponse;
 import com.restroute.service.admin.AdminActivityLogService;
 import com.restroute.service.admin.AdminRestFoodService;
 import com.restroute.service.admin.InvalidRestFoodEditException;
-import com.restroute.service.image.AdminRestFoodImageCommandService;
 import com.restroute.service.image.RestFoodNotFoundException;
 import com.restroute.service.image.RestStopNotFoundException;
 import java.util.List;
@@ -29,7 +27,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,9 +39,6 @@ class AdminRestFoodControllerTest {
     private AdminRestFoodService adminRestFoodService;
 
     @Mock
-    private AdminRestFoodImageCommandService adminRestFoodImageCommandService;
-
-    @Mock
     private AdminActivityLogService adminActivityLogService;
 
     private MockMvc mockMvc;
@@ -53,8 +47,8 @@ class AdminRestFoodControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AdminRestFoodController(
-                        adminRestFoodService, adminRestFoodImageCommandService, adminActivityLogService))
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                        new AdminRestFoodController(adminRestFoodService, adminActivityLogService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -64,17 +58,22 @@ class AdminRestFoodControllerTest {
     }
 
     private AdminRestFoodResponse response(boolean overridden, boolean created) {
-        return new AdminRestFoodResponse(1L, "커스텀메뉴", "5000", "설명", overridden, created);
+        return response(overridden, created, false);
+    }
+
+    private AdminRestFoodResponse response(boolean overridden, boolean created, boolean hasImage) {
+        return new AdminRestFoodResponse(1L, "커스텀메뉴", "5000", "설명", overridden, created, hasImage);
     }
 
     @Test
     @DisplayName("GET .../foods는 휴게소의 전체 메뉴 목록을 반환한다")
     void findByServiceAreaCode_returnsOk() throws Exception {
-        when(adminRestFoodService.findByServiceAreaCode("A00001")).thenReturn(List.of(response(false, false)));
+        when(adminRestFoodService.findByServiceAreaCode("A00001")).thenReturn(List.of(response(false, false, true)));
 
         mockMvc.perform(get("/api/admin/rest-stops/A00001/foods"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].foodName").value("커스텀메뉴"));
+                .andExpect(jsonPath("$.data[0].foodName").value("커스텀메뉴"))
+                .andExpect(jsonPath("$.data[0].hasImage").value(true));
     }
 
     @Test
@@ -167,33 +166,5 @@ class AdminRestFoodControllerTest {
         mockMvc.perform(delete("/api/admin/rest-stops/A00001/foods/1").principal(authentication))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"));
-    }
-
-    @Test
-    @DisplayName("PUT .../foods/{foodId}/image는 이미지를 저장하고 204와 활동 로그를 남긴다")
-    void saveImage_returnsNoContentAndLogs() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "image.jpg", "image/jpeg", new byte[] {1});
-
-        mockMvc.perform(multipart("/api/admin/rest-stops/A00001/foods/1/image")
-                        .file(file)
-                        .principal(authentication)
-                        .with(request -> {
-                            request.setMethod("PUT");
-                            return request;
-                        }))
-                .andExpect(status().isNoContent());
-
-        verify(adminRestFoodImageCommandService).save("A00001", 1L, file);
-        verify(adminActivityLogService).logCustomFoodImageSaved(authentication, 1L);
-    }
-
-    @Test
-    @DisplayName("DELETE .../foods/{foodId}/image는 이미지를 삭제하고 204와 활동 로그를 남긴다")
-    void deleteImage_returnsNoContentAndLogs() throws Exception {
-        mockMvc.perform(delete("/api/admin/rest-stops/A00001/foods/1/image").principal(authentication))
-                .andExpect(status().isNoContent());
-
-        verify(adminRestFoodImageCommandService).delete("A00001", 1L);
-        verify(adminActivityLogService).logCustomFoodImageDeleted(authentication, 1L);
     }
 }

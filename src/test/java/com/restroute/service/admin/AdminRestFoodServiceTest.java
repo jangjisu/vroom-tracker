@@ -11,6 +11,7 @@ import com.restroute.controller.request.AdminRestFoodRequest;
 import com.restroute.controller.response.AdminRestFoodResponse;
 import com.restroute.domain.RestFoodEntity;
 import com.restroute.domain.RestStopEntity;
+import com.restroute.repository.RestFoodImageRepository;
 import com.restroute.repository.RestFoodRepository;
 import com.restroute.repository.RestStopRepository;
 import com.restroute.service.image.RestFoodNotFoundException;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class AdminRestFoodServiceTest {
@@ -33,11 +35,14 @@ class AdminRestFoodServiceTest {
     @Mock
     private RestStopRepository restStopRepository;
 
+    @Mock
+    private RestFoodImageRepository restFoodImageRepository;
+
     private AdminRestFoodService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminRestFoodService(restFoodRepository, restStopRepository);
+        service = new AdminRestFoodService(restFoodRepository, restStopRepository, restFoodImageRepository);
     }
 
     private AdminRestFoodRequest request() {
@@ -56,6 +61,22 @@ class AdminRestFoodServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).foodName()).isEqualTo("커스텀메뉴");
         assertThat(result.get(0).adminCreated()).isTrue();
+    }
+
+    @Test
+    @DisplayName("메뉴 목록 조회 시 이미지가 등록된 메뉴만 hasImage가 true다")
+    void findByServiceAreaCode_marksHasImageForMenusWithStoredImage() {
+        RestFoodEntity withImage = RestFoodEntity.createByAdmin("A00001", "000001", "이미지메뉴", "5000", "설명");
+        ReflectionTestUtils.setField(withImage, "id", 1L);
+        RestFoodEntity withoutImage = RestFoodEntity.createByAdmin("A00001", "000001", "이미지없는메뉴", "4000", "설명");
+        ReflectionTestUtils.setField(withoutImage, "id", 2L);
+        when(restFoodRepository.findAllByRestStopServiceAreaCodeOrderByIdAsc("A00001"))
+                .thenReturn(List.of(withImage, withoutImage));
+        when(restFoodImageRepository.findAllFoodIdsIn(List.of(1L, 2L))).thenReturn(List.of(1L));
+
+        List<AdminRestFoodResponse> result = service.findByServiceAreaCode("A00001");
+
+        assertThat(result).extracting(AdminRestFoodResponse::hasImage).containsExactly(true, false);
     }
 
     @Test
@@ -91,6 +112,20 @@ class AdminRestFoodServiceTest {
 
         assertThat(result.foodName()).isEqualTo("커스텀메뉴");
         assertThat(result.adminOverridden()).isTrue();
+    }
+
+    @Test
+    @DisplayName("이미지가 이미 등록된 메뉴를 수정하면 응답에 hasImage가 true로 반영된다")
+    void update_reflectsExistingImage() {
+        RestFoodEntity existing = RestFoodEntity.createByAdmin("A00001", "000001", "기존메뉴", "3000", "기존설명");
+        ReflectionTestUtils.setField(existing, "id", 1L);
+        when(restFoodRepository.findByIdAndRestStopServiceAreaCode(1L, "A00001"))
+                .thenReturn(Optional.of(existing));
+        when(restFoodImageRepository.existsById(1L)).thenReturn(true);
+
+        AdminRestFoodResponse result = service.update("A00001", 1L, request());
+
+        assertThat(result.hasImage()).isTrue();
     }
 
     @Test
