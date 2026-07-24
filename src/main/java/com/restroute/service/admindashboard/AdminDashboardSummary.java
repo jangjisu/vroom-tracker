@@ -1,8 +1,18 @@
 package com.restroute.service.admindashboard;
 
-public record AdminDashboardSummary(long restStopCount, String latestSalesRankingMonth, String lastSyncStatus) {
+import java.util.List;
 
-    public static AdminDashboardSummary of(long restStopCount, String latestSalesRankingMonth, String lastSyncStatus) {
-        return new AdminDashboardSummary(restStopCount, latestSalesRankingMonth, lastSyncStatus);
+public record AdminDashboardSummary(
+        long restStopCount,
+        String latestSalesRankingMonth,
+        String lastSyncStatus,
+        List<AdminActivityLogItemResponse> recentActivityLogs) {
+
+    public static AdminDashboardSummary of(
+            long restStopCount,
+            String latestSalesRankingMonth,
+            String lastSyncStatus,
+            List<AdminActivityLogItemResponse> recentActivityLogs) {
+        return new AdminDashboardSummary(restStopCount, latestSalesRankingMonth, lastSyncStatus, recentActivityLogs);
     }
 }

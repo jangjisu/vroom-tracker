@@ -3,10 +3,12 @@ package com.restroute.controller;
 import com.restroute.common.ApiResponse;
 import com.restroute.controller.request.AdminRestStopUpdateRequest;
 import com.restroute.controller.response.AdminRestStopEditableResponse;
+import com.restroute.service.admin.AdminActivityLogService;
 import com.restroute.service.admin.AdminRestStopEditService;
 import com.restroute.service.image.RestStopNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminRestStopEditController {
 
     private final AdminRestStopEditService editService;
+    private final AdminActivityLogService adminActivityLogService;
 
     @GetMapping("/{serviceAreaCode}/editable")
     public ResponseEntity<ApiResponse<AdminRestStopEditableResponse>> find(@PathVariable String serviceAreaCode) {
@@ -32,13 +35,19 @@ public class AdminRestStopEditController {
 
     @PutMapping("/{serviceAreaCode}/editable")
     public ResponseEntity<ApiResponse<AdminRestStopEditableResponse>> update(
-            @PathVariable String serviceAreaCode, @RequestBody AdminRestStopUpdateRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(editService.update(serviceAreaCode, request)));
+            @PathVariable String serviceAreaCode,
+            @RequestBody AdminRestStopUpdateRequest request,
+            Authentication authentication) {
+        AdminRestStopEditableResponse response = editService.update(serviceAreaCode, request);
+        adminActivityLogService.logRestStopEdited(authentication, response.unitName());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @DeleteMapping("/{serviceAreaCode}/editable/override")
     public ResponseEntity<ApiResponse<AdminRestStopEditableResponse>> clearOverride(
-            @PathVariable String serviceAreaCode) {
-        return ResponseEntity.ok(ApiResponse.success(editService.clearOverride(serviceAreaCode)));
+            @PathVariable String serviceAreaCode, Authentication authentication) {
+        AdminRestStopEditableResponse response = editService.clearOverride(serviceAreaCode);
+        adminActivityLogService.logRestStopOverrideCleared(authentication, response.unitName());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

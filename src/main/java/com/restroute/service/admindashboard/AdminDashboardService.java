@@ -3,6 +3,8 @@ package com.restroute.service.admindashboard;
 import com.restroute.repository.RestStopProductSalesRankRepository;
 import com.restroute.repository.RestStopRepository;
 import com.restroute.repository.RestStopStoreSalesRankRepository;
+import com.restroute.service.admin.AdminActivityLogService;
+import java.util.List;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ public class AdminDashboardService {
     private final RestStopRepository restStopRepository;
     private final RestStopProductSalesRankRepository productSalesRankRepository;
     private final RestStopStoreSalesRankRepository storeSalesRankRepository;
+    private final AdminActivityLogService adminActivityLogService;
 
     public AdminDashboardSummary getSummary() {
         long restStopCount = restStopRepository.count();
@@ -30,6 +33,9 @@ public class AdminDashboardService {
                 .filter(StringUtils::hasText)
                 .max(String::compareTo)
                 .orElse(null);
-        return AdminDashboardSummary.of(restStopCount, latestSalesRankingMonth, "준비중");
+        List<AdminActivityLogItemResponse> recentActivityLogs = adminActivityLogService.findRecent().stream()
+                .map(AdminActivityLogItemResponse::from)
+                .toList();
+        return AdminDashboardSummary.of(restStopCount, latestSalesRankingMonth, "준비중", recentActivityLogs);
     }
 }

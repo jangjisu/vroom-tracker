@@ -605,6 +605,10 @@ JPEG 또는 PNG 한 장을 보낸다. 서버는 상세용 1600px와 목록용 48
 관리자 인증과 CSRF 토큰이 필요한 삭제 API다. 이미지가 있거나 이미 없는 경우 모두 멱등적으로
 `204 No Content`를 반환하고, 휴게소 자체가 없으면 `404 Not Found`를 반환한다.
 
+### GET /api/admin/dashboard
+
+관리자 인증(`ROLE_ADMIN`)이 필요하다. 대시보드 요약(`restStopCount`, `latestSalesRankingMonth`, `lastSyncStatus`)과 함께 `recentActivityLogs` 목록을 반환한다. `recentActivityLogs`는 관리자 쓰기 작업(판매순위 업로드 2종, 전체 휴게소명 매핑, 휴게소 이미지 등록·삭제, 휴게소 정보 수정, 동기화 잠금 해제)이 성공할 때마다 기록되며, 각 항목은 `actor`(로그인 계정명), `message`(사람이 읽는 한 줄 설명), `occurredAt`(`yyyy-MM-dd HH:mm` 형식 문자열)로 구성된다. 최근 50건을 시각 내림차순으로 반환하며, 활동이 없으면 빈 배열이다.
+
 ### 관리자 휴게소 정보 편집 API
 
 관리자 인증(`ROLE_ADMIN`)이 필요한 API 3종으로, `rest_stop`/`rest_stop_detail`의 편집 대상 필드를 조회·저장·잠금해제한다. 응답은 `ApiResponse<AdminRestStopEditableResponse>` 형식이며 필드는 다음과 같다: `serviceAreaCode`, `unitCode`(읽기 전용), `unitName`, `routeNo`, `routeName`, `xValue`, `yValue`, `telNo`, `brand`, `routeCode`, `svarAddr`, `convenience`, `maintenanceYn`, `truckSaYn`, `adminOverridden`(동기화 잠금 여부).

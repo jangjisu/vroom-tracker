@@ -3,21 +3,54 @@ import test from 'node:test';
 
 import {
     attachAdminForms,
+    bindActivityModal,
     fetchAdminDashboard,
     handleRedirectNotice,
     renderDashboard,
     renderDashboardError
 } from '../../main/resources/static/js/admin-dashboard.js';
 
+function fakeElement(initial = {}) {
+    return {
+        textContent: '',
+        children: [],
+        handlers: {},
+        open: false,
+        appendChild(child) {
+            this.children.push(child);
+        },
+        replaceChildren(...children) {
+            this.children = children;
+        },
+        addEventListener(event, handler) {
+            this.handlers[event] = handler;
+        },
+        showModal() {
+            this.open = true;
+        },
+        close() {
+            this.open = false;
+        },
+        ...initial
+    };
+}
+
 function documentWithDashboardElements() {
     const elements = new Map([
-        ['restStopCount', { textContent: '' }],
-        ['latestSalesRankingMonth', { textContent: '' }],
-        ['lastSyncStatus', { textContent: '' }],
-        ['salesRankingMonthTag', { textContent: '' }]
+        ['restStopCount', fakeElement()],
+        ['latestSalesRankingMonth', fakeElement()],
+        ['lastSyncStatus', fakeElement()],
+        ['salesRankingMonthTag', fakeElement()],
+        ['adminActivityList', fakeElement()],
+        ['adminActivityModalList', fakeElement()],
+        ['adminActivityModal', fakeElement()],
+        ['showActivityNotice', fakeElement()],
+        ['adminActivityModalClose', fakeElement()]
     ]);
     return {
         getElementById: (id) => elements.get(id),
+        createElement: () => fakeElement(),
+        querySelectorAll: () => [],
         elements
     };
 }
@@ -72,6 +105,48 @@ test('shows a product upload success toast and removes redirect parameters', () 
     assert.equal(toast.textContent, '상품 판매순위 업로드가 완료되었습니다.');
     assert.match(toast.className, /is-success/);
     assert.equal(replacedUrl, '/admin');
+});
+
+test('renders up to 5 recent activity logs inline and clears the empty state', () => {
+    const document = documentWithDashboardElements();
+    const logs = Array.from({ length: 7 }, (_, index) => ({
+        actor: 'admin',
+        message: `작업 ${index + 1}`,
+        occurredAt: '2026-07-21 15:32'
+    }));
+
+    renderDashboard(document, { restStopCount: 1, latestSalesRankingMonth: '2026-06', recentActivityLogs: logs });
+
+    const list = document.elements.get('adminActivityList');
+    assert.equal(list.children.length, 5);
+});
+
+test('restores the empty-state message when there are no activity logs', () => {
+    const document = documentWithDashboardElements();
+
+    renderDashboard(document, { restStopCount: 0, latestSalesRankingMonth: null, recentActivityLogs: [] });
+
+    const list = document.elements.get('adminActivityList');
+    assert.equal(list.children.length, 1);
+    assert.equal(list.children[0].className, 'activity-empty');
+});
+
+test('전체 보기 클릭 시 모달에 전체 활동 로그를 렌더링하고 연다', async () => {
+    const document = documentWithDashboardElements();
+    const logs = Array.from({ length: 7 }, (_, index) => ({
+        actor: 'admin',
+        message: `작업 ${index + 1}`,
+        occurredAt: '2026-07-21 15:32'
+    }));
+
+    renderDashboard(document, { restStopCount: 1, recentActivityLogs: logs });
+    bindActivityModal(document);
+    document.elements.get('showActivityNotice').handlers.click();
+
+    const modal = document.elements.get('adminActivityModal');
+    const modalList = document.elements.get('adminActivityModalList');
+    assert.equal(modal.open, true);
+    assert.equal(modalList.children.length, 7);
 });
 
 test('shows the backfill loading overlay and locks the page while submitting', () => {
