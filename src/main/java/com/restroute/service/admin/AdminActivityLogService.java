@@ -20,6 +20,12 @@ public class AdminActivityLogService {
     private static final String IMAGE_DELETED_MESSAGE = "휴게소(%s) 이미지를 삭제했습니다.";
     private static final String EDITED_MESSAGE = "%s 정보를 수정했습니다.";
     private static final String OVERRIDE_CLEARED_MESSAGE = "%s의 동기화 잠금을 해제했습니다.";
+    private static final String CUSTOM_FOOD_ADDED_MESSAGE = "%s 메뉴를 추가했습니다.";
+    private static final String CUSTOM_FOOD_EDITED_MESSAGE = "%s 메뉴를 수정했습니다.";
+    private static final String CUSTOM_FOOD_OVERRIDE_CLEARED_MESSAGE = "%s 메뉴의 동기화 잠금을 해제했습니다.";
+    private static final String CUSTOM_FOOD_DELETED_MESSAGE = "메뉴(%d)를 삭제했습니다.";
+    private static final String CUSTOM_FOOD_IMAGE_SAVED_MESSAGE = "메뉴(%d) 이미지를 등록했습니다.";
+    private static final String CUSTOM_FOOD_IMAGE_DELETED_MESSAGE = "메뉴(%d) 이미지를 삭제했습니다.";
 
     private final AdminActivityLogRepository adminActivityLogRepository;
 
@@ -56,6 +62,36 @@ public class AdminActivityLogService {
     @Transactional
     public void logRestStopOverrideCleared(Authentication authentication, String unitName) {
         record(authentication, String.format(OVERRIDE_CLEARED_MESSAGE, unitName));
+    }
+
+    @Transactional
+    public void logCustomFoodAdded(Authentication authentication, String foodName) {
+        record(authentication, String.format(CUSTOM_FOOD_ADDED_MESSAGE, foodName));
+    }
+
+    @Transactional
+    public void logCustomFoodEdited(Authentication authentication, String foodName) {
+        record(authentication, String.format(CUSTOM_FOOD_EDITED_MESSAGE, foodName));
+    }
+
+    @Transactional
+    public void logCustomFoodOverrideCleared(Authentication authentication, String foodName) {
+        record(authentication, String.format(CUSTOM_FOOD_OVERRIDE_CLEARED_MESSAGE, foodName));
+    }
+
+    @Transactional
+    public void logCustomFoodDeleted(Authentication authentication, Long foodId) {
+        record(authentication, String.format(CUSTOM_FOOD_DELETED_MESSAGE, foodId));
+    }
+
+    @Transactional
+    public void logCustomFoodImageSaved(Authentication authentication, Long foodId) {
+        record(authentication, String.format(CUSTOM_FOOD_IMAGE_SAVED_MESSAGE, foodId));
+    }
+
+    @Transactional
+    public void logCustomFoodImageDeleted(Authentication authentication, Long foodId) {
+        record(authentication, String.format(CUSTOM_FOOD_IMAGE_DELETED_MESSAGE, foodId));
     }
 
     @Transactional(readOnly = true)

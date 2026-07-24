@@ -60,6 +60,18 @@ class AdminControllerTest {
     }
 
     @Test
+    @DisplayName("GET /admin/rest-stops/foods는 휴게소 음식 관리 템플릿을 반환한다")
+    void restStopFoods_returnsAdminRestStopFoodsView() {
+        AdminController controller = new AdminController(
+                mock(SalesRankingUploadService.class),
+                mock(RestStopServiceAreaCodeBackfillService.class),
+                mock(AdminDashboardService.class),
+                mock(AdminActivityLogService.class));
+
+        assertThat(controller.restStopFoods()).isEqualTo("admin-rest-stop-foods");
+    }
+
+    @Test
     @DisplayName("관리자 대시보드 API는 조회 요약을 반환한다")
     void dashboard_returnsSummary() {
         AdminDashboardSummary summary = new AdminDashboardSummary(203, "2026-06", "준비중", List.of());

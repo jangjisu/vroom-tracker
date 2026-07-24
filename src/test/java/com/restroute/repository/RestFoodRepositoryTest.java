@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.restroute.client.response.RestBestfoodItem;
 import com.restroute.domain.RestFoodEntity;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,21 @@ class RestFoodRepositoryTest {
         List<RestFoodEntity> result = restFoodRepository.findAllByStdRestCdOrderByIdAsc("999999");
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("id와 소속 휴게소 코드가 모두 일치해야 메뉴를 조회한다")
+    void findByIdAndRestStopServiceAreaCode_requiresBothIdAndServiceAreaCodeToMatch() throws Exception {
+        RestFoodEntity entity = RestFoodEntity.createByAdmin("A00001", "000001", "커스텀메뉴", "5000", "설명");
+        restFoodRepository.save(entity);
+
+        Optional<RestFoodEntity> match =
+                restFoodRepository.findByIdAndRestStopServiceAreaCode(entity.getId(), "A00001");
+        Optional<RestFoodEntity> mismatch =
+                restFoodRepository.findByIdAndRestStopServiceAreaCode(entity.getId(), "A99999");
+
+        assertThat(match).contains(entity);
+        assertThat(mismatch).isEmpty();
     }
 
     private RestFoodEntity foodEntity(String stdRestCd, String foodNm) throws Exception {

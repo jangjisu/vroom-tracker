@@ -39,6 +39,11 @@ public class AdminController {
         return "admin-rest-stop-edit";
     }
 
+    @GetMapping("/admin/rest-stops/foods")
+    public String restStopFoods() {
+        return "admin-rest-stop-foods";
+    }
+
     @GetMapping("/api/admin/dashboard")
     @ResponseBody
     public ApiResponse<AdminDashboardSummary> dashboard() {

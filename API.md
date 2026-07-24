@@ -625,6 +625,38 @@ JSON 바디로 편집 대상 필드 전체를 받아 저장한다. `rest_stop_de
 
 `admin_overridden`을 false로 되돌려 다음 자동 동기화부터 다시 갱신 대상이 되게 한다. `rest_stop` 또는 `rest_stop_detail` 행이 없으면 `404 Not Found`(저장을 한 번도 하지 않아 잠글 대상 자체가 없는 경우).
 
+### 관리자 휴게소 음식 메뉴 관리 API
+
+관리자 인증(`ROLE_ADMIN`)이 필요한 API로, `rest_food`의 메뉴를 조회·추가·수정·삭제하고 동기화 잠금을 해제하며, 메뉴별 이미지를 등록·삭제한다. 텍스트 응답은 `ApiResponse<AdminRestFoodResponse>`(또는 목록) 형식이며 필드는 다음과 같다: `id`, `foodName`, `foodCost`, `description`, `adminOverridden`(동기화 잠금 여부), `adminCreated`(관리자가 직접 추가한 메뉴인지 여부 — `seq`가 `ADMIN-`으로 시작하는지로 판단).
+
+#### GET /api/admin/rest-stops/{serviceAreaCode}/foods
+
+해당 휴게소의 전체 메뉴 목록을 반환한다(동기화 메뉴와 관리자 추가 메뉴를 구분 없이 함께 반환하며, 각 항목의 `adminOverridden`/`adminCreated`로 구분). 휴게소가 없으면 `404 Not Found`.
+
+#### POST /api/admin/rest-stops/{serviceAreaCode}/foods
+
+JSON 바디(`foodName`, `foodCost`, `description`)로 새 메뉴를 추가한다. 외부 API와 겹치지 않는 `seq`(`ADMIN-` + UUID)로 생성되며 `adminOverridden=true`로 시작한다. 휴게소가 없으면 `404 Not Found`.
+
+#### PUT /api/admin/rest-stops/{serviceAreaCode}/foods/{foodId}
+
+JSON 바디로 기존 메뉴(동기화 메뉴 포함) 값을 수정한다. 저장에 성공하면 `admin_overridden=true`로 바뀌어 이후 자동 동기화 대상에서 제외된다. 메뉴가 없으면 `404 Not Found`.
+
+#### DELETE /api/admin/rest-stops/{serviceAreaCode}/foods/{foodId}/override
+
+`admin_overridden`을 false로 되돌려 다음 자동 동기화부터 다시 갱신 대상이 되게 한다. 메뉴가 없으면 `404 Not Found`.
+
+#### DELETE /api/admin/rest-stops/{serviceAreaCode}/foods/{foodId}
+
+관리자가 직접 추가한 메뉴(`adminCreated=true`)만 삭제한다. 동기화 메뉴는 삭제해도 다음 동기화 때 외부 API에 남아 있으면 다시 생성되어 의미가 없으므로 삭제를 허용하지 않고 `400 Bad Request`(`INVALID_PARAMETER`)를 반환한다. 메뉴가 없으면 `404 Not Found`.
+
+#### PUT /api/admin/rest-stops/{serviceAreaCode}/foods/{foodId}/image
+
+`multipart/form-data`의 `file` 필드로 메뉴 이미지를 등록·교체한다. `rest_stop_image`와 동일한 변환 규칙(상세용 1600px·목록용 480px WebP)을 재사용하며, 성공 시 `204 No Content`를 반환한다. 이 이미지를 사용자 화면에 노출하는 공개 조회 API는 아직 없다. 메뉴가 없으면 `404 Not Found`.
+
+#### DELETE /api/admin/rest-stops/{serviceAreaCode}/foods/{foodId}/image
+
+등록된 메뉴 이미지를 삭제한다. 성공 시 `204 No Content`를 반환하고, 메뉴가 없으면 `404 Not Found`.
+
 ### POST /api/rest-stops/{serviceAreaCode}/oil-price/refresh
 
 특정 휴게소의 주유소 가격을 한국도로공사 `curStateStation` API에서 단건 조회해
